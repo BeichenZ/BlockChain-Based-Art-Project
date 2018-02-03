@@ -11,6 +11,9 @@ type Miner interface {
 }
 
 type MinerStruct struct {
-	neighbours []string
-	artNodes   []string
+	ServerAddr string
+	PublicKey  string
+	PrivKey    string
+	Neighbours []string
+	ArtNodes   []string
 }
