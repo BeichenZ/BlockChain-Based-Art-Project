@@ -13,3 +13,5 @@ type Miner interface {
 
 }
 
+
+

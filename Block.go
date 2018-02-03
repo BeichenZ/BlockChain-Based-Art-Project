@@ -8,7 +8,6 @@ type Block struct {
 
 }
 
-
 type Operation struct {
 	Command string
 	Shapetype string
@@ -16,9 +15,3 @@ type Operation struct {
 	Fill string
 	Stroke string
 }
-
-
-
-
-
-
