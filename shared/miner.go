@@ -14,6 +14,7 @@ type MinerStruct struct {
 	ServerAddr string
 	PublicKey  string
 	PrivKey    string
+	Threshold  int
 	Neighbours []string
 	ArtNodes   []string
 }

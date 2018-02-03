@@ -13,7 +13,14 @@ func main() {
 	privKey := os.Args[3]
 
 	inkMinerStruct := initializeMiner(servAddr, publicKey, privKey)
-	fmt.Printf("%+v", inkMinerStruct)
+	fmt.Println(inkMinerStruct)
+	// TODO register a miner node here, get back Neighbours info and threshold
+
+	// TODO start heartbeat to the server
+
+	if len(inkMinerStruct.Neighbours) > inkMinerStruct.Threshold {
+		// TODO start Mining for noop
+	}
 	return
 }
 
