@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"os"
 
@@ -19,11 +21,21 @@ func main() {
 	// TODO start heartbeat to the server
 
 	if len(inkMinerStruct.Neighbours) > inkMinerStruct.Threshold {
-		// TODO start Mining for noop
+		// TODO start Mining for no-op
+		// TODO break the mining loop once a secret is found
+		// TODO flood the network
 	}
+
 	return
 }
 
 func initializeMiner(servAddr string, publicKey string, privKey string) shared.MinerStruct {
 	return shared.MinerStruct{ServerAddr: servAddr, PublicKey: publicKey, PrivKey: privKey}
+}
+
+func computeNonceSecretHash(nonce string, secret string) string {
+	h := md5.New()
+	h.Write([]byte(nonce + secret))
+	str := hex.EncodeToString(h.Sum(nil))
+	return str
 }
