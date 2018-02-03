@@ -1,11 +1,9 @@
 package main
 
-
 type Block struct {
 	CurrentHash string
 	PreviousHash string
 	OPS []Operation
-
 }
 
 type Operation struct {
