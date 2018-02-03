@@ -1,4 +1,4 @@
-package main
+package shared
 
 type Miner interface {
 	Register(address string, publicKey string) (string, error)

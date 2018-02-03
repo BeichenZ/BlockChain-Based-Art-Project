@@ -1,9 +1,13 @@
-// TODO We start here
 package main
 
-import "fmt"
+import (
+	"fmt"
+
+	shared "./shared"
+)
 
 func main() {
-	inkMiner := MinerStruct{[], []}
-	fmt.Println(inkMiner)
+	inkMinerStruct := shared.MinerStruct{}
+	fmt.Println(inkMinerStruct)
+	return
 }
