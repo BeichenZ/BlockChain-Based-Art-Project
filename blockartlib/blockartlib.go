@@ -7,8 +7,12 @@ library (blockartlib) to be used in project 1 of UBC CS 416 2017W2.
 
 package blockartlib
 
-import "crypto/ecdsa"
-import "fmt"
+import (
+	"bytes"
+	"crypto/ecdsa"
+	"fmt"
+	"strings"
+)
 
 // Represents a type of shape in the BlockArt system.
 type ShapeType int
@@ -194,6 +198,41 @@ type Canvas interface {
 // - DisconnectedError
 func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, setting CanvasSettings, err error) {
 	// TODO
+
 	// For now return DisconnectedError
 	return nil, CanvasSettings{}, DisconnectedError("")
+}
+
+//Implementation of Canvas Interface
+type CanvasObject int
+
+func (t *CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
+	//Check for ShapeSvgStringTooLongError
+	if len(shapeSvgString) > 128 {
+		return "", "", 0, ShapeSvgStringTooLongError(shapeSvgString)
+	}
+	if !t.IsSvgStringValid(shapeSvgString) {
+		return "", "", 0, InvalidShapeSvgStringError(shapeSvgString)
+	}
+	if !t.IsSvgOutofBounds(shapeSvgString) {
+		return "", "", 0, OutOfBoundsError{}
+	}
+	return "", "", 0, nil
+}
+func (t *CanvasObject) IsSvgStringValid(shapeSvgString string) bool {
+	//To Be Implemented
+	availableCmds := []byte{77, 109, 86, 118, 72, 104, 76, 108, 90, 122} // MmVvLlZz
+	svgCharArray := []byte(strings.TrimSpace(shapeSvgString))
+
+	if !bytes.Contains(availableCmds, svgCharArray[0:0]) {
+		return false
+	} else {
+
+	}
+
+	return false
+}
+func (t *CanvasObject) IsSvgOutofBounds(shapeSvgString string) bool {
+	//To be Implemented
+	return false
 }
