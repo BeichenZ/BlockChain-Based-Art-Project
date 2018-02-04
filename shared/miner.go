@@ -31,12 +31,13 @@ func (m MinerStruct) HeartBeat(publicKey string) error {
 
 // Bare minimum flooding protocol, Miner will disseminate notification through the network
 func (m MinerStruct) Flood(visited *[]MinerStruct) {
-	// TODO maybe an rpc call here, to stop other miner from mining
+	// TODO stop myself from mining
 	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
+	// TODO what happense if node A calls flood, and before it can reach node B, node B calls flood?
 	validNeighbours := make([]MinerStruct, 0)
-	for _, m := range m.Neighbours {
-		if filter(m, visited) {
-			validNeighbours = append(validNeighbours, m)
+	for _, n := range m.Neighbours {
+		if filter(n, visited) {
+			validNeighbours = append(validNeighbours, n)
 		}
 	}
 	if len(validNeighbours) == 0 {
