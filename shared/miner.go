@@ -9,7 +9,7 @@ type Miner interface {
 
 	Mine(currentBlock Block, newOperation Operation) (string, error)
 
-	Flood(senders []MinerStruct) error
+	Flood(visited *[]MinerStruct) error
 }
 
 type MinerStruct struct {
@@ -30,22 +30,27 @@ func (m MinerStruct) HeartBeat(publicKey string) error {
 }
 
 // Bare minimum flooding protocol, Miner will disseminate notification through the network
-func (m MinerStruct) Flood(senders []MinerStruct) error {
+func (m MinerStruct) Flood(visited *[]MinerStruct) error {
 	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
+	// TODO maybe an rpc call here, to stop other miner from mining
 	nes := make([]MinerStruct, 0)
 	for _, m := range m.Neighbours {
-		if filter() {
+		if filter(m, visited) {
 			nes = append(nes, m)
 		}
 	}
-	senders = append(senders, m)
+	*visited = append(*visited, m)
 	for _, n := range nes {
-
-		n.Flood(senders)
+		n.Flood(visited)
 	}
 	return nil
 }
 
-func filter() bool {
-	return false
+func filter(m MinerStruct, visited *[]MinerStruct) bool {
+	for _, s := range *visited {
+		if s.PublicKey == m.PublicKey {
+			return false
+		}
+	}
+	return true
 }
