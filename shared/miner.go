@@ -30,20 +30,25 @@ func (m MinerStruct) HeartBeat(publicKey string) error {
 }
 
 // Bare minimum flooding protocol, Miner will disseminate notification through the network
-func (m MinerStruct) Flood(visited *[]MinerStruct) error {
-	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
+func (m MinerStruct) Flood(visited *[]MinerStruct) {
 	// TODO maybe an rpc call here, to stop other miner from mining
-	nes := make([]MinerStruct, 0)
+	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
+	validNeighbours := make([]MinerStruct, 0)
 	for _, m := range m.Neighbours {
 		if filter(m, visited) {
-			nes = append(nes, m)
+			validNeighbours = append(validNeighbours, m)
 		}
 	}
-	*visited = append(*visited, m)
-	for _, n := range nes {
+	if len(validNeighbours) == 0 {
+		return
+	}
+	for _, v := range validNeighbours {
+		*visited = append(*visited, v)
+	}
+	for _, n := range validNeighbours {
 		n.Flood(visited)
 	}
-	return nil
+	return
 }
 
 func filter(m MinerStruct, visited *[]MinerStruct) bool {
