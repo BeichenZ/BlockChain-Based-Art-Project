@@ -28,12 +28,12 @@ func main() {
 	// TODO register a miner node here, get back Neighbours info and threshold
 
 	// TODO start heartbeat to the server
-	inkMinerStruct.HeartBeat("changeThisLater")
+	// inkMinerStruct.HeartBeat("changeThisLater")
 	if len(inkMinerStruct.Neighbours) > inkMinerStruct.Threshold {
 		// TODO start Mining for no-op
 		mine("changeThisLater", guess, numberOfZeroes, zeroes)
 		// TODO flood the network
-		inkMinerStruct.Flood()
+		// inkMinerStruct.Flood()
 	}
 
 	return
