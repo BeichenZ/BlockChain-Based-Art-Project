@@ -231,7 +231,6 @@ func (a Addresses) Less(i, j int) bool { return a[i].String() < a[j].String() }
 // Returns:
 // - UnknownKeyError if the server does not know a miner with this publicKey.
 func (s *RServer) GetNodes(key ecdsa.PublicKey, addrSet *[]net.Addr) error {
-
 	// TODO: validate miner's GetNodes protocol? (could monitor state
 	// of network graph/connectivity and validate protocol FSM)
 
@@ -276,6 +275,7 @@ func (s *RServer) GetNodes(key ecdsa.PublicKey, addrSet *[]net.Addr) error {
 // Returns:
 // - UnknownKeyError if the server does not know a miner with this publicKey.
 func (s *RServer) HeartBeat(key ecdsa.PublicKey, _ignored *bool) error {
+	// fmt.Printf("%+v", key)
 	allMiners.Lock()
 	defer allMiners.Unlock()
 
@@ -283,7 +283,6 @@ func (s *RServer) HeartBeat(key ecdsa.PublicKey, _ignored *bool) error {
 	if _, ok := allMiners.all[k]; !ok {
 		return unknownKeyError
 	}
-
 	allMiners.all[k].RecentHeartbeat = time.Now().UnixNano()
 
 	return nil

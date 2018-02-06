@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/rpc"
 	"strconv"
+	"time"
 )
 
 type Miner interface {
@@ -16,7 +17,7 @@ type Miner interface {
 
 	GetNodes(publicKey ecdsa.PublicKey) ([]string, error)
 
-	HeartBeat(publicKey ecdsa.PublicKey) error
+	HeartBeat(publicKey ecdsa.PublicKey, interval uint32) error
 
 	Mine(newOperation Operation) (string, error)
 
@@ -78,7 +79,7 @@ type MinerNetSettings struct {
 }
 
 func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (MinerNetSettings, error) {
-
+	// fmt.Println("public key", publicKey)
 	client, error := rpc.Dial("tcp", address)
 	minerSettings := &MinerNetSettings{}
 	if error != nil {
@@ -98,6 +99,21 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 	err = client.Call("RServer.Register", minerInfo, minerSettings)
 
 	return *minerSettings, err
+}
+
+func (m MinerStruct) HeartBeat() error {
+	// fmt.Println("from m", m.PairKey.PublicKey)
+	ticker := time.NewTicker(time.Millisecond * time.Duration(m.Settings.HeartBeat))
+	var alive *bool
+	m.client.Call("RServer.HeartBeat", m.PairKey.PublicKey, alive)
+	go func() {
+		for range ticker.C {
+			m.client.Call("RServer.HeartBeat", m.PairKey.PublicKey, alive)
+		}
+	}()
+
+	// make a RPC call to the server
+	return nil
 }
 
 func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
@@ -120,11 +136,6 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 	go m.Flood(&visitedMiners)
 
 	return "", nil
-}
-
-func (m MinerStruct) HeartBeat(publicKey string) error {
-	// make a RPC call to the server
-	return nil
 }
 
 // Bare minimum flooding protocol, Miner will disseminate notification through the network

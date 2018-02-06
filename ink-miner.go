@@ -46,7 +46,10 @@ func main() {
 	go rpc.Accept(conn)
 
 	// TODO start heartbeat to the server
-	// inkMinerStruct.HeartBeat("changeThisLater")
+	heartBeatChannel := make(chan int)
+	go inkMinerStruct.HeartBeat()
+	<-heartBeatChannel
+	// time.Sleep(time.Second * time.Duration(inkMinerStruct.Settings.HeartBeat))
 	//if len(inkMinerStruct.Neighbours) > inkMinerStruct.Threshold {
 	//	// TODO start Mining for no-op
 	//	// TODO flood the network
