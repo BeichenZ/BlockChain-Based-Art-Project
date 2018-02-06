@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	shared "./shared"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -11,6 +10,8 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+
+	shared "./shared"
 )
 
 func main() {
@@ -30,10 +31,9 @@ func main() {
 		os.Exit(0)
 	}
 
-
 	inkMinerStruct.Settings = minerSettings
 
-	minerServer := &shared.MinerRPC{inkMinerStruct}
+	minerServer := &shared.MinerRPCStruct{inkMinerStruct}
 
 	conn, error := net.Listen("tcp", "127.0.0.1:0")
 

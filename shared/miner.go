@@ -1,14 +1,14 @@
 package shared
 
 import (
+	"bytes"
+	"crypto/ecdsa"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
-	"strconv"
-	"bytes"
-	"net/rpc"
-	"crypto/ecdsa"
 	"net"
+	"net/rpc"
+	"strconv"
 )
 
 type Miner interface {
@@ -23,19 +23,19 @@ type Miner interface {
 	CheckforNeighbours() bool
 
 	Flood(visited *[]MinerStruct) error
-}
-type MinerRPC struct {
-	Miner MinerStruct
+
+	// RPC methods of Miner
+	StopMining(miner MinerStruct, r *MinerStruct) error
 }
 
 type MinerStruct struct {
 	ServerAddr string
-	PairKey  ecdsa.PrivateKey
+	PairKey    ecdsa.PrivateKey
 	Threshold  int
 	Neighbours []MinerStruct
 	ArtNodes   []string
 	BlockChain []Block
-	client      *rpc.Client
+	client     *rpc.Client
 	Settings   MinerNetSettings
 }
 
@@ -77,8 +77,7 @@ type MinerNetSettings struct {
 	CanvasSettings CanvasSettings `json:"canvas-settings"`
 }
 
-
-func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (MinerNetSettings ,error) {
+func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (MinerNetSettings, error) {
 
 	client, error := rpc.Dial("tcp", address)
 	minerSettings := &MinerNetSettings{}
@@ -91,32 +90,28 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 	// RPC to server
 	minerAddress, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
 
-
-	if err != nil{
+	if err != nil {
 		return *minerSettings, err
 	}
 
-	minerInfo := &MinerInfo{minerAddress,  publicKey}
-	err = client.Call("RServer.Register",  minerInfo, minerSettings)
-
+	minerInfo := &MinerInfo{minerAddress, publicKey}
+	err = client.Call("RServer.Register", minerInfo, minerSettings)
 
 	return *minerSettings, err
 }
 
-
 func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
-
 
 	currentBlock := m.BlockChain[len(m.BlockChain)-1]
 	listOfOperation := currentBlock.GetStringOperations()
 
-	listOfOperation +=  newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
+	listOfOperation += newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
 
 	newHash := doProofOfWork(listOfOperation, 2)
 
 	newOperationsList := append(currentBlock.OPS, newOperation)
 
-	newBlock := Block{newHash, currentBlock.CurrentHash,  newOperationsList}
+	newBlock := Block{newHash, currentBlock.CurrentHash, newOperationsList}
 
 	m.BlockChain = append(m.BlockChain, newBlock)
 
@@ -126,8 +121,6 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 
 	return "", nil
 }
-
-
 
 func (m MinerStruct) HeartBeat(publicKey string) error {
 	// make a RPC call to the server
@@ -165,7 +158,6 @@ func filter(m MinerStruct, visited *[]MinerStruct) bool {
 	}
 	return true
 }
-
 
 func computeNonceSecretHash(nonce string, secret string) string {
 	h := md5.New()
