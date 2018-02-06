@@ -126,8 +126,9 @@ func readConfigOrDie(path string) {
 
 // Parses args, setups up RPC server.
 func main() {
-	gob.Register(&net.TCPAddr{})
 	gob.Register(&elliptic.CurveParams{})
+
+	gob.Register(&net.TCPAddr{})
 
 	path := flag.String("c", "", "Path to the JSON config")
 	flag.Parse()

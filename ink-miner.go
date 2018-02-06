@@ -1,64 +1,73 @@
 package main
 
 import (
-	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
-	"os"
-	"strconv"
 
 	shared "./shared"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"encoding/gob"
+	"net"
+	"net/rpc"
+	"os"
 )
 
 func main() {
-	servAddr := os.Args[1]
-	publicKey := os.Args[2]
-	privKey := os.Args[3]
-	numberOfZeroes := 3 //This will be change if server.go is online
-	guess := int64(0)   //This will be calculated
-	var zeroesBuffer bytes.Buffer
-	for i := int64(0); i < int64(numberOfZeroes); i++ {
-		zeroesBuffer.WriteString("0")
-	}
-	zeroes := zeroesBuffer.String()
+	servAddr := "127.0.0.1:12345"
+	gob.Register(&elliptic.CurveParams{})
+	gob.Register(&net.TCPAddr{})
 
-	inkMinerStruct := initializeMiner(servAddr, publicKey, privKey)
+	///
+	inkMinerStruct := initializeMiner(servAddr)
 	fmt.Println(inkMinerStruct)
+
 	// TODO register a miner node here, get back Neighbours info and threshold
+	minerSettings, error := inkMinerStruct.Register(servAddr, inkMinerStruct.PairKey.PublicKey)
+
+	if error != nil {
+		fmt.Println(error.Error())
+		os.Exit(0)
+	}
+
+
+	inkMinerStruct.Settings = minerSettings
+
+	minerServer := &shared.MinerRPC{inkMinerStruct}
+
+	conn, error := net.Listen("tcp", "127.0.0.1:0")
+
+	if error != nil {
+		fmt.Println(error.Error())
+		os.Exit(0)
+	}
+
+	rpc.Register(minerServer)
+	go rpc.Accept(conn)
 
 	// TODO start heartbeat to the server
 	// inkMinerStruct.HeartBeat("changeThisLater")
-	if len(inkMinerStruct.Neighbours) > inkMinerStruct.Threshold {
-		// TODO start Mining for no-op
-		mine("changeThisLater", guess, numberOfZeroes, zeroes)
-		// TODO flood the network
-		// inkMinerStruct.Flood()
-	}
+	//if len(inkMinerStruct.Neighbours) > inkMinerStruct.Threshold {
+	//	// TODO start Mining for no-op
+	//	// TODO flood the network
+	//	// inkMinerStruct.Flood()
+	//}
 
 	return
 }
 
-func initializeMiner(servAddr string, publicKey string, privKey string) shared.MinerStruct {
-	return shared.MinerStruct{ServerAddr: servAddr, PublicKey: publicKey, PrivKey: privKey}
-}
+//func startMiningForNoOp(miner shared.MinerStruct) {
+//
+//	noOperation := shared.Operation{"noOp", miner.PublicKey., 1, "", "", "" , ""}
+//
+//	for {
+//		miner.Mine(noOperation)
+//	}
+//}
 
-func computeNonceSecretHash(nonce string, secret string) string {
-	h := md5.New()
-	h.Write([]byte(nonce + secret))
-	str := hex.EncodeToString(h.Sum(nil))
-	fmt.Println(str)
-	return str
-}
+func initializeMiner(servAddr string) shared.MinerStruct {
 
-//this is a poor algorithm, feel free to change it
-func mine(nonce string, guess int64, numberOfZeroes int, zeroes string) string {
-	for {
-		guessString := strconv.FormatInt(guess, 10)
-		if computeNonceSecretHash(nonce, guessString)[32-numberOfZeroes:] == zeroes {
-			fmt.Println(guessString)
-			return guessString
-		}
-		guess++
-	}
+	minerKey, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+
+	return shared.MinerStruct{ServerAddr: servAddr, PairKey: *minerKey}
 }

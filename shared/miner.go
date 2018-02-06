@@ -1,31 +1,136 @@
 package shared
 
+import (
+	"crypto/md5"
+	"encoding/hex"
+	"fmt"
+	"strconv"
+	"bytes"
+	"net/rpc"
+	"crypto/ecdsa"
+	"net"
+)
+
 type Miner interface {
-	Register(address string, publicKey string) (string, error)
+	Register(address string, publicKey ecdsa.PublicKey) (*MinerNetSettings, error)
 
-	GetNodes(publicKey string) ([]string, error)
+	GetNodes(publicKey ecdsa.PublicKey) ([]string, error)
 
-	HeartBeat(publicKey string) error
+	HeartBeat(publicKey ecdsa.PublicKey) error
 
-	Mine(currentBlock Block, newOperation Operation) (string, error)
+	Mine(newOperation Operation) (string, error)
+
+	CheckforNeighbours() bool
 
 	Flood(visited *[]MinerStruct) error
+}
+type MinerRPC struct {
+	Miner MinerStruct
 }
 
 type MinerStruct struct {
 	ServerAddr string
-	PublicKey  string
-	PrivKey    string
+	PairKey  ecdsa.PrivateKey
 	Threshold  int
 	Neighbours []MinerStruct
 	ArtNodes   []string
+	BlockChain []Block
+	client      *rpc.Client
+	Settings   MinerNetSettings
 }
 
-func (m MinerStruct) Mine(currentBlock Block, newOperation Operation) (string, error) {
+type MinerInfo struct {
+	Address net.Addr
+	Key     ecdsa.PublicKey
+}
+
+type MinerSettings struct {
+	// Hash of the very first (empty) block in the chain.
+	GenesisBlockHash string `json:"genesis-block-hash"`
+
+	// The minimum number of ink miners that an ink miner should be
+	// connected to.
+	MinNumMinerConnections uint8 `json:"min-num-miner-connections"`
+
+	// Mining ink reward per op and no-op blocks (>= 1)
+	InkPerOpBlock   uint32 `json:"ink-per-op-block"`
+	InkPerNoOpBlock uint32 `json:"ink-per-no-op-block"`
+
+	// Number of milliseconds between heartbeat messages to the server.
+	HeartBeat uint32 `json:"heartbeat"`
+
+	// Proof of work difficulty: number of zeroes in prefix (>=0)
+	PoWDifficultyOpBlock   uint8 `json:"pow-difficulty-op-block"`
+	PoWDifficultyNoOpBlock uint8 `json:"pow-difficulty-no-op-block"`
+}
+type CanvasSettings struct {
+	// Canvas dimensions
+	CanvasXMax uint32 `json:"canvas-x-max"`
+	CanvasYMax uint32 `json:"canvas-y-max"`
+}
+
+// Settings for an instance of the BlockArt project/network.
+type MinerNetSettings struct {
+	MinerSettings
+
+	// Canvas settings
+	CanvasSettings CanvasSettings `json:"canvas-settings"`
+}
+
+
+func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (MinerNetSettings ,error) {
+
+	client, error := rpc.Dial("tcp", address)
+	minerSettings := &MinerNetSettings{}
+	if error != nil {
+		return *minerSettings, error
+	}
+
+	m.client = client
+
+	// RPC to server
+	minerAddress, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
+
+
+	if err != nil{
+		return *minerSettings, err
+	}
+
+	minerInfo := &MinerInfo{minerAddress,  publicKey}
+	err = client.Call("RServer.Register",  minerInfo, minerSettings)
+
+
+	return *minerSettings, err
+}
+
+
+func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
+
+
+	currentBlock := m.BlockChain[len(m.BlockChain)-1]
+	listOfOperation := currentBlock.GetStringOperations()
+
+	listOfOperation +=  newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
+
+	newHash := doProofOfWork(listOfOperation, 2)
+
+	newOperationsList := append(currentBlock.OPS, newOperation)
+
+	newBlock := Block{newHash, currentBlock.CurrentHash,  newOperationsList}
+
+	m.BlockChain = append(m.BlockChain, newBlock)
+
+	// update all its neighbours
+	visitedMiners := make([]MinerStruct, 0)
+	go m.Flood(&visitedMiners)
+
 	return "", nil
 }
 
+
+
 func (m MinerStruct) HeartBeat(publicKey string) error {
+	// make a RPC call to the server
 	return nil
 }
 
@@ -54,9 +159,46 @@ func (m MinerStruct) Flood(visited *[]MinerStruct) {
 
 func filter(m MinerStruct, visited *[]MinerStruct) bool {
 	for _, s := range *visited {
-		if s.PublicKey == m.PublicKey {
+		if s.PairKey == m.PairKey {
 			return false
 		}
 	}
 	return true
+}
+
+
+func computeNonceSecretHash(nonce string, secret string) string {
+	h := md5.New()
+	h.Write([]byte(nonce + secret))
+	str := hex.EncodeToString(h.Sum(nil))
+	fmt.Println(str)
+	return str
+}
+
+func doProofOfWork(nonce string, numberOfZeroes int) string {
+	i := int64(0)
+
+	var zeroesBuffer bytes.Buffer
+	for i := int64(0); i < int64(numberOfZeroes); i++ {
+		zeroesBuffer.WriteString("0")
+	}
+	zeroes := zeroesBuffer.String()
+	for {
+		guessString := strconv.FormatInt(i, 10)
+		if computeNonceSecretHash(nonce, guessString)[32-numberOfZeroes:] == zeroes {
+			fmt.Println(guessString)
+			return guessString
+		}
+		i++
+	}
+}
+
+func (m *MinerStruct) CheckforNeighbours() bool {
+	for {
+		if len(m.Neighbours) > m.Threshold {
+			return true
+		} else {
+			return false
+		}
+	}
 }
