@@ -21,7 +21,6 @@ func main() {
 
 	///
 	inkMinerStruct := initializeMiner(servAddr)
-	fmt.Println(inkMinerStruct)
 
 	// TODO register a miner node here, get back Neighbours info and threshold
 	minerSettings, error := inkMinerStruct.Register(servAddr, inkMinerStruct.PairKey.PublicKey)
@@ -47,7 +46,7 @@ func main() {
 
 	// TODO start heartbeat to the server
 	heartBeatChannel := make(chan int)
-	go inkMinerStruct.HeartBeat()
+	inkMinerStruct.HeartBeat()
 	<-heartBeatChannel
 	// time.Sleep(time.Second * time.Duration(inkMinerStruct.Settings.HeartBeat))
 	//if len(inkMinerStruct.Neighbours) > inkMinerStruct.Threshold {

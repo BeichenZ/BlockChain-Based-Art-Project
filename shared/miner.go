@@ -103,17 +103,23 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 
 func (m MinerStruct) HeartBeat() error {
 	// fmt.Println("from m", m.PairKey.PublicKey)
-	ticker := time.NewTicker(time.Millisecond * time.Duration(m.Settings.HeartBeat))
 	var alive *bool
+	ticker := time.NewTicker(time.Millisecond * time.Duration(500))
+
 	m.client.Call("RServer.HeartBeat", m.PairKey.PublicKey, alive)
 	go func() {
-		for range ticker.C {
+		for c := range ticker.C {
+			fmt.Println(c)
 			m.client.Call("RServer.HeartBeat", m.PairKey.PublicKey, alive)
 		}
 	}()
-
-	// make a RPC call to the server
 	return nil
+	// for {
+	// 	fmt.Println("ha")
+	// 	m.client.Call("RServer.HeartBeat", m.PairKey.PublicKey, alive)
+	// 	time.Sleep(time.Millisecond * 1000)
+	// }
+	// make a RPC call to the server
 }
 
 func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
