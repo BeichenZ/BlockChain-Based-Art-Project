@@ -85,7 +85,7 @@ func main() {
 
 	ipPort := flag.String("i", "", "RPC server ip:port")
 	startPort := flag.Int("p", 54320, "start port")
-	heartBeat := flag.Int("b", 10, "Heartbeat interval in ms")
+	heartBeat := flag.Int("b", 1000, "Heartbeat interval in ms")
 	flag.Parse()
 	if *ipPort == "" || *startPort <= 1024 || *heartBeat <= 0 {
 		flag.PrintDefaults()
@@ -124,28 +124,53 @@ func main() {
 	time.Sleep(twoHeartBeatIntervals)
 
 	// late heartbeat
-	err = c.Call("RServer.Register", MinerInfo{Address: addr1, Key: priv1.PublicKey}, &settings)
+	// err = c.Call("RServer.Register", MinerInfo{Address: addr1, Key: priv1.PublicKey}, &settings)
 	exitOnError(fmt.Sprintf("client registration for %s", addr1.String()), err)
 	time.Sleep(twoHeartBeatIntervals)
 	err = c.Call("RServer.HeartBeat", priv1.PublicKey, &_ignored)
-	if err == nil {
-		exitOnError("late heartbeat", ExpectedError)
-	}
+	// if err == nil {
+	// 	exitOnError("late heartbeat", ExpectedError)
+	// }
 
-	// register twice with same address
-	err = c.Call("RServer.Register", MinerInfo{Address: addr1, Key: priv1.PublicKey}, &settings)
-	exitOnError(fmt.Sprintf("client registration for %s", addr1.String()), err)
-	err = c.Call("RServer.Register", MinerInfo{Address: addr1, Key: priv2.PublicKey}, &settings)
-	if err == nil {
-		exitOnError("registering twice with the same address", ExpectedError)
-	}
 	time.Sleep(twoHeartBeatIntervals)
+	err = c.Call("RServer.HeartBeat", priv1.PublicKey, &_ignored)
 
-	// register twice with same key
-	err = c.Call("RServer.Register", MinerInfo{Address: addr1, Key: priv1.PublicKey}, &settings)
-	exitOnError(fmt.Sprintf("client registration for %s", addr1.String()), err)
-	err = c.Call("RServer.Register", MinerInfo{Address: addr2, Key: priv1.PublicKey}, &settings)
-	if err == nil {
-		exitOnError("registering twice with the same key", ExpectedError)
-	}
+	time.Sleep(twoHeartBeatIntervals)
+	err = c.Call("RServer.HeartBeat", priv1.PublicKey, &_ignored)
+
+	time.Sleep(twoHeartBeatIntervals)
+	err = c.Call("RServer.HeartBeat", priv1.PublicKey, &_ignored)
+
+	time.Sleep(twoHeartBeatIntervals)
+	err = c.Call("RServer.HeartBeat", priv1.PublicKey, &_ignored)
+
+	time.Sleep(twoHeartBeatIntervals)
+	err = c.Call("RServer.HeartBeat", priv1.PublicKey, &_ignored)
+
+	time.Sleep(twoHeartBeatIntervals)
+	err = c.Call("RServer.HeartBeat", priv1.PublicKey, &_ignored)
+
+	time.Sleep(twoHeartBeatIntervals)
+	err = c.Call("RServer.HeartBeat", priv1.PublicKey, &_ignored)
+	// if err == nil {
+	// 	exitOnError("late heartbeat", ExpectedError)
+	// }
+	//
+	//
+	// // register twice with same address
+	// err = c.Call("RServer.Register", MinerInfo{Address: addr1, Key: priv1.PublicKey}, &settings)
+	// exitOnError(fmt.Sprintf("client registration for %s", addr1.String()), err)
+	// err = c.Call("RServer.Register", MinerInfo{Address: addr1, Key: priv2.PublicKey}, &settings)
+	// if err == nil {
+	// 	exitOnError("registering twice with the same address", ExpectedError)
+	// }
+	// time.Sleep(twoHeartBeatIntervals)
+	//
+	// // register twice with same key
+	// err = c.Call("RServer.Register", MinerInfo{Address: addr1, Key: priv1.PublicKey}, &settings)
+	// exitOnError(fmt.Sprintf("client registration for %s", addr1.String()), err)
+	// err = c.Call("RServer.Register", MinerInfo{Address: addr2, Key: priv1.PublicKey}, &settings)
+	// if err == nil {
+	// 	exitOnError("registering twice with the same key", ExpectedError)
+	// }
 }

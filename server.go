@@ -167,8 +167,8 @@ type MinerInfo struct {
 func monitor(k string, heartBeatInterval time.Duration) {
 	for {
 		allMiners.Lock()
-		fmt.Println(time.Now().UnixNano() - allMiners.all[k].RecentHeartbeat)
-		fmt.Println(int64(heartBeatInterval))
+		// fmt.Println(time.Now().UnixNano() - allMiners.all[k].RecentHeartbeat)
+		// fmt.Println(int64(heartBeatInterval))
 		if time.Now().UnixNano()-allMiners.all[k].RecentHeartbeat > int64(heartBeatInterval) {
 			outLog.Printf("%s timed out\n", allMiners.all[k].Address.String())
 			delete(allMiners.all, k)
@@ -279,16 +279,15 @@ func (s *RServer) GetNodes(key ecdsa.PublicKey, addrSet *[]net.Addr) error {
 // Returns:
 // - UnknownKeyError if the server does not know a miner with this publicKey.
 func (s *RServer) HeartBeat(key ecdsa.PublicKey, _ignored *bool) error {
-	fmt.Println("heartbeat")
 	allMiners.Lock()
 	defer allMiners.Unlock()
 
 	k := pubKeyToString(key)
-	// if _, exists := allMiners.all[k]; exists {
-	// 	fmt.Println("it's there")
-	// } else {
-	// 	fmt.Println("not there")
-	// }
+	if _, exists := allMiners.all[k]; exists {
+		fmt.Println("it's there")
+	} else {
+		fmt.Println("not there")
+	}
 	if _, ok := allMiners.all[k]; !ok {
 		return unknownKeyError
 	}
