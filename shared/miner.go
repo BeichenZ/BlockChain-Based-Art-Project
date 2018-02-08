@@ -203,13 +203,3 @@ func (m *MinerStruct) CheckForNeighbour() {
 	}
 	m.Neighbours = listofNeighbourIP
 }
-
-// func (m *MinerStruct) CheckforNeighbours() bool {
-// 	for {
-// 		if len(m.Neighbours) > m.Threshold {
-// 			return true
-// 		} else {
-// 			return false
-// 		}
-// 	}
-// }
