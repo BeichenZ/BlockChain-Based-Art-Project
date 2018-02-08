@@ -36,16 +36,15 @@ func main() {
 
 	inkMinerStruct.Settings = minerSettings
 
-	minerServer := &shared.MinerRPCStruct{inkMinerStruct}
-
-	conn, error := net.Listen("tcp", "127.0.0.1:0")
+	minerServer := new(shared.MinerRPCServer)
+	rpc.Register(minerServer)
+	conn, error := net.Listen("tcp", minerAddr)
 
 	if error != nil {
 		fmt.Println(error.Error())
 		os.Exit(0)
 	}
 
-	rpc.Register(minerServer)
 	go rpc.Accept(conn)
 
 	// TODO start heartbeat to the server

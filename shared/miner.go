@@ -34,10 +34,10 @@ type MinerStruct struct {
 	MinerAddr  string
 	PairKey    ecdsa.PrivateKey
 	Threshold  int
-	Neighbours []net.Addr
+	Neighbours []MinerStruct
 	ArtNodes   []string
 	BlockChain []Block
-	client     *rpc.Client
+	Client     *rpc.Client
 	Settings   MinerNetSettings
 }
 
@@ -87,7 +87,7 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 		return *minerSettings, error
 	}
 
-	m.client = client
+	m.Client = client
 
 	// RPC to server
 	minerAddress, err := net.ResolveTCPAddr("tcp", m.MinerAddr)
@@ -106,7 +106,7 @@ func (m MinerStruct) HeartBeat() error {
 	alive := false
 
 	for {
-		error := m.client.Call("RServer.HeartBeat", m.PairKey.PublicKey, &alive)
+		error := m.Client.Call("RServer.HeartBeat", m.PairKey.PublicKey, &alive)
 		if error != nil {
 			fmt.Println(error)
 		}
@@ -129,38 +129,50 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 	// m.BlockChain = append(m.BlockChain, newBlock)
 
 	// update all its neighbours
-	// visitedMiners := make([]MinerStruct, 0)
-	// go m.Flood(&visitedMiners)
+	visitedMiners := make([]MinerStruct, 0)
+	m.Flood(&visitedMiners)
 
 	return "", nil
 }
 
 // Bare minimum flooding protocol, Miner will disseminate notification through the network
-// func (m MinerStruct) Flood(visited *[]MinerStruct) {
-// 	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
-// 	// TODO what happense if node A calls flood, and before it can reach node B, node B calls flood?
-// 	validNeighbours := make([]MinerStruct, 0)
-// 	for _, n := range m.Neighbours {
-// 		if filter(n, visited) {
-// 			validNeighbours = append(validNeighbours, n)
-// 		}
-// 	}
-// 	if len(validNeighbours) == 0 {
-// 		return
-// 	}
-// 	for _, v := range validNeighbours {
-// 		*visited = append(*visited, v)
-// 	}
-// 	for _, n := range validNeighbours {
-// 		// TODO maybe rpc here to stop Neighbours from mining
-// 		n.Flood(visited)
-// 	}
-// 	return
-// }
+func (m MinerStruct) Flood(visited *[]MinerStruct) {
+	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
+	// TODO what happense if node A calls flood, and before it can reach node B, node B calls flood?
+	validNeighbours := make([]MinerStruct, 0)
+	for _, n := range m.Neighbours {
+		if filter(n, visited) {
+			validNeighbours = append(validNeighbours, n)
+		}
+	}
+	if len(validNeighbours) == 0 {
+		return
+	}
+
+	for _, v := range validNeighbours {
+		*visited = append(*visited, v)
+	}
+	for _, n := range validNeighbours {
+		// TODO maybe rpc here to stop Neighbours from mining
+		client, error := rpc.Dial("tcp", n.MinerAddr)
+		if error != nil {
+			fmt.Println(error)
+		}
+
+		alive := false
+		fmt.Println("visiting miner: ", n.MinerAddr)
+		err := client.Call("MinerRPCServer.StopMining", "hi", &alive)
+		if err != nil {
+			fmt.Println(err)
+		}
+		n.Flood(visited)
+	}
+	return
+}
 
 func filter(m MinerStruct, visited *[]MinerStruct) bool {
 	for _, s := range *visited {
-		if s.PairKey == m.PairKey {
+		if s.MinerAddr == m.MinerAddr {
 			return false
 		}
 	}
@@ -200,10 +212,16 @@ func (m *MinerStruct) CheckForNeighbour() {
 	listofNeighbourIP := make([]net.Addr, 0)
 	// var listofNeighbourIP []net.Addr
 	for len(listofNeighbourIP) < int(m.Settings.MinNumMinerConnections) {
-		error := m.client.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
+		error := m.Client.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
 		if error != nil {
 			fmt.Println(error)
 		}
 	}
-	m.Neighbours = listofNeighbourIP
+
+	minerNeighbours := make([]MinerStruct, 0)
+	for _, m := range listofNeighbourIP {
+		fmt.Println(m.String())
+		minerNeighbours = append(minerNeighbours, MinerStruct{MinerAddr: m.String()})
+	}
+	m.Neighbours = minerNeighbours
 }
