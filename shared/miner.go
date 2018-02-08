@@ -89,7 +89,7 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 	m.client = client
 
 	// RPC to server
-	minerAddress, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0")
+	minerAddress, err := net.ResolveTCPAddr("tcp", "127.0.0.1:1")
 
 	if err != nil {
 		return *minerSettings, err
@@ -193,12 +193,25 @@ func doProofOfWork(nonce string, numberOfZeroes int) string {
 	}
 }
 
-func (m *MinerStruct) CheckforNeighbours() bool {
-	for {
-		if len(m.Neighbours) > m.Threshold {
-			return true
-		} else {
-			return false
+func (m *MinerStruct) CheckForNeighbour() {
+	listofNeighbourIP := make([]net.Addr, 0)
+	// var listofNeighbourIP []net.Addr
+	for len(listofNeighbourIP) < int(m.Settings.MinNumMinerConnections) {
+		fmt.Println("here")
+		error := m.client.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
+		if error != nil {
+			fmt.Println(error)
 		}
 	}
+	fmt.Println("reached")
 }
+
+// func (m *MinerStruct) CheckforNeighbours() bool {
+// 	for {
+// 		if len(m.Neighbours) > m.Threshold {
+// 			return true
+// 		} else {
+// 			return false
+// 		}
+// 	}
+// }

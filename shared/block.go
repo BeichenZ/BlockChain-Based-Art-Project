@@ -1,8 +1,7 @@
 package shared
 
-
 type BlockApi interface {
-	GetStringBlock() (string)
+	GetStringBlock() string
 }
 
 type Block struct {
@@ -10,6 +9,7 @@ type Block struct {
 	PreviousHash string
 	OPS          []Operation
 }
+
 func (b Block) GetStringOperations() string {
 	listOfOpeartionsString := b.CurrentHash + " \n "
 
@@ -19,11 +19,9 @@ func (b Block) GetStringOperations() string {
 		listOfOpeartionsString += operationString
 	}
 
-
 	return listOfOpeartionsString
 
 }
-
 
 type Operation struct {
 	Command        string
