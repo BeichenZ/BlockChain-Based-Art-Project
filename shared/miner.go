@@ -40,7 +40,7 @@ type MinerStruct struct {
 	Threshold     int
 	Neighbours    []MinerStruct
 	ArtNodes      []string
-	BlockChain    []Block
+	BlockChain    *Block
 	Client        *rpc.Client
 	Settings      MinerNetSettings
 	MiningStopSig chan bool
@@ -104,6 +104,12 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 	minerInfo := &MinerInfo{minerAddress, publicKey}
 	err = client.Call("RServer.Register", minerInfo, minerSettings)
 
+	if err != nil {
+		return *minerSettings, err
+	}
+
+	genesisBlock := Block{CurrentHash: minerSettings.GenesisBlockHash, Children: make([]*Block, 0)}
+	m.BlockChain = &genesisBlock
 	return *minerSettings, err
 }
 

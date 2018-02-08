@@ -8,6 +8,7 @@ type Block struct {
 	CurrentHash  string
 	PreviousHash string
 	OPS          []Operation
+	Children     []*Block
 }
 
 func (b Block) GetStringOperations() string {
