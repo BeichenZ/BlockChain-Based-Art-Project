@@ -33,7 +33,7 @@ type MinerStruct struct {
 	ServerAddr string
 	PairKey    ecdsa.PrivateKey
 	Threshold  int
-	Neighbours []MinerStruct
+	Neighbours []net.Addr
 	ArtNodes   []string
 	BlockChain []Block
 	client     *rpc.Client
@@ -114,19 +114,18 @@ func (m MinerStruct) HeartBeat() error {
 }
 
 func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
-
-	currentBlock := m.BlockChain[len(m.BlockChain)-1]
-	listOfOperation := currentBlock.GetStringOperations()
-
+	// currentBlock := m.BlockChain[len(m.BlockChain)-1]
+	// listOfOperation := currentBlock.GetStringOperations()
+	listOfOperation := ""
 	listOfOperation += newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
 
-	newHash := doProofOfWork(listOfOperation, 2)
-
-	newOperationsList := append(currentBlock.OPS, newOperation)
-
-	newBlock := Block{newHash, currentBlock.CurrentHash, newOperationsList}
-
-	m.BlockChain = append(m.BlockChain, newBlock)
+	newHash := doProofOfWork(listOfOperation, 4)
+	fmt.Println(newHash)
+	// newOperationsList := append(currentBlock.OPS, newOperation)
+	//
+	// newBlock := Block{newHash, currentBlock.CurrentHash, newOperationsList}
+	//
+	// m.BlockChain = append(m.BlockChain, newBlock)
 
 	// update all its neighbours
 	visitedMiners := make([]MinerStruct, 0)
@@ -197,13 +196,12 @@ func (m *MinerStruct) CheckForNeighbour() {
 	listofNeighbourIP := make([]net.Addr, 0)
 	// var listofNeighbourIP []net.Addr
 	for len(listofNeighbourIP) < int(m.Settings.MinNumMinerConnections) {
-		fmt.Println("here")
 		error := m.client.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
 		if error != nil {
 			fmt.Println(error)
 		}
 	}
-	fmt.Println("reached")
+	m.Neighbours = listofNeighbourIP
 }
 
 // func (m *MinerStruct) CheckforNeighbours() bool {
