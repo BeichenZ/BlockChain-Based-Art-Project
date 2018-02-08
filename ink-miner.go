@@ -66,18 +66,7 @@ func main() {
 	return
 }
 
-//func startMiningForNoOp(miner shared.MinerStruct) {
-//
-//	noOperation := shared.Operation{"noOp", miner.PublicKey., 1, "", "", "" , ""}
-//
-//	for {
-//		miner.Mine(noOperation)
-//	}
-//}
-
 func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
-
 	minerKey, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-
 	return shared.MinerStruct{ServerAddr: servAddr, MinerAddr: minerAddr, PairKey: *minerKey}
 }

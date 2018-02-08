@@ -153,7 +153,6 @@ func (m MinerStruct) Flood(visited *[]MinerStruct) {
 		*visited = append(*visited, v)
 	}
 	for _, n := range validNeighbours {
-		// TODO maybe rpc here to stop Neighbours from mining
 		client, error := rpc.Dial("tcp", n.MinerAddr)
 		if error != nil {
 			fmt.Println(error)
