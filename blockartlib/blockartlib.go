@@ -12,6 +12,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"strings"
+	"net/rpc"
 )
 
 // Represents a type of shape in the BlockArt system.
@@ -198,13 +199,31 @@ type Canvas interface {
 // - DisconnectedError
 func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, setting CanvasSettings, err error) {
 	// TODO
+	fmt.Print("OpenCanvas(): Going to connect to miner")
 
+	// 1. connect to Miner
+	art2MinerCon, err := rpc.Dial("tcp", minerAddr)
+	CheckError(err)
+	fmt.Println("Connected  to Miner")
+
+	// see if the Miner key matches the one you have
+	var reply bool
+	//err = art2MinerCon.Call("KeyCheck.ArtNodeKeyCheck", privKey, &reply)
+	Key := "test"
+	err = art2MinerCon.Call("KeyCheck.ArtNodeKeyCheck", Key, &reply)
+	CheckError(err)
+	if reply {
+		fmt.Println("ArtNode has same key as miner")
+	var thisCanvas Canvas
 	// For now return DisconnectedError
-	return nil, CanvasSettings{}, DisconnectedError("")
+	return thisCanvas, CanvasSettings{}, nil
+	} else { fmt.Println("ArtNode does not have same key as miner")
+		return nil, CanvasSettings{}, DisconnectedError("")  }
+ 	
 }
 
 //Implementation of Canvas Interface
-type CanvasObject int
+type CanvasObject int  
 
 func (t *CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
 	//Check for ShapeSvgStringTooLongError
@@ -235,4 +254,11 @@ func (t *CanvasObject) IsSvgStringValid(shapeSvgString string) bool {
 func (t *CanvasObject) IsSvgOutofBounds(shapeSvgString string) bool {
 	//To be Implemented
 	return false
+}
+
+// Additional Helper Functions
+func CheckError(err error) {
+	if err != nil {
+		fmt.Println("Error: ", err)
+	}
 }
