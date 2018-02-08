@@ -40,7 +40,7 @@ func main() {
 	inkMinerStruct.Settings = minerSettings
 
 	// RPC - Start rpc server on this ink miner
-	minerServer := new(shared.MinerRPCServer)
+	minerServer := &shared.MinerRPCServer{Miner: &inkMinerStruct}
 	rpc.Register(minerServer)
 	conn, error := net.Listen("tcp", minerAddr)
 
@@ -68,5 +68,6 @@ func main() {
 
 func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 	minerKey, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	return shared.MinerStruct{ServerAddr: servAddr, MinerAddr: minerAddr, PairKey: *minerKey}
+	killSig := make(chan bool)
+	return shared.MinerStruct{ServerAddr: servAddr, MinerAddr: minerAddr, PairKey: *minerKey, MiningStopSig: killSig}
 }

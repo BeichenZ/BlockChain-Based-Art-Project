@@ -12,6 +12,10 @@ import (
 	"time"
 )
 
+var (
+	globalStop = true
+)
+
 type Miner interface {
 	Register(address string, publicKey ecdsa.PublicKey) (*MinerNetSettings, error)
 
@@ -30,15 +34,16 @@ type Miner interface {
 }
 
 type MinerStruct struct {
-	ServerAddr string
-	MinerAddr  string
-	PairKey    ecdsa.PrivateKey
-	Threshold  int
-	Neighbours []MinerStruct
-	ArtNodes   []string
-	BlockChain []Block
-	Client     *rpc.Client
-	Settings   MinerNetSettings
+	ServerAddr    string
+	MinerAddr     string
+	PairKey       ecdsa.PrivateKey
+	Threshold     int
+	Neighbours    []MinerStruct
+	ArtNodes      []string
+	BlockChain    []Block
+	Client        *rpc.Client
+	Settings      MinerNetSettings
+	MiningStopSig chan bool
 }
 
 type MinerInfo struct {
@@ -194,17 +199,27 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int) 
 		zeroesBuffer.WriteString("0")
 	}
 	zeroes := zeroesBuffer.String()
+
 	for {
-		guessString := strconv.FormatInt(i, 10)
-		if computeNonceSecretHash(nonce, guessString)[32-numberOfZeroes:] == zeroes {
-			fmt.Println(guessString)
-			return guessString
+		select {
+		case <-m.MiningStopSig:
+			fmt.Println(m.MiningStopSig)
+			fmt.Println("I'm DONE")
+			return ""
+		default:
+			guessString := strconv.FormatInt(i, 10)
+			if computeNonceSecretHash(nonce, guessString)[32-numberOfZeroes:] == zeroes {
+				fmt.Println(guessString)
+				return guessString
+			}
+			i++
+			if m.MinerAddr[len(m.MinerAddr)-1:] == "8" {
+				time.Sleep(time.Millisecond * time.Duration(delay))
+			}
 		}
-		i++
-		if m.MinerAddr[len(m.MinerAddr)-1:] == "0" {
-			time.Sleep(time.Millisecond * time.Duration(delay))
-		}
+
 	}
+
 }
 
 func (m *MinerStruct) CheckForNeighbour() {
