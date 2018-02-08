@@ -217,9 +217,7 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int) 
 				time.Sleep(time.Millisecond * time.Duration(delay))
 			}
 		}
-
 	}
-
 }
 
 func (m *MinerStruct) CheckForNeighbour() {
