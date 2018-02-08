@@ -120,7 +120,7 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 	listOfOperation := ""
 	listOfOperation += newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
 
-	newHash := doProofOfWork(listOfOperation, 4)
+	newHash := doProofOfWork(m, listOfOperation, 4, 100)
 	fmt.Println(newHash)
 	// newOperationsList := append(currentBlock.OPS, newOperation)
 	//
@@ -175,7 +175,7 @@ func computeNonceSecretHash(nonce string, secret string) string {
 	return str
 }
 
-func doProofOfWork(nonce string, numberOfZeroes int) string {
+func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int) string {
 	i := int64(0)
 
 	var zeroesBuffer bytes.Buffer
@@ -190,6 +190,9 @@ func doProofOfWork(nonce string, numberOfZeroes int) string {
 			return guessString
 		}
 		i++
+		if m.MinerAddr[len(m.MinerAddr)-1:] == "0" {
+			time.Sleep(time.Millisecond * time.Duration(delay))
+		}
 	}
 }
 

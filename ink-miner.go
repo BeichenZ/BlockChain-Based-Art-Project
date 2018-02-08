@@ -57,14 +57,6 @@ func main() {
 	OP := shared.Operation{Command: "no-op"}
 	inkMinerStruct.Mine(OP)
 
-	// Command        string
-	// UserSignature  string
-	// AmountOfInk    int
-	// Shapetype      string
-	// ShapeSvgString string
-	// Fill           string
-	// Stroke         string
-
 	return
 }
 
