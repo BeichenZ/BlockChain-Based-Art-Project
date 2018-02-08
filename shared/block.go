@@ -5,23 +5,30 @@ type BlockApi interface {
 }
 
 type Block struct {
-	CurrentHash  string
-	PreviousHash string
-	OPS          []Operation
-	Children     []*Block
+	CurrentHash       string
+	PreviousHash      string
+	LocalOPs          []Operation
+	Children          []*Block
+	Parent            *Block
+	DistanceToGenesis int
 }
 
-func (b Block) GetStringOperations() string {
-	listOfOpeartionsString := b.CurrentHash + " \n "
+func (b Block) GetNonce() string {
+	nonce := b.CurrentHash + " \n "
 
-	for _, operation := range b.OPS {
+	for _, operation := range b.LocalOPs {
 		operationString := operation.Command + "," + operation.Shapetype + " by " + operation.UserSignature + " \n "
 
-		listOfOpeartionsString += operationString
+		nonce += operationString
 	}
 
-	return listOfOpeartionsString
+	return nonce
 
+}
+
+func (b Block) UpdateDistanceToGenesis() {
+	//assume only one longest chain for now
+	b.DistanceToGenesis = b.Parent.DistanceToGenesis + 1
 }
 
 type Operation struct {

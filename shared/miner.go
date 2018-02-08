@@ -43,7 +43,8 @@ type MinerStruct struct {
 	BlockChain    *Block
 	Client        *rpc.Client
 	Settings      MinerNetSettings
-	MiningStopSig chan bool
+	MiningStopSig chan *Block
+	LeafNodesMap  map[string]*Block
 }
 
 type MinerInfo struct {
@@ -84,6 +85,22 @@ type MinerNetSettings struct {
 	CanvasSettings CanvasSettings `json:"canvas-settings"`
 }
 
+func (m *MinerStruct) FindtheLeadingBlock() []*Block {
+
+	var maxBlock *Block
+	localMax := -1
+	for _, v := range m.LeafNodesMap {
+		if v.DistanceToGenesis > localMax {
+			fmt.Println("Finding the leading block: The hash is" + v.CurrentHash)
+			localMax = v.DistanceToGenesis
+			maxBlock = v
+		}
+	}
+
+	thing := []*Block{maxBlock}
+	return thing
+}
+
 func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (MinerNetSettings, error) {
 	// fmt.Println("public key", publicKey)
 	client, error := rpc.Dial("tcp", address)
@@ -110,6 +127,7 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 
 	genesisBlock := Block{CurrentHash: minerSettings.GenesisBlockHash, Children: make([]*Block, 0)}
 	m.BlockChain = &genesisBlock
+	m.LeafNodesMap[genesisBlock.CurrentHash] = &genesisBlock
 	return *minerSettings, err
 }
 
@@ -128,11 +146,18 @@ func (m MinerStruct) HeartBeat() error {
 func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 	// currentBlock := m.BlockChain[len(m.BlockChain)-1]
 	// listOfOperation := currentBlock.GetStringOperations()
-	listOfOperation := ""
-	listOfOperation += newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
 
-	newHash := doProofOfWork(m, listOfOperation, 4, 100)
-	fmt.Println(newHash)
+	leadingBlock := m.FindtheLeadingBlock()[0]
+	fmt.Println(leadingBlock)
+	nonce := leadingBlock.GetNonce()
+	nonce += newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
+
+	newBlock := doProofOfWork(m, nonce, 4, 100, newOperation, leadingBlock)
+	leadingBlock.Children = append(leadingBlock.Children, newBlock)
+	// TODO maybe validate block here
+	anotherBlock := m.FindtheLeadingBlock()[0]
+	fmt.Println(anotherBlock)
+
 	// newOperationsList := append(currentBlock.OPS, newOperation)
 	//
 	// newBlock := Block{newHash, currentBlock.CurrentHash, newOperationsList}
@@ -140,14 +165,12 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 	// m.BlockChain = append(m.BlockChain, newBlock)
 
 	// update all its neighbours
-	visitedMiners := make([]MinerStruct, 0)
-	m.Flood(&visitedMiners)
 
 	return "", nil
 }
 
 // Bare minimum flooding protocol, Miner will disseminate notification through the network
-func (m MinerStruct) Flood(visited *[]MinerStruct) {
+func (m MinerStruct) Flood(newBlock *Block, visited *[]MinerStruct) {
 	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
 	// TODO what happense if node A calls flood, and before it can reach node B, node B calls flood?
 	validNeighbours := make([]MinerStruct, 0)
@@ -171,11 +194,11 @@ func (m MinerStruct) Flood(visited *[]MinerStruct) {
 
 		alive := false
 		fmt.Println("visiting miner: ", n.MinerAddr)
-		err := client.Call("MinerRPCServer.StopMining", "stop", &alive)
+		err := client.Call("MinerRPCServer.StopMining", newBlock, &alive)
 		if err != nil {
 			fmt.Println(err)
 		}
-		n.Flood(visited)
+		n.Flood(newBlock, visited)
 	}
 	return
 }
@@ -197,7 +220,7 @@ func computeNonceSecretHash(nonce string, secret string) string {
 	return str
 }
 
-func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int) string {
+func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, newOP Operation, leadingBlock *Block) *Block {
 	i := int64(0)
 
 	var zeroesBuffer bytes.Buffer
@@ -208,15 +231,17 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int) 
 
 	for {
 		select {
-		case <-m.MiningStopSig:
-			fmt.Println(m.MiningStopSig)
-			fmt.Println("I'm DONE")
-			return ""
+		case recievedBlock := <-m.MiningStopSig:
+			delete(m.LeafNodesMap, leadingBlock.CurrentHash)
+			m.LeafNodesMap[recievedBlock.CurrentHash] = recievedBlock
+			return recievedBlock
 		default:
 			guessString := strconv.FormatInt(i, 10)
-			if computeNonceSecretHash(nonce, guessString)[32-numberOfZeroes:] == zeroes {
+
+			hash := computeNonceSecretHash(nonce, guessString)
+			if hash[32-numberOfZeroes:] == zeroes {
 				fmt.Println(guessString)
-				return guessString
+				return m.produceBlock(hash, newOP, leadingBlock)
 			}
 			i++
 			if m.MinerAddr[len(m.MinerAddr)-1:] == "8" {
@@ -224,6 +249,24 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int) 
 			}
 		}
 	}
+}
+
+func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingBlock *Block) *Block {
+	// visitedMiners := make([]MinerStruct, 0)
+	visitedMiners := []MinerStruct{*m}
+	/// Find the leading block
+	LocalOPs := []Operation{newOP}
+	producedBlock := &Block{CurrentHash: currentHash,
+		PreviousHash:      leadingBlock.CurrentHash,
+		LocalOPs:          LocalOPs,
+		Children:          make([]*Block, 0),
+		Parent:            leadingBlock,
+		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1}
+	m.Flood(producedBlock, &visitedMiners)
+
+	delete(m.LeafNodesMap, leadingBlock.CurrentHash)
+	m.LeafNodesMap[producedBlock.CurrentHash] = producedBlock
+	return producedBlock
 }
 
 func (m *MinerStruct) CheckForNeighbour() {
