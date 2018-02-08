@@ -12,6 +12,10 @@ import (
 	"time"
 )
 
+var (
+	globalStop = true
+)
+
 type Miner interface {
 	Register(address string, publicKey ecdsa.PublicKey) (*MinerNetSettings, error)
 
@@ -30,15 +34,16 @@ type Miner interface {
 }
 
 type MinerStruct struct {
-	ServerAddr string
-	MinerAddr  string
-	PairKey    ecdsa.PrivateKey
-	Threshold  int
-	Neighbours []net.Addr
-	ArtNodes   []string
-	BlockChain []Block
-	client     *rpc.Client
-	Settings   MinerNetSettings
+	ServerAddr    string
+	MinerAddr     string
+	PairKey       ecdsa.PrivateKey
+	Threshold     int
+	Neighbours    []MinerStruct
+	ArtNodes      []string
+	BlockChain    []Block
+	Client        *rpc.Client
+	Settings      MinerNetSettings
+	MiningStopSig chan bool
 }
 
 type MinerInfo struct {
@@ -87,7 +92,7 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 		return *minerSettings, error
 	}
 
-	m.client = client
+	m.Client = client
 
 	// RPC to server
 	minerAddress, err := net.ResolveTCPAddr("tcp", m.MinerAddr)
@@ -106,7 +111,7 @@ func (m MinerStruct) HeartBeat() error {
 	alive := false
 
 	for {
-		error := m.client.Call("RServer.HeartBeat", m.PairKey.PublicKey, &alive)
+		error := m.Client.Call("RServer.HeartBeat", m.PairKey.PublicKey, &alive)
 		if error != nil {
 			fmt.Println(error)
 		}
@@ -120,7 +125,7 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 	listOfOperation := ""
 	listOfOperation += newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
 
-	newHash := doProofOfWork(listOfOperation, 4)
+	newHash := doProofOfWork(m, listOfOperation, 4, 100)
 	fmt.Println(newHash)
 	// newOperationsList := append(currentBlock.OPS, newOperation)
 	//
@@ -129,38 +134,49 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 	// m.BlockChain = append(m.BlockChain, newBlock)
 
 	// update all its neighbours
-	// visitedMiners := make([]MinerStruct, 0)
-	// go m.Flood(&visitedMiners)
+	visitedMiners := make([]MinerStruct, 0)
+	m.Flood(&visitedMiners)
 
 	return "", nil
 }
 
 // Bare minimum flooding protocol, Miner will disseminate notification through the network
-// func (m MinerStruct) Flood(visited *[]MinerStruct) {
-// 	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
-// 	// TODO what happense if node A calls flood, and before it can reach node B, node B calls flood?
-// 	validNeighbours := make([]MinerStruct, 0)
-// 	for _, n := range m.Neighbours {
-// 		if filter(n, visited) {
-// 			validNeighbours = append(validNeighbours, n)
-// 		}
-// 	}
-// 	if len(validNeighbours) == 0 {
-// 		return
-// 	}
-// 	for _, v := range validNeighbours {
-// 		*visited = append(*visited, v)
-// 	}
-// 	for _, n := range validNeighbours {
-// 		// TODO maybe rpc here to stop Neighbours from mining
-// 		n.Flood(visited)
-// 	}
-// 	return
-// }
+func (m MinerStruct) Flood(visited *[]MinerStruct) {
+	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
+	// TODO what happense if node A calls flood, and before it can reach node B, node B calls flood?
+	validNeighbours := make([]MinerStruct, 0)
+	for _, n := range m.Neighbours {
+		if filter(n, visited) {
+			validNeighbours = append(validNeighbours, n)
+		}
+	}
+	if len(validNeighbours) == 0 {
+		return
+	}
+
+	for _, v := range validNeighbours {
+		*visited = append(*visited, v)
+	}
+	for _, n := range validNeighbours {
+		client, error := rpc.Dial("tcp", n.MinerAddr)
+		if error != nil {
+			fmt.Println(error)
+		}
+
+		alive := false
+		fmt.Println("visiting miner: ", n.MinerAddr)
+		err := client.Call("MinerRPCServer.StopMining", "stop", &alive)
+		if err != nil {
+			fmt.Println(err)
+		}
+		n.Flood(visited)
+	}
+	return
+}
 
 func filter(m MinerStruct, visited *[]MinerStruct) bool {
 	for _, s := range *visited {
-		if s.PairKey == m.PairKey {
+		if s.MinerAddr == m.MinerAddr {
 			return false
 		}
 	}
@@ -175,7 +191,7 @@ func computeNonceSecretHash(nonce string, secret string) string {
 	return str
 }
 
-func doProofOfWork(nonce string, numberOfZeroes int) string {
+func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int) string {
 	i := int64(0)
 
 	var zeroesBuffer bytes.Buffer
@@ -183,13 +199,24 @@ func doProofOfWork(nonce string, numberOfZeroes int) string {
 		zeroesBuffer.WriteString("0")
 	}
 	zeroes := zeroesBuffer.String()
+
 	for {
-		guessString := strconv.FormatInt(i, 10)
-		if computeNonceSecretHash(nonce, guessString)[32-numberOfZeroes:] == zeroes {
-			fmt.Println(guessString)
-			return guessString
+		select {
+		case <-m.MiningStopSig:
+			fmt.Println(m.MiningStopSig)
+			fmt.Println("I'm DONE")
+			return ""
+		default:
+			guessString := strconv.FormatInt(i, 10)
+			if computeNonceSecretHash(nonce, guessString)[32-numberOfZeroes:] == zeroes {
+				fmt.Println(guessString)
+				return guessString
+			}
+			i++
+			if m.MinerAddr[len(m.MinerAddr)-1:] == "8" {
+				time.Sleep(time.Millisecond * time.Duration(delay))
+			}
 		}
-		i++
 	}
 }
 
@@ -197,10 +224,16 @@ func (m *MinerStruct) CheckForNeighbour() {
 	listofNeighbourIP := make([]net.Addr, 0)
 	// var listofNeighbourIP []net.Addr
 	for len(listofNeighbourIP) < int(m.Settings.MinNumMinerConnections) {
-		error := m.client.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
+		error := m.Client.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
 		if error != nil {
 			fmt.Println(error)
 		}
 	}
-	m.Neighbours = listofNeighbourIP
+
+	minerNeighbours := make([]MinerStruct, 0)
+	for _, m := range listofNeighbourIP {
+		fmt.Println(m.String())
+		minerNeighbours = append(minerNeighbours, MinerStruct{MinerAddr: m.String()})
+	}
+	m.Neighbours = minerNeighbours
 }

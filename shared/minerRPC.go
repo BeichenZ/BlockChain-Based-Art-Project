@@ -1,10 +1,13 @@
 package shared
 
-type MinerRPCStruct struct {
-	Miner MinerStruct
+import "fmt"
+
+type MinerRPCServer struct {
+	Miner *MinerStruct
 }
 
-func (m *MinerRPCStruct) StopMining(miner MinerStruct, r *MinerStruct) error {
-	// TODO called inside the flooding protocol, stop this miner from Mining
+func (m *MinerRPCServer) StopMining(s string, alive *bool) error {
+	fmt.Println(s)
+	m.Miner.MiningStopSig <- true
 	return nil
 }

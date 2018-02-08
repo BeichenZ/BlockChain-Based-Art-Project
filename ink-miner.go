@@ -1,12 +1,12 @@
 package main
 
 import (
-	"flag"
-	"fmt"
-	"encoding/gob"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/gob"
+	"flag"
+	"fmt"
 	"net"
 	"net/rpc"
 	"os"
@@ -14,97 +14,72 @@ import (
 	shared "./shared"
 	//am "./artminerlib"
 )
+
 var globalInkMinerPairKey ecdsa.PrivateKey
+
 func main() {
+	// Register necessary struct for server communications
 	servAddr := "127.0.0.1:12345"
-	minerPort := flag.String("p", "", "RPC server ip:port")
-	flag.Parse()
-	minerAddr := "127.0.0.1:" + *minerPort
 	gob.Register(&elliptic.CurveParams{})
 	gob.Register(&net.TCPAddr{})
 
-	///
+	// Construct minerAddr from flag provided in the terminal
+	minerPort := flag.String("p", "", "RPC server ip:port")
+	flag.Parse()
+	minerAddr := "127.0.0.1:" + *minerPort
+
+	// initialize miner given the server address and its own miner address
 	inkMinerStruct := initializeMiner(servAddr, minerAddr)
 	globalInkMinerPairKey = inkMinerStruct.PairKey
 	fmt.Println("Miner Key: ", inkMinerStruct.PairKey.X)
 
-	// TODO register a miner node here, get back Neighbours info and threshold
+	// RPC - Register this miner to the server
 	minerSettings, error := inkMinerStruct.Register(servAddr, inkMinerStruct.PairKey.PublicKey)
-
 	if error != nil {
 		fmt.Println(error.Error())
 		os.Exit(0)
 	}
 
+	// setting returned from the server
 	inkMinerStruct.Settings = minerSettings
 
-	minerServer := &shared.MinerRPCStruct{inkMinerStruct}
-
-	conn, error := net.Listen("tcp", "127.0.0.1:0")
+	// RPC - Start rpc server on this ink miner
+	minerServer := &shared.MinerRPCServer{Miner: &inkMinerStruct}
+	rpc.Register(minerServer)
+	conn, error := net.Listen("tcp", minerAddr)
 
 	if error != nil {
 		fmt.Println(error.Error())
 		os.Exit(0)
 	}
 
-	rpc.Register(minerServer)
 	go rpc.Accept(conn)
 
-	// TODO start heartbeat to the server
+	//start heartbeat to the server
 	// heartBeatChannel := make(chan int)
 	go inkMinerStruct.HeartBeat()
 	// <-heartBeatChannel
 
+	// While the heart is beating, keep fetching for neighbours
 	inkMinerStruct.CheckForNeighbour()
+
+	// After going over the minimum neighbours value, start doing no-op
 	OP := shared.Operation{Command: "no-op"}
 	inkMinerStruct.Mine(OP)
-
-	// Listen for Art noded that want to connect to it
-	fmt.Println("Going to Listen to Art Nodes: ")
-	listenArtConn, err := net.Listen("tcp", "127.0.0.1:") // listening on wtv port
-	CheckError(err)
-	fmt.Println("Port Miner is lisening on ",  listenArtConn.Addr())
-
-	// check that the art node has the correct public/private key pair
-	initArt := new(KeyCheck)
-	rpc.Register(initArt)
-	rpc.Accept(listenArtConn)
-
-	// artNodeOp := new(ArtNodeOpReq)
-	// rpc.Register(artNodeOp)
-	// rpc.Accept(listenArtConn)
-
-
-	// Command        string
-	// UserSignature  string
-	// AmountOfInk    int
-	// Shapetype      string
-	// ShapeSvgString string
-	// Fill           string
-	// Stroke         string
 
 	return
 }
 
-//func startMiningForNoOp(miner shared.MinerStruct) {
-//
-//	noOperation := shared.Operation{"noOp", miner.PublicKey., 1, "", "", "" , ""}
-//
-//	for {
-//		miner.Mine(noOperation)
-//	}
-//}
-
 func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
-	fmt.Println("initializeMiner() ", rand.Reader)
-
 	minerKey, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-
-	return shared.MinerStruct{ServerAddr: servAddr, MinerAddr: minerAddr, PairKey: *minerKey}
+	killSig := make(chan bool)
+	return shared.MinerStruct{ServerAddr: servAddr, MinerAddr: minerAddr, PairKey: *minerKey, MiningStopSig: killSig}
 }
+
 // TODO
 //type ArtNodeOpReq int
 type KeyCheck int
+
 // func (l *ArtNodeOpReq) doArtNodeOp(o am.Operation, reply *int) error {
 // 	// TODO
 // 	return nil
