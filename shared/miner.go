@@ -161,7 +161,7 @@ func (m MinerStruct) Flood(visited *[]MinerStruct) {
 
 		alive := false
 		fmt.Println("visiting miner: ", n.MinerAddr)
-		err := client.Call("MinerRPCServer.StopMining", "hi", &alive)
+		err := client.Call("MinerRPCServer.StopMining", "stop", &alive)
 		if err != nil {
 			fmt.Println(err)
 		}
