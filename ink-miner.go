@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 
 	"crypto/ecdsa"
@@ -16,11 +17,14 @@ import (
 
 func main() {
 	servAddr := "127.0.0.1:12345"
+	minerPort := flag.String("p", "", "RPC server ip:port")
+	flag.Parse()
+	minerAddr := "127.0.0.1:" + *minerPort
 	gob.Register(&elliptic.CurveParams{})
 	gob.Register(&net.TCPAddr{})
 
 	///
-	inkMinerStruct := initializeMiner(servAddr)
+	inkMinerStruct := initializeMiner(servAddr, minerAddr)
 
 	// TODO register a miner node here, get back Neighbours info and threshold
 	minerSettings, error := inkMinerStruct.Register(servAddr, inkMinerStruct.PairKey.PublicKey)
@@ -73,9 +77,9 @@ func main() {
 //	}
 //}
 
-func initializeMiner(servAddr string) shared.MinerStruct {
+func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 
 	minerKey, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 
-	return shared.MinerStruct{ServerAddr: servAddr, PairKey: *minerKey}
+	return shared.MinerStruct{ServerAddr: servAddr, MinerAddr: minerAddr, PairKey: *minerKey}
 }
