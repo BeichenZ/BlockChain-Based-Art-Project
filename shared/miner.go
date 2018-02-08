@@ -146,7 +146,7 @@ func (m MinerStruct) HeartBeat() error {
 func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 	// currentBlock := m.BlockChain[len(m.BlockChain)-1]
 	// listOfOperation := currentBlock.GetStringOperations()
-
+	fmt.Println("I'm starting to mine")
 	leadingBlock := m.FindtheLeadingBlock()[0]
 	fmt.Println(leadingBlock)
 	nonce := leadingBlock.GetNonce()
@@ -174,12 +174,15 @@ func (m MinerStruct) Flood(newBlock *Block, visited *[]MinerStruct) {
 	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
 	// TODO what happense if node A calls flood, and before it can reach node B, node B calls flood?
 	validNeighbours := make([]MinerStruct, 0)
+	fmt.Println("Flooding is called.......................................................")
 	for _, n := range m.Neighbours {
 		if filter(n, visited) {
 			validNeighbours = append(validNeighbours, n)
 		}
 	}
+	fmt.Println("valid nei", len(validNeighbours))
 	if len(validNeighbours) == 0 {
+
 		return
 	}
 
@@ -216,7 +219,7 @@ func computeNonceSecretHash(nonce string, secret string) string {
 	h := md5.New()
 	h.Write([]byte(nonce + secret))
 	str := hex.EncodeToString(h.Sum(nil))
-	fmt.Println(str)
+	// fmt.Println(str)
 	return str
 }
 
@@ -228,19 +231,23 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 		zeroesBuffer.WriteString("0")
 	}
 	zeroes := zeroesBuffer.String()
-
+	fmt.Println("Begin Proof of work")
 	for {
 		select {
 		case recievedBlock := <-m.MiningStopSig:
+			fmt.Println("Received block from another miner")
 			delete(m.LeafNodesMap, leadingBlock.CurrentHash)
 			m.LeafNodesMap[recievedBlock.CurrentHash] = recievedBlock
 			return recievedBlock
 		default:
+			fmt.Println("Working to find the hash")
+
 			guessString := strconv.FormatInt(i, 10)
 
 			hash := computeNonceSecretHash(nonce, guessString)
 			if hash[32-numberOfZeroes:] == zeroes {
-				fmt.Println(guessString)
+				fmt.Println("Found the hash")
+
 				return m.produceBlock(hash, newOP, leadingBlock)
 			}
 			i++
@@ -256,6 +263,7 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 	visitedMiners := []MinerStruct{*m}
 	/// Find the leading block
 	LocalOPs := []Operation{newOP}
+	fmt.Println("Creating a new block with the new hash")
 	producedBlock := &Block{CurrentHash: currentHash,
 		PreviousHash:      leadingBlock.CurrentHash,
 		LocalOPs:          LocalOPs,
@@ -265,6 +273,8 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 	m.Flood(producedBlock, &visitedMiners)
 
 	delete(m.LeafNodesMap, leadingBlock.CurrentHash)
+	fmt.Println("Need to let the other miners about this block")
+
 	m.LeafNodesMap[producedBlock.CurrentHash] = producedBlock
 	return producedBlock
 }

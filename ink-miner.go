@@ -65,6 +65,9 @@ func main() {
 
 	// After going over the minimum neighbours value, start doing no-op
 	OP := shared.Operation{Command: "no-op"}
+
+	inkMinerStruct.Mine(OP)
+
 	inkMinerStruct.Mine(OP)
 
 	return
