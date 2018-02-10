@@ -10,6 +10,8 @@ import (
 	"net/rpc"
 	"strconv"
 	"time"
+	"log"
+	"os"
 )
 
 var (
@@ -42,6 +44,7 @@ type MinerStruct struct {
 	ArtNodes         []string
 	BlockChain       *Block
 	ServerConnection *rpc.Client
+	MinerConnection *rpc.Client
 	Settings         MinerNetSettings
 	MiningStopSig    chan *Block
 	LeafNodesMap     map[string]*Block
@@ -103,6 +106,22 @@ func (m *MinerStruct) FindtheLeadingBlock() []*Block {
 
 func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (MinerNetSettings, error) {
 	// fmt.Println("public key", publicKey)
+	///
+
+	// RPC - Start rpc server on this ink miner
+	minerServer := &MinerRPCServer{Miner: m}
+	rpc.Register(minerServer)
+	conn, error := net.Listen("tcp", m.MinerAddr)
+
+	if error != nil {
+		fmt.Println(error.Error())
+		os.Exit(0)
+	}
+
+	go rpc.Accept(conn)
+
+
+
 	client, error := rpc.Dial("tcp", address)
 	minerSettings := &MinerNetSettings{}
 	if error != nil {
@@ -190,14 +209,15 @@ func (m MinerStruct) Flood(newBlock *Block, visited *[]MinerStruct) {
 		*visited = append(*visited, v)
 	}
 	for _, n := range validNeighbours {
-		client, error := rpc.Dial("tcp", n.MinerAddr)
-		if error != nil {
-			fmt.Println(error)
-		}
+		//client, error := rpc.Dial("tcp", n.MinerAddr)
+		//if error != nil {
+		//	fmt.Println(error)
+		//}
 
 		alive := false
 		fmt.Println("visiting miner: ", n.MinerAddr)
-		err := client.Call("MinerRPCServer.StopMining", newBlock, &alive)
+		passingBlock := copyBlock(newBlock)
+		err := n.MinerConnection.Call("MinerRPCServer.StopMining", passingBlock , &alive)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -205,6 +225,18 @@ func (m MinerStruct) Flood(newBlock *Block, visited *[]MinerStruct) {
 	}
 	return
 }
+
+
+func copyBlock(thisBlock *Block) *Block {
+	
+		producedBlock := &Block{CurrentHash: thisBlock.CurrentHash,
+			PreviousHash:      thisBlock.PreviousHash,
+			LocalOPs:          thisBlock.LocalOPs,
+			Children:          make([]*Block, 0),
+			DistanceToGenesis: thisBlock.DistanceToGenesis}
+	return producedBlock
+}
+
 
 func filter(m MinerStruct, visited *[]MinerStruct) bool {
 	for _, s := range *visited {
@@ -240,8 +272,6 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 			m.LeafNodesMap[recievedBlock.CurrentHash] = recievedBlock
 			return recievedBlock
 		default:
-			fmt.Println("Working to find the hash")
-
 			guessString := strconv.FormatInt(i, 10)
 
 			hash := computeNonceSecretHash(nonce, guessString)
@@ -268,7 +298,6 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 		PreviousHash:      leadingBlock.CurrentHash,
 		LocalOPs:          LocalOPs,
 		Children:          make([]*Block, 0),
-		Parent:            leadingBlock,
 		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1}
 	m.Flood(producedBlock, &visitedMiners)
 
@@ -290,9 +319,19 @@ func (m *MinerStruct) CheckForNeighbour() {
 	}
 
 	minerNeighbours := make([]MinerStruct, 0)
-	for _, m := range listofNeighbourIP {
-		fmt.Println(m.String())
-		minerNeighbours = append(minerNeighbours, MinerStruct{MinerAddr: m.String()})
+	for _, netIP := range listofNeighbourIP {
+		fmt.Println("neighbour ip address",netIP.String())
+		client, error := rpc.Dial("tcp", netIP.String())
+		fmt.Println(client)
+
+		if error != nil {
+			fmt.Println("Fucked; can't connect")
+			fmt.Println(error)
+			log.Fatal(error)
+			os.Exit(0)
+		}
+		
+		minerNeighbours = append(minerNeighbours, MinerStruct{MinerAddr: netIP.String(), MinerConnection: client})
 	}
 	m.Neighbours = minerNeighbours
 }

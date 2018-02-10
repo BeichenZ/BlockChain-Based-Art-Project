@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"net"
-	"net/rpc"
 	"os"
 
 	shared "./shared"
@@ -43,18 +42,6 @@ func main() {
 	// setting returned from the server
 	inkMinerStruct.Settings = minerSettings
 
-	// RPC - Start rpc server on this ink miner
-	minerServer := &shared.MinerRPCServer{Miner: &inkMinerStruct}
-	rpc.Register(minerServer)
-	conn, error := net.Listen("tcp", minerAddr)
-
-	if error != nil {
-		fmt.Println(error.Error())
-		os.Exit(0)
-	}
-
-	go rpc.Accept(conn)
-
 	//start heartbeat to the server
 	// heartBeatChannel := make(chan int)
 	go inkMinerStruct.HeartBeat()
@@ -65,10 +52,15 @@ func main() {
 
 	// After going over the minimum neighbours value, start doing no-op
 	OP := shared.Operation{Command: "no-op"}
+	i := 1
+	for {
 
-	inkMinerStruct.Mine(OP)
+		fmt.Println("=============================", i)
+		inkMinerStruct.Mine(OP)
 
-	inkMinerStruct.Mine(OP)
+		i ++
+	}
+
 
 	return
 }

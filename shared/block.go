@@ -9,7 +9,6 @@ type Block struct {
 	PreviousHash      string
 	LocalOPs          []Operation
 	Children          []*Block
-	Parent            *Block
 	DistanceToGenesis int
 }
 
@@ -24,11 +23,6 @@ func (b Block) GetNonce() string {
 
 	return nonce
 
-}
-
-func (b Block) UpdateDistanceToGenesis() {
-	//assume only one longest chain for now
-	b.DistanceToGenesis = b.Parent.DistanceToGenesis + 1
 }
 
 type Operation struct {
