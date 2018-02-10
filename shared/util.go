@@ -12,11 +12,15 @@ import (
 
 func monitor(minerNeighbourAddr string, miner MinerStruct, heartBeatInterval time.Duration) {
 	for {
-		minerToBeChecked := miner.Neighbours[minerNeighbourAddr]
+		time.Sleep(time.Millisecond * time.Duration(5000))
+		allNeighbour.Lock()
+		defer allNeighbour.Unlock()
+		NeighbourMap := allNeighbour.all
+		minerToBeChecked := NeighbourMap[minerNeighbourAddr]
 		if time.Now().UnixNano()-minerToBeChecked.RecentHeartbeat > int64(heartBeatInterval) {
 			log.Printf("%s timed out, walalalalala\n", minerToBeChecked.MinerAddr)
-			delete(miner.Neighbours, minerNeighbourAddr)
-			if len(miner.Neighbours) < int(miner.Settings.MinNumMinerConnections) {
+			delete(NeighbourMap, minerNeighbourAddr)
+			if len(NeighbourMap) < int(miner.Settings.MinNumMinerConnections) {
 				miner.NotEnoughNeighbourSig <- true
 			}
 			return
@@ -27,7 +31,7 @@ func monitor(minerNeighbourAddr string, miner MinerStruct, heartBeatInterval tim
 	}
 }
 
-func filter(m MinerStruct, visited *[]MinerStruct) bool {
+func filter(m *MinerStruct, visited *[]*MinerStruct) bool {
 	for _, s := range *visited {
 		if s.MinerAddr == m.MinerAddr {
 			return false

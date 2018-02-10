@@ -7,7 +7,17 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"sync"
 	"time"
+)
+
+type AllNeighbour struct {
+	sync.RWMutex
+	all map[string]*MinerStruct
+}
+
+var (
+	allNeighbour AllNeighbour = AllNeighbour{all: make(map[string]*MinerStruct)}
 )
 
 type Miner interface {
@@ -32,7 +42,6 @@ type MinerStruct struct {
 	MinerAddr             string
 	PairKey               ecdsa.PrivateKey
 	Threshold             int
-	Neighbours            map[string]MinerStruct
 	ArtNodes              []string
 	BlockChain            *Block
 	ServerConnection      *rpc.Client
@@ -45,6 +54,10 @@ type MinerStruct struct {
 	RecentHeartbeat       int64
 }
 
+type MinerHeartbeatPayload struct {
+	client    rpc.Client
+	MinerAddr string
+}
 type MinerInfo struct {
 	Address net.Addr
 	Key     ecdsa.PublicKey
@@ -196,12 +209,12 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 }
 
 // Bare minimum flooding protocol, Miner will disseminate notification through the network
-func (m MinerStruct) Flood(newBlock *Block, visited *[]MinerStruct) {
+func (m MinerStruct) Flood(newBlock *Block, visited *[]*MinerStruct) {
 	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
 	// TODO what happense if node A calls flood, and before it can reach node B, node B calls flood?
-	validNeighbours := make([]MinerStruct, 0)
+	validNeighbours := make([]*MinerStruct, 0)
 	fmt.Println("Flooding is called.......................................................")
-	for _, v := range m.Neighbours {
+	for _, v := range allNeighbour.all {
 		if filter(v, visited) {
 			validNeighbours = append(validNeighbours, v)
 		}
@@ -230,7 +243,7 @@ func (m MinerStruct) Flood(newBlock *Block, visited *[]MinerStruct) {
 
 func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingBlock *Block) *Block {
 	// visitedMiners := make([]MinerStruct, 0)
-	visitedMiners := []MinerStruct{*m}
+	visitedMiners := []*MinerStruct{m}
 	/// Find the leading block
 	LocalOPs := []Operation{newOP}
 	fmt.Println("Creating a new block with the new hash")
@@ -248,6 +261,26 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 	return producedBlock
 }
 
+func (m *MinerStruct) minerSendHeartBeat(minerNeighbourAddr string) error {
+	alive := false
+	fmt.Println(minerNeighbourAddr)
+	fmt.Println("MAKING RPC CALL TO NEIGHBOUR ", minerNeighbourAddr)
+	client, _ := rpc.Dial("tcp", minerNeighbourAddr)
+	for {
+		fmt.Println("sending heartbeat")
+		// fmt.Println(minerToMinerConnection)
+		err := client.Call("MinerRPCServer.ReceiveMinerHeartBeat", m.MinerAddr, &alive)
+		if err != nil {
+			fmt.Println("////////////////////////////////////////////////////////////////")
+			log.Println(err)
+		} else {
+			return err
+		}
+		time.Sleep(time.Millisecond * time.Duration(400))
+	}
+
+}
+
 func (m *MinerStruct) CheckForNeighbour() {
 	listofNeighbourIP := make([]net.Addr, 0)
 	for len(listofNeighbourIP) < int(m.Settings.MinNumMinerConnections) {
@@ -256,29 +289,32 @@ func (m *MinerStruct) CheckForNeighbour() {
 			fmt.Println(error)
 		}
 	}
-
 	for _, netIP := range listofNeighbourIP {
+
 		fmt.Println("neighbour ip address", netIP.String())
 		client, error := rpc.Dial("tcp", netIP.String())
 		fmt.Println(client)
 
 		if error != nil {
-			fmt.Println("Fucked; can't connect")
+			fmt.Println(" can't connect")
 			fmt.Println(error)
 			log.Fatal(error)
 			os.Exit(0)
 		}
+		alive := false
+		// payLoad := MinerHeartbeatPayload{MinerAddr: netIP.String(), client: *client}
+		log.Println("NETIP IS ", netIP.String())
+		client.Call("MinerRPCServer.MinerRegister", m.MinerAddr, &alive)
 
-		if _, exists := m.Neighbours[netIP.String()]; exists {
-			fmt.Println("neighbour exist and alive")
-		} else {
-			m.Neighbours[netIP.String()] = MinerStruct{
-				MinerAddr:       netIP.String(),
-				MinerConnection: client,
-				RecentHeartbeat: time.Now().UnixNano(),
+		for {
+			if _, exists := allNeighbour.all[netIP.String()]; exists {
+				fmt.Printf("The neighbour %v has registered as client", netIP.String())
+				break
 			}
-			go monitor(netIP.String(), *m, 500)
 		}
+
+		go m.minerSendHeartBeat(netIP.String())
+		go monitor(netIP.String(), *m, 10000)
 
 	}
 }

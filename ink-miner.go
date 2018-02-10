@@ -51,13 +51,13 @@ func main() {
 	inkMinerStruct.CheckForNeighbour()
 
 	// After going over the minimum neighbours value, start doing no-op
-	OP := shared.Operation{Command: "no-op"}
-	// i := 1
-	// for {
-	// fmt.Println("=============================", i)
-	inkMinerStruct.Mine(OP)
-	// i++
-	// }
+	// OP := shared.Operation{Command: "no-op"}
+	i := 1
+	for {
+		// fmt.Println("=============================", i)
+		// inkMinerStruct.Mine(OP)
+		i++
+	}
 
 	return
 }
@@ -67,7 +67,6 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 	killSig := make(chan *shared.Block)
 	NotEnoughNeighbourSig := make(chan bool)
 	LeafMap := make(map[string]*shared.Block)
-	minerNeighbourMap := make(map[string]shared.MinerStruct)
 	return shared.MinerStruct{ServerAddr: servAddr,
 		MinerAddr:             minerAddr,
 		PairKey:               *minerKey,
@@ -75,7 +74,6 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 		NotEnoughNeighbourSig: NotEnoughNeighbourSig,
 		LeafNodesMap:          LeafMap,
 		FoundHash:             false,
-		Neighbours:            minerNeighbourMap,
 	}
 }
 
