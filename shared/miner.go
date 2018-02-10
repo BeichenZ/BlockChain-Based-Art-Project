@@ -34,17 +34,17 @@ type Miner interface {
 }
 
 type MinerStruct struct {
-	ServerAddr    string
-	MinerAddr     string
-	PairKey       ecdsa.PrivateKey
-	Threshold     int
-	Neighbours    []MinerStruct
-	ArtNodes      []string
-	BlockChain    *Block
-	Client        *rpc.Client
-	Settings      MinerNetSettings
-	MiningStopSig chan *Block
-	LeafNodesMap  map[string]*Block
+	ServerAddr       string
+	MinerAddr        string
+	PairKey          ecdsa.PrivateKey
+	Threshold        int
+	Neighbours       []MinerStruct
+	ArtNodes         []string
+	BlockChain       *Block
+	ServerConnection *rpc.Client
+	Settings         MinerNetSettings
+	MiningStopSig    chan *Block
+	LeafNodesMap     map[string]*Block
 }
 
 type MinerInfo struct {
@@ -109,7 +109,7 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 		return *minerSettings, error
 	}
 
-	m.Client = client
+	m.ServerConnection = client
 
 	// RPC to server
 	minerAddress, err := net.ResolveTCPAddr("tcp", m.MinerAddr)
@@ -135,7 +135,7 @@ func (m MinerStruct) HeartBeat() error {
 	alive := false
 
 	for {
-		error := m.Client.Call("RServer.HeartBeat", m.PairKey.PublicKey, &alive)
+		error := m.ServerConnection.Call("RServer.HeartBeat", m.PairKey.PublicKey, &alive)
 		if error != nil {
 			fmt.Println(error)
 		}
@@ -283,7 +283,7 @@ func (m *MinerStruct) CheckForNeighbour() {
 	listofNeighbourIP := make([]net.Addr, 0)
 	// var listofNeighbourIP []net.Addr
 	for len(listofNeighbourIP) < int(m.Settings.MinNumMinerConnections) {
-		error := m.Client.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
+		error := m.ServerConnection.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
 		if error != nil {
 			fmt.Println(error)
 		}
