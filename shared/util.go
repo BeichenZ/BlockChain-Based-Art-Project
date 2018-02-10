@@ -7,7 +7,25 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 )
+
+func monitor(minerNeighbourAddr string, miner MinerStruct, heartBeatInterval time.Duration) {
+	for {
+		minerToBeChecked := miner.Neighbours[minerNeighbourAddr]
+		if time.Now().UnixNano()-minerToBeChecked.RecentHeartbeat > int64(heartBeatInterval) {
+			log.Printf("%s timed out, walalalalala\n", minerToBeChecked.MinerAddr)
+			delete(miner.Neighbours, minerNeighbourAddr)
+			if len(miner.Neighbours) < int(miner.Settings.MinNumMinerConnections) {
+				miner.NotEnoughNeighbourSig <- true
+			}
+			return
+		}
+		log.Printf("%s is alive\n", minerToBeChecked.MinerAddr)
+		// allMiners.Unlock()
+		time.Sleep(heartBeatInterval)
+	}
+}
 
 func filter(m MinerStruct, visited *[]MinerStruct) bool {
 	for _, s := range *visited {

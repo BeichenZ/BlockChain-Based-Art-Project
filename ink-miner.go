@@ -52,14 +52,12 @@ func main() {
 
 	// After going over the minimum neighbours value, start doing no-op
 	OP := shared.Operation{Command: "no-op"}
-	i := 1
-	for {
-
-		fmt.Println("=============================", i)
-		inkMinerStruct.Mine(OP)
-
-		i++
-	}
+	// i := 1
+	// for {
+	// fmt.Println("=============================", i)
+	inkMinerStruct.Mine(OP)
+	// i++
+	// }
 
 	return
 }
@@ -67,15 +65,17 @@ func main() {
 func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 	minerKey, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	killSig := make(chan *shared.Block)
+	NotEnoughNeighbourSig := make(chan bool)
 	LeafMap := make(map[string]*shared.Block)
 	minerNeighbourMap := make(map[string]shared.MinerStruct)
 	return shared.MinerStruct{ServerAddr: servAddr,
-		MinerAddr:     minerAddr,
-		PairKey:       *minerKey,
-		MiningStopSig: killSig,
-		LeafNodesMap:  LeafMap,
-		FoundHash:     false,
-		Neighbours:    minerNeighbourMap,
+		MinerAddr:             minerAddr,
+		PairKey:               *minerKey,
+		MiningStopSig:         killSig,
+		NotEnoughNeighbourSig: NotEnoughNeighbourSig,
+		LeafNodesMap:          LeafMap,
+		FoundHash:             false,
+		Neighbours:            minerNeighbourMap,
 	}
 }
 

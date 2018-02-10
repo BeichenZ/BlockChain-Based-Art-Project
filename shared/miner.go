@@ -28,20 +28,21 @@ type Miner interface {
 }
 
 type MinerStruct struct {
-	ServerAddr       string
-	MinerAddr        string
-	PairKey          ecdsa.PrivateKey
-	Threshold        int
-	Neighbours       map[string]MinerStruct
-	ArtNodes         []string
-	BlockChain       *Block
-	ServerConnection *rpc.Client
-	MinerConnection  *rpc.Client
-	Settings         MinerNetSettings
-	MiningStopSig    chan *Block
-	LeafNodesMap     map[string]*Block
-	FoundHash        bool
-	RecentHeartbeat  int64
+	ServerAddr            string
+	MinerAddr             string
+	PairKey               ecdsa.PrivateKey
+	Threshold             int
+	Neighbours            map[string]MinerStruct
+	ArtNodes              []string
+	BlockChain            *Block
+	ServerConnection      *rpc.Client
+	MinerConnection       *rpc.Client
+	Settings              MinerNetSettings
+	MiningStopSig         chan *Block
+	NotEnoughNeighbourSig chan bool
+	LeafNodesMap          map[string]*Block
+	FoundHash             bool
+	RecentHeartbeat       int64
 }
 
 type MinerInfo struct {
@@ -157,17 +158,31 @@ func (m MinerStruct) HeartBeat() error {
 func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 	// currentBlock := m.BlockChain[len(m.BlockChain)-1]
 	// listOfOperation := currentBlock.GetStringOperations()
-	fmt.Println("I'm starting to mine")
-	leadingBlock := m.FindtheLeadingBlock()[0]
-	fmt.Println(leadingBlock)
-	nonce := leadingBlock.GetNonce()
-	nonce += newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
 
-	newBlock := doProofOfWork(m, nonce, 4, 100, newOperation, leadingBlock)
-	leadingBlock.Children = append(leadingBlock.Children, newBlock)
-	// TODO maybe validate block here
-	printBlock(m.BlockChain)
-	fmt.Println("\n")
+	for {
+		select {
+		case <-m.NotEnoughNeighbourSig:
+			fmt.Println("not enough neighbour, stop minging here")
+			// delete(m.LeafNodesMap, leadingBlock.CurrentHash)
+			// m.LeafNodesMap[recievedBlock.CurrentHash] = recievedBlock
+			return "", nil
+		default:
+			fmt.Println("I'm starting to mine")
+			leadingBlock := m.FindtheLeadingBlock()[0]
+			fmt.Println(leadingBlock)
+			nonce := leadingBlock.GetNonce()
+			nonce += newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
+
+			newBlock := doProofOfWork(m, nonce, 4, 100, newOperation, leadingBlock)
+			leadingBlock.Children = append(leadingBlock.Children, newBlock)
+			// TODO maybe validate block here
+			printBlock(m.BlockChain)
+			fmt.Println("\n")
+			// if m.MinerAddr[len(m.MinerAddr)-1:] == "8" {
+			// 	time.Sleep(time.Millisecond * time.Duration(delay))
+			// }
+		}
+	}
 
 	// newOperationsList := append(currentBlock.OPS, newOperation)
 	//
@@ -177,7 +192,7 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 
 	// update all its neighbours
 
-	return "", nil
+	// return "", nil
 }
 
 // Bare minimum flooding protocol, Miner will disseminate notification through the network
@@ -201,11 +216,6 @@ func (m MinerStruct) Flood(newBlock *Block, visited *[]MinerStruct) {
 		*visited = append(*visited, v)
 	}
 	for _, n := range validNeighbours {
-		//client, error := rpc.Dial("tcp", n.MinerAddr)
-		//if error != nil {
-		//	fmt.Println(error)
-		//}
-
 		alive := false
 		fmt.Println("visiting miner: ", n.MinerAddr)
 		passingBlock := copyBlock(newBlock)
@@ -240,7 +250,6 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 
 func (m *MinerStruct) CheckForNeighbour() {
 	listofNeighbourIP := make([]net.Addr, 0)
-	// var listofNeighbourIP []net.Addr
 	for len(listofNeighbourIP) < int(m.Settings.MinNumMinerConnections) {
 		error := m.ServerConnection.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
 		if error != nil {
@@ -248,7 +257,6 @@ func (m *MinerStruct) CheckForNeighbour() {
 		}
 	}
 
-	// minerNeighbours := make([]MinerStruct, 0)
 	for _, netIP := range listofNeighbourIP {
 		fmt.Println("neighbour ip address", netIP.String())
 		client, error := rpc.Dial("tcp", netIP.String())
@@ -269,9 +277,8 @@ func (m *MinerStruct) CheckForNeighbour() {
 				MinerConnection: client,
 				RecentHeartbeat: time.Now().UnixNano(),
 			}
+			go monitor(netIP.String(), *m, 500)
 		}
 
-		// minerNeighbours = append(minerNeighbours, MinerStruct{MinerAddr: netIP.String(), MinerConnection: client})
 	}
-	// m.Neighbours = minerNeighbours
 }
