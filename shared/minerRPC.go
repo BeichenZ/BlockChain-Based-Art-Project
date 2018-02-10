@@ -1,6 +1,8 @@
 package shared
 
-import "log"
+import (
+	"log"
+)
 
 type MinerRPCServer struct {
 	Miner *MinerStruct
@@ -20,6 +22,13 @@ func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 	return nil
 }
 
-// func (m *MinerRPCServer) ReceiveMinerHeartBeat(s string, alive *bool) error {
+// func (m *MinerRPCServer) ReceiveMinerHeartBeat(address string, alive *bool) error {
+// 	k := pubKeyToString(key)
+// 	if _, ok := allMiners.all[k]; !ok {
+// 		return unknownKeyError
+// 	}
 //
+// 	allMiners.all[k].RecentHeartbeat = time.Now().UnixNano()
+//
+// 	return nil
 // }
