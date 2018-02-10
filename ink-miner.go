@@ -58,9 +58,8 @@ func main() {
 		fmt.Println("=============================", i)
 		inkMinerStruct.Mine(OP)
 
-		i ++
+		i++
 	}
-
 
 	return
 }
@@ -73,7 +72,8 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 		MinerAddr:     minerAddr,
 		PairKey:       *minerKey,
 		MiningStopSig: killSig,
-		LeafNodesMap:  LeafMap}
+		LeafNodesMap:  LeafMap,
+		FoundHash:     false}
 }
 
 // TODO
