@@ -1,10 +1,11 @@
 package shared
 
-import "crypto/ecdsa"
+import (
+	"crypto/ecdsa"
+)
 
 type Operation struct {
 	Command        string
-	UserSignature  string
 	AmountOfInk    int
 	Shapetype      string
 	ShapeSvgString string

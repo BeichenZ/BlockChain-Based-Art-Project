@@ -2,6 +2,7 @@ package shared
 
 import (
 	"crypto/ecdsa"
+	"crypto/rand"
 	"fmt"
 	"log"
 	"net"
@@ -183,14 +184,16 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 			fmt.Println("I'm starting to mine")
 			leadingBlock := m.FindtheLeadingBlock()[0]
 			fmt.Println(leadingBlock)
-			nonce := leadingBlock.GetString()
-			nonce += newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
+			// nonce := leadingBlock.GetString()
+			nonce := newOperation.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
 
 			newBlock := doProofOfWork(m, nonce, 4, 100, newOperation, leadingBlock)
 			leadingBlock.Children = append(leadingBlock.Children, newBlock)
 			// TODO maybe validate block here
-			printBlock(m.BlockChain)
+			// printBlock(m.BlockChain)
 			fmt.Println("\n")
+			time.Sleep(5000 * time.Millisecond)
+
 			// if m.MinerAddr[len(m.MinerAddr)-1:] == "8" {
 			// 	time.Sleep(time.Millisecond * time.Duration(delay))
 			// }
@@ -229,10 +232,14 @@ func (m MinerStruct) Flood(newBlock *Block, visited *[]*MinerStruct) {
 		*visited = append(*visited, v)
 	}
 	for _, n := range validNeighbours {
+		client, error := rpc.Dial("tcp", n.MinerAddr)
+		if error != nil {
+			fmt.Println(error)
+		}
 		alive := false
 		fmt.Println("visiting miner: ", n.MinerAddr)
-		passingBlock := copyBlock(newBlock)
-		err := n.MinerConnection.Call("MinerRPCServer.StopMining", passingBlock, &alive)
+		// passingBlock := copyBlock(newBlock)
+		err := client.Call("MinerRPCServer.StopMining", newBlock, &alive)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -245,11 +252,19 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 	// visitedMiners := make([]MinerStruct, 0)
 	visitedMiners := []*MinerStruct{m}
 	/// Find the leading block
-	LocalOPs := []Operation{newOP}
+	// CurrentOPs := []Operation{newOP}
+	r, s, err := ecdsa.Sign(rand.Reader, &m.PairKey, []byte(currentHash))
+	if err != nil {
+		os.Exit(500)
+	}
 	fmt.Println("Creating a new block with the new hash")
 	producedBlock := &Block{CurrentHash: currentHash,
-		PreviousHash:      leadingBlock.CurrentHash,
-		LocalOPs:          LocalOPs,
+		PreviousHash: leadingBlock.CurrentHash,
+		CurrentOP:    newOP,
+		UserSignature: UserSignatureSturct{
+			r: r,
+			s: s,
+		},
 		Children:          make([]*Block, 0),
 		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1}
 	m.Flood(producedBlock, &visitedMiners)
@@ -313,7 +328,7 @@ func (m *MinerStruct) CheckForNeighbour() {
 			}
 		}
 
-		go m.minerSendHeartBeat(netIP.String())
+		// go m.minerSendHeartBeat(netIP.String())
 
 	}
 }

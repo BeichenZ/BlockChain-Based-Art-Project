@@ -20,11 +20,11 @@ func monitor(minerNeighbourAddr string, miner MinerStruct, heartBeatInterval tim
 
 		log.Println("MONITOR Time is: ", time.Now().UnixNano())
 
-		log.Println("MONITOR AT %v" , (time.Now().UnixNano()- allNeighbour.all[minerNeighbourAddr].RecentHeartbeat))
-		if time.Now().UnixNano()- allNeighbour.all[minerNeighbourAddr].RecentHeartbeat > int64(heartBeatInterval) {
+		log.Println("MONITOR AT %v", (time.Now().UnixNano() - allNeighbour.all[minerNeighbourAddr].RecentHeartbeat))
+		if time.Now().UnixNano()-allNeighbour.all[minerNeighbourAddr].RecentHeartbeat > int64(heartBeatInterval) {
 			log.Printf("%s timed out, walalalalala\n", allNeighbour.all[minerNeighbourAddr].MinerAddr)
 			delete(allNeighbour.all, minerNeighbourAddr)
-			if len(	allNeighbour.all) < int(miner.Settings.MinNumMinerConnections) {
+			if len(allNeighbour.all) < int(miner.Settings.MinNumMinerConnections) {
 				miner.NotEnoughNeighbourSig <- true
 			}
 			allNeighbour.Unlock()
@@ -50,7 +50,7 @@ func copyBlock(thisBlock *Block) *Block {
 
 	producedBlock := &Block{CurrentHash: thisBlock.CurrentHash,
 		PreviousHash:      thisBlock.PreviousHash,
-		LocalOPs:          thisBlock.LocalOPs,
+		CurrentOP:         thisBlock.CurrentOP,
 		Children:          make([]*Block, 0),
 		DistanceToGenesis: thisBlock.DistanceToGenesis}
 	return producedBlock
