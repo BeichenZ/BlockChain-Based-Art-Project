@@ -14,6 +14,22 @@ type Operation struct {
 	PairKey        ecdsa.PrivateKey
 }
 
+func (o *Operation) CheckInk() bool {
+	return false
+}
+
+func (o *Operation) CheckIntersection() bool {
+	return false
+}
+
+func (o *Operation) CheckDuplicateSignature() bool {
+	return false
+}
+
+func (o *Operation) CheckDeletedShapeExist() bool {
+	return false
+}
+
 func (o *Operation) Validate() bool {
 	// Check that each operation has sufficient ink associated with the public key that generated the operation.
 	// Check that each operation does not violate the shape intersection policy described above.

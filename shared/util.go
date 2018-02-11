@@ -24,6 +24,7 @@ func monitor(minerNeighbourAddr string, miner MinerStruct, heartBeatInterval tim
 		if time.Now().UnixNano()-allNeighbour.all[minerNeighbourAddr].RecentHeartbeat > int64(heartBeatInterval) {
 			log.Printf("%s timed out, walalalalala\n", allNeighbour.all[minerNeighbourAddr].MinerAddr)
 			delete(allNeighbour.all, minerNeighbourAddr)
+
 			if len(allNeighbour.all) < int(miner.Settings.MinNumMinerConnections) {
 				miner.NotEnoughNeighbourSig <- true
 			}
