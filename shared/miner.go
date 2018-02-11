@@ -270,7 +270,7 @@ func (m *MinerStruct) minerSendHeartBeat(minerNeighbourAddr string) error {
 		fmt.Println("sending heartbeat")
 		// fmt.Println(minerToMinerConnection)
 		err := client.Call("MinerRPCServer.ReceiveMinerHeartBeat", m.MinerAddr, &alive)
-		if err != nil {
+		if err == nil {
 			fmt.Println("////////////////////////////////////////////////////////////////")
 			log.Println(err)
 		} else {
@@ -314,7 +314,6 @@ func (m *MinerStruct) CheckForNeighbour() {
 		}
 
 		go m.minerSendHeartBeat(netIP.String())
-		go monitor(netIP.String(), *m, 10000)
 
 	}
 }

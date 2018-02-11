@@ -31,6 +31,7 @@ func (m *MinerRPCServer) ReceiveMinerHeartBeat(minerNeighbourAddr string, alive 
 	if _, ok := allNeighbour.all[minerNeighbourAddr]; ok {
 		log.Println("The miner is in the map")
 		allNeighbour.all[minerNeighbourAddr].RecentHeartbeat = time.Now().UnixNano()
+		fmt.Println("Heartbeat RECEIVED ", allNeighbour.all[minerNeighbourAddr].RecentHeartbeat  )
 	} else {
 		log.Println("Nothing in the map")
 	}
@@ -38,20 +39,23 @@ func (m *MinerRPCServer) ReceiveMinerHeartBeat(minerNeighbourAddr string, alive 
 }
 
 func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, alive *bool) error {
+	if len(allNeighbour.all) > int(m.Miner.Settings.MinNumMinerConnections) {
+		m.Miner.NotEnoughNeighbourSig <- false
+	}
 
-	NeighbourMap := allNeighbour.all
-	if _, ok := NeighbourMap[(*MinerNeighbourPayload)]; ok {
+	if _, ok := allNeighbour.all[(*MinerNeighbourPayload)]; ok {
 		log.Println("The Miner is already here")
 	} else {
-		NeighbourMap[(*MinerNeighbourPayload)] = &MinerStruct{
+
+		allNeighbour.all[(*MinerNeighbourPayload)] = &MinerStruct{
 			MinerAddr: (*MinerNeighbourPayload),
 			// MinerConnection: &MinerNeighbourPayload.client,
 			RecentHeartbeat: time.Now().UnixNano(),
 		}
-		NeighbourMap[(*MinerNeighbourPayload)].RecentHeartbeat = time.Now().UnixNano()
+		log.Println("Registration time is: ", time.Now().UnixNano())
 		log.Println("Successfully recorded this neighbouring miner", (*MinerNeighbourPayload))
+		go monitor(*MinerNeighbourPayload, *m.Miner, 1000*time.Millisecond)
 
 	}
-	// if NeighbourMap[minerNeighbourAddr]
 	return nil
 }

@@ -12,21 +12,25 @@ import (
 
 func monitor(minerNeighbourAddr string, miner MinerStruct, heartBeatInterval time.Duration) {
 	for {
-		time.Sleep(time.Millisecond * time.Duration(5000))
+		fmt.Println("Duration is ", heartBeatInterval)
+
 		allNeighbour.Lock()
-		defer allNeighbour.Unlock()
-		NeighbourMap := allNeighbour.all
-		minerToBeChecked := NeighbourMap[minerNeighbourAddr]
-		if time.Now().UnixNano()-minerToBeChecked.RecentHeartbeat > int64(heartBeatInterval) {
-			log.Printf("%s timed out, walalalalala\n", minerToBeChecked.MinerAddr)
-			delete(NeighbourMap, minerNeighbourAddr)
-			if len(NeighbourMap) < int(miner.Settings.MinNumMinerConnections) {
+
+		log.Println("MONITOR Time is: ", time.Now().UnixNano())
+
+		log.Println("MONITOR AT %v" , (time.Now().UnixNano()- allNeighbour.all[minerNeighbourAddr].RecentHeartbeat))
+		if time.Now().UnixNano()- allNeighbour.all[minerNeighbourAddr].RecentHeartbeat > int64(heartBeatInterval) {
+			log.Printf("%s timed out, walalalalala\n", allNeighbour.all[minerNeighbourAddr].MinerAddr)
+			delete(allNeighbour.all, minerNeighbourAddr)
+			if len(	allNeighbour.all) < int(miner.Settings.MinNumMinerConnections) {
 				miner.NotEnoughNeighbourSig <- true
 			}
+			allNeighbour.Unlock()
+
 			return
 		}
-		log.Printf("%s is alive\n", minerToBeChecked.MinerAddr)
-		// allMiners.Unlock()
+		log.Printf("%s is alive\n", allNeighbour.all[minerNeighbourAddr].MinerAddr)
+		allNeighbour.Unlock()
 		time.Sleep(heartBeatInterval)
 	}
 }

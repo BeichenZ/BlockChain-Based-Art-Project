@@ -30,7 +30,7 @@ func main() {
 	// initialize miner given the server address and its own miner address
 	inkMinerStruct := initializeMiner(servAddr, minerAddr)
 	globalInkMinerPairKey = inkMinerStruct.PairKey
-	fmt.Println("Miner Key: ", inkMinerStruct.PairKey.X)
+	//fmt.Println("Miner Key: ", inkMinerStruct.PairKey.X)
 
 	// RPC - Register this miner to the server
 	minerSettings, error := inkMinerStruct.Register(servAddr, inkMinerStruct.PairKey.PublicKey)
@@ -47,17 +47,14 @@ func main() {
 	go inkMinerStruct.HeartBeat()
 	// <-heartBeatChannel
 
-	// While the heart is beating, keep fetching for neighbours
 	inkMinerStruct.CheckForNeighbour()
+
+
+	// While the heart is beating, keep fetching for neighbours
 
 	// After going over the minimum neighbours value, start doing no-op
 	// OP := shared.Operation{Command: "no-op"}
-	i := 1
-	for {
-		// fmt.Println("=============================", i)
-		// inkMinerStruct.Mine(OP)
-		i++
-	}
+
 
 	return
 }
