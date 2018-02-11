@@ -8,10 +8,12 @@ library (blockartlib) to be used in project 1 of UBC CS 416 2017W2.
 package blockartlib
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"fmt"
+	"strings"
 	"net/rpc"
-	"regexp"
+	am "./artminerlib"
 )
 
 // Represents a type of shape in the BlockArt system.
