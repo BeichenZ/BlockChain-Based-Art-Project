@@ -73,6 +73,7 @@ type MinerStruct struct {
 	FoundHash             bool
 	RecentHeartbeat       int64
 	ListOfOps_str         []string
+	RecievedArtNodeSig    chan bool
 }
 
 type MinerHeartbeatPayload struct {
@@ -199,6 +200,10 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 			fmt.Println("not enough neighbour, stop minging here")
 			// delete(m.LeafNodesMap, leadingBlock.CurrentHash)
 			// m.LeafNodesMap[recievedBlock.CurrentHash] = recievedBlock
+			return "", nil
+		case <-m.RecievedArtNodeSig:
+			fmt.Println("Received Operation")
+			os.Exit(0)
 			return "", nil
 		default:
 			fmt.Println("I'm starting to mine")

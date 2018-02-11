@@ -18,6 +18,7 @@ import (
 	shared "../shared"
 	"strconv"
 
+	"log"
 )
 // Represents a type of shape in the BlockArt system.
 type ShapeType int
@@ -254,6 +255,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	// check if there's enough ink for the operation
 	// send operation to the miner Call()
 	t.ptr.ArtNode.ArtnodeOp("hey")
+	log.Println("I got here")
 	//Check for ShapeSvgStringTooLongError
 	if len(shapeSvgString) > 128 {
 		return "", "", 0, ShapeSvgStringTooLongError(shapeSvgString)

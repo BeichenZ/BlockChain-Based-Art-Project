@@ -101,9 +101,13 @@ type ArtNodeOpReg struct {
 	Miner MinerStruct
 }
 
- func (l *ArtNodeOpReg) DoArtNodeOp(s *string , reply *int) error {
+ func (l *ArtNodeOpReg) DoArtNodeOp(s *string , reply *bool) error {
 
  	fmt.Println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	go func (){
+		l.Miner.RecievedArtNodeSig <- true
+	}()
+
  	// TODO
  	// check errors
  	// Insuffcient errors
