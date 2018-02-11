@@ -8,11 +8,10 @@ library (blockartlib) to be used in project 1 of UBC CS 416 2017W2.
 package blockartlib
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"fmt"
-	"strings"
 	"net/rpc"
+	"regexp"
 )
 
 // Represents a type of shape in the BlockArt system.
@@ -214,16 +213,18 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	CheckError(err)
 	if reply {
 		fmt.Println("ArtNode has same key as miner")
-	var thisCanvas Canvas
-	// For now return DisconnectedError
-	return thisCanvas, CanvasSettings{}, nil
-	} else { fmt.Println("ArtNode does not have same key as miner")
-		return nil, CanvasSettings{}, DisconnectedError("")  }
- 	
+		var thisCanvas Canvas
+		// For now return DisconnectedError
+		return thisCanvas, CanvasSettings{}, nil
+	} else {
+		fmt.Println("ArtNode does not have same key as miner")
+		return nil, CanvasSettings{}, DisconnectedError("")
+	}
+
 }
 
 //Implementation of Canvas Interface
-type CanvasObject int  
+type CanvasObject int
 
 func (t *CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
 	//Check for ShapeSvgStringTooLongError
@@ -238,18 +239,43 @@ func (t *CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvg
 	}
 	return "", "", 0, nil
 }
-func (t *CanvasObject) IsSvgStringValid(shapeSvgString string) bool {
+func (t CanvasObject) IsSvgStringValid(svgStr string) bool {
 	//To Be Implemented
-	availableCmds := []byte{77, 109, 86, 118, 72, 104, 76, 108, 90, 122} // MmVvLlZz
-	svgCharArray := []byte(strings.TrimSpace(shapeSvgString))
-
-	if !bytes.Contains(availableCmds, svgCharArray[0:0]) {
+	//Legal Example: "m 20 0 L 19 21",all separated by space,always start at m/M,all value are integers
+	strCnt := len(svgStr)
+	if strCnt < 3 {
 		return false
-	} else {
-
 	}
+	if svgStr[0] != 'M' && svgStr[0] != 'm' {
+		return false
+	}
+	regex_2 := regexp.MustCompile("[mMvVlLhHZz][\\s][0-9]+[\\s][0-9]+")
+	regex_1 := regexp.MustCompile("[mMvVlLhHZz][\\s][0-9]+")
 
-	return false
+	for i := 0; i < strCnt; i = i {
+		thisRune := svgStr[i]
+		switch thisRune {
+		case 'm', 'M', 'L', 'l':
+			arr := regex_2.FindStringIndex(svgStr[i:])
+			if arr == nil {
+				return false
+			} else {
+				i = arr[1]
+			}
+		case 'v', 'V', 'H', 'h':
+			arr := regex_1.FindStringIndex(svgStr[i:])
+			if arr == nil {
+				return false
+			} else {
+				i = arr[1]
+			}
+		case 'Z':
+			i = i + 2
+		default:
+			return false
+		}
+	}
+	return true //pass all tests
 }
 func (t *CanvasObject) IsSvgOutofBounds(shapeSvgString string) bool {
 	//To be Implemented
