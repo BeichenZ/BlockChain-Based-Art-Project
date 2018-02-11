@@ -11,7 +11,7 @@ import (
 	"os"
 
 	shared "./shared"
-	//am "./artminerlib"
+	am "./blockartlib/artminerlib"
 )
 
 var globalInkMinerPairKey ecdsa.PrivateKey
@@ -58,6 +58,19 @@ func main() {
 	inkMinerStruct.Mine(OP)
 	// i++
 	// }
+  
+  // Listen for Art noded that want to connect to it
+	fmt.Println("Going to Listen to Art Nodes: ")
+	listenArtConn, err := net.Listen("tcp", "127.0.0.1:") // listening on wtv port
+	CheckError(err)
+	fmt.Println("Port Miner is lisening on ",  listenArtConn.Addr())
+
+	// check that the art node has the correct public/private key pair
+	initArt := new(KeyCheck)
+	rpc.Register(initArt)
+	cs := new(CanvasSet)
+	rpc.Register(cs)
+	rpc.Accept(listenArtConn)
 
 	return
 }
@@ -82,6 +95,8 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 // TODO
 //type ArtNodeOpReq int
 type KeyCheck int
+type HeartBeat int
+type CanvasSet int
 
 // func (l *ArtNodeOpReq) doArtNodeOp(o am.Operation, reply *int) error {
 // 	// TODO
@@ -98,6 +113,13 @@ func (l *KeyCheck) ArtNodeKeyCheck(privKey string, reply *bool) error {
 	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")
 	return nil
 }
+func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *am.InitialCanvasSetting) error {
+	fmt.Println("request for CanvasSettings")
+	ics.Cs=am.CanvasSettings(thisInkMiner.Settings.CanvasSettings)
+	ics.ListOfOps = thisInkMiner.ListOfOps
+	fmt.Println("GetCanvasSettingsFromMiner() ", *ics)
+	return nil
+	}
 func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
