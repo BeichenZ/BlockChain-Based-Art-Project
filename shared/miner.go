@@ -170,7 +170,7 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 			fmt.Println("I'm starting to mine")
 			leadingBlock := m.FindtheLeadingBlock()[0]
 			fmt.Println(leadingBlock)
-			nonce := leadingBlock.GetNonce()
+			nonce := leadingBlock.GetString()
 			nonce += newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
 
 			newBlock := doProofOfWork(m, nonce, 4, 100, newOperation, leadingBlock)

@@ -2,6 +2,8 @@ package shared
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -85,6 +87,10 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 			// }
 		}
 	}
+}
+
+func pubKeyToString(key ecdsa.PublicKey) string {
+	return string(elliptic.Marshal(key.Curve, key.X, key.Y))
 }
 
 func printBlock(m *Block) {
