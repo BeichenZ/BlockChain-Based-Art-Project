@@ -38,21 +38,24 @@ type Miner interface {
 	// RPC methods of Miner
 	StopMining(miner MinerStruct, r *MinerStruct) error
 }
+
 //Struct for descripting Geometry
 type Point struct {
-	X,Y int
+	X, Y int
 }
+
 //one move , represent like : m 100 100
 type SingleMov struct {
-	Cmd rune
-	Val1 int
-	Val2 int
+	Cmd    rune
+	Val1   int
+	Val2   int
 	ValCnt int
 }
+
 // One operation contains multiple movs
 type SingleOp struct {
-		IsClosedShape bool
-		MovList []SingleMov
+	IsClosedShape bool
+	MovList       []SingleMov
 }
 type MinerStruct struct {
 	ServerAddr            string
@@ -69,7 +72,7 @@ type MinerStruct struct {
 	LeafNodesMap          map[string]*Block
 	FoundHash             bool
 	RecentHeartbeat       int64
-	ListOfOps_str []string
+	ListOfOps_str         []string
 }
 
 type MinerHeartbeatPayload struct {
@@ -348,8 +351,6 @@ func (m *MinerStruct) CheckForNeighbour() {
 				break
 			}
 		}
-
 		// go m.minerSendHeartBeat(netIP.String())
-
 	}
 }

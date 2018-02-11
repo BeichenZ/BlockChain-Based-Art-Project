@@ -19,7 +19,7 @@ type Block struct {
 	CurrentHash       string
 	PreviousHash      string
 	UserSignature     UserSignatureSturct
-	CurrentOP         Operation
+	CurrentOP         []Operation
 	Children          []*Block
 	DistanceToGenesis int
 	Nonce             int32
