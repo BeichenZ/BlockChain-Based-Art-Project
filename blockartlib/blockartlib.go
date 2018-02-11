@@ -189,6 +189,10 @@ type Canvas interface {
 	// Closes the canvas/connection to the BlockArt network.
 	// - DisconnectedError
 	CloseCanvas() (inkRemaining uint32, err error)
+
+	//Testing functions, to be deleted
+	//IsSvgStringValid(svgStr string) (isValid bool,Op shared.SingleOp)
+
 }
 
 // The constructor for a new Canvas object instance. Takes the miner's
@@ -318,7 +322,9 @@ func (t CanvasObject) IsSvgStringValid(svgStr string) (isValid bool,Op shared.Si
   var matches []string
 	var oneMov shared.SingleMov
 	var thisRune rune
+	fmt.Println("string size is",strCnt)
 	for i := 0; i < strCnt; i = i {
+		fmt.Println("Current I is",i)
 		thisRune = rune(svgStr[i])
 		switch thisRune {
 		case 'm', 'M', 'L', 'l':
@@ -331,24 +337,26 @@ func (t CanvasObject) IsSvgStringValid(svgStr string) (isValid bool,Op shared.Si
 				intVal1,_ := strconv.Atoi(matches[2])
 				intVal2,_ := strconv.Atoi(matches[3])
 				oneMov = shared.SingleMov{Cmd:rune(thisRune),Val1:intVal1,Val2:intVal2,ValCnt:2}
-				parsedOp.MovList = append(parsedOp.MovList[:i],oneMov)
+				parsedOp.MovList = append(parsedOp.MovList,oneMov)
 				//Update Index
-				i = arr[1]
+				fmt.Println("ML update next index is",arr[0],arr[1])
+				i = i+arr[1]+1
 			}
 		case 'v', 'V', 'H', 'h':
 			arr := regex_1.FindStringIndex(svgStr[i:])
+			fmt.Println("VH update next index is",arr[0],arr[1])
 			if arr == nil {
 				return false,parsedOp
 			} else {
 				matches = regex_1.FindStringSubmatch(svgStr[i:])
 				intVal1,_ := strconv.Atoi(matches[2])
 				oneMov = shared.SingleMov{Cmd:rune(thisRune),Val1:intVal1,ValCnt:1}
-				parsedOp.MovList = append(parsedOp.MovList[:i],oneMov)
-				i = arr[1]
+				parsedOp.MovList = append(parsedOp.MovList,oneMov)
+				i = i+arr[1]+1
 			}
 		case 'Z','z':
 			oneMov := shared.SingleMov{Cmd:rune(thisRune),ValCnt:0}
-			parsedOp.MovList = append(parsedOp.MovList[:i],oneMov)
+			parsedOp.MovList = append(parsedOp.MovList,oneMov)
 			i = i + 2
 		default:
 			return false,parsedOp
@@ -357,19 +365,17 @@ func (t CanvasObject) IsSvgStringValid(svgStr string) (isValid bool,Op shared.Si
 	return true,parsedOp//pass all tests
 }
 func (t CanvasObject) IsSvgOutofBounds(shapeSvgString string) bool {
+
 	return false
 }
 func (t CanvasObject) ParseOpsStrings(){
 	opsArrSize := len(t.ptr.ListOfOps_ops)
-	for i,element := range t.ptr.ListOfOps_ops {
-		movCnt := len(element.MovList)
-		for i := 0;i<movCnt;i = i {
-			if valid,oneOp := IsSvgStringValid(t.ptr.ListOfOps_str[i]);valid{
-				if i <= (opsArrSize-1){
-					t.ptr.ListOfOps_ops[i] = oneOp
-				} else {
-					t.ptr.ListOfOps_ops=append(t.ptr.ListOfOps_ops,oneOp)
-				}
+	for i,element := range t.ptr.ListOfOps_str {
+		if valid,oneOp := t.IsSvgStringValid(element);valid{
+			if i <= (opsArrSize-1){
+				t.ptr.ListOfOps_ops[i] = oneOp
+			} else {
+				t.ptr.ListOfOps_ops=append(t.ptr.ListOfOps_ops,oneOp)
 			}
 		}
 	}
