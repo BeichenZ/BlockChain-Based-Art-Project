@@ -15,12 +15,10 @@ import (
 	"net/rpc"
 	am "../artminerlib"
 	"regexp"
+	shared "../shared"
+	"strconv"
 
 )
-//Struct for descripting Geometry
-type Point struct {
-	X,Y int
-}
 // Represents a type of shape in the BlockArt system.
 type ShapeType int
 
@@ -227,7 +225,7 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	 fmt.Println("ArtNode going to get settings from miner")
 	 // old
 	 initMs, err := thisCanvasObj.ptr.ArtNode.GetCanvasSettings() // get the canvas settings, list of current operations
-	 thisCanvasObj.ptr.ListOfOps = initMs.ListOfOps
+	 thisCanvasObj.ptr.ListOfOps_str = initMs.ListOfOps_str
 	 setting = CanvasSettings(initMs.Cs)
 	 fmt.Println("i am at 232")
 	 CheckError(err)
@@ -241,10 +239,13 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 //Implementation of Canvas Interface
 type CanvasObjectReal struct{
 	ArtNode am.ArtNodeStruct
-	ListOfOps []string
-	LastPenPosition Point
+	ListOfOps_str []string
+	ListOfOps_ops []shared.SingleOp
+	LastPenPosition shared.Point
+
 	// Canvas settings field?
 }
+
 type CanvasObject struct {
 	ptr *CanvasObjectReal
 }
@@ -257,7 +258,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	if len(shapeSvgString) > 128 {
 		return "", "", 0, ShapeSvgStringTooLongError(shapeSvgString)
 	}
-	if !t.IsSvgStringValid(shapeSvgString) {
+	if valid,_:=t.IsSvgStringValid(shapeSvgString);!valid {
 		return "", "", 0, InvalidShapeSvgStringError(shapeSvgString)
 	}
 	if !t.IsSvgOutofBounds(shapeSvgString) {
@@ -300,48 +301,78 @@ func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error){
 	return 0, nil
 
 }
-func (t CanvasObject) IsSvgStringValid(svgStr string) bool {
+func (t CanvasObject) IsSvgStringValid(svgStr string) (isValid bool,Op shared.SingleOp){
 	//To Be Implemented
 	//Legal Example: "m 20 0 L 19 21",all separated by space,always start at m/M
 	strCnt := len(svgStr)
+	var movList []shared.SingleMov
+	parsedOp := shared.SingleOp{MovList:movList}
 	if strCnt < 3 {
-		return false
+		return false,parsedOp
 	}
 	if svgStr[0] != 'M' && svgStr[0] != 'm' {
-		return false
+		return false,parsedOp
 	}
-	regex_2 := regexp.MustCompile("[mMvVlLhHZz][\\s][0-9]+[\\s][0-9]+")
-	regex_1 := regexp.MustCompile("[mMvVlLhHZz][\\s][0-9]+")
-
+	regex_2 := regexp.MustCompile("([mMvVlLhHZz])[\\s]([0-9]+)[\\s]([0-9]+)")
+	regex_1 := regexp.MustCompile("([mMvVlLhHZz])[\\s]([0-9]+)")
+  var matches []string
+	var oneMov shared.SingleMov
+	var thisRune rune
 	for i := 0; i < strCnt; i = i {
-		thisRune := svgStr[i]
+		thisRune = rune(svgStr[i])
 		switch thisRune {
 		case 'm', 'M', 'L', 'l':
 			arr := regex_2.FindStringIndex(svgStr[i:])
 			if arr == nil {
-				return false
+				return false,parsedOp
 			} else {
+				//if legal, Parse it
+				matches = regex_2.FindStringSubmatch(svgStr[i:])
+				intVal1,_ := strconv.Atoi(matches[2])
+				intVal2,_ := strconv.Atoi(matches[3])
+				oneMov = shared.SingleMov{Cmd:rune(thisRune),Val1:intVal1,Val2:intVal2,ValCnt:2}
+				parsedOp.MovList = append(parsedOp.MovList[:i],oneMov)
+				//Update Index
 				i = arr[1]
 			}
 		case 'v', 'V', 'H', 'h':
 			arr := regex_1.FindStringIndex(svgStr[i:])
 			if arr == nil {
-				return false
+				return false,parsedOp
 			} else {
+				matches = regex_1.FindStringSubmatch(svgStr[i:])
+				intVal1,_ := strconv.Atoi(matches[2])
+				oneMov = shared.SingleMov{Cmd:rune(thisRune),Val1:intVal1,ValCnt:1}
+				parsedOp.MovList = append(parsedOp.MovList[:i],oneMov)
 				i = arr[1]
 			}
-		case 'Z':
+		case 'Z','z':
+			oneMov := shared.SingleMov{Cmd:rune(thisRune),ValCnt:0}
+			parsedOp.MovList = append(parsedOp.MovList[:i],oneMov)
 			i = i + 2
 		default:
-			return false
+			return false,parsedOp
 		}
 	}
-	return true //pass all tests
+	return true,parsedOp//pass all tests
 }
 func (t CanvasObject) IsSvgOutofBounds(shapeSvgString string) bool {
-	//To be Implemented
-
 	return false
+}
+func (t CanvasObject) ParseOpsStrings(){
+	opsArrSize := len(t.ptr.ListOfOps_ops)
+	for i,element := range t.ptr.ListOfOps_ops {
+		movCnt := len(element.MovList)
+		for i := 0;i<movCnt;i = i {
+			if valid,oneOp := IsSvgStringValid(t.ptr.ListOfOps_str[i]);valid{
+				if i <= (opsArrSize-1){
+					t.ptr.ListOfOps_ops[i] = oneOp
+				} else {
+					t.ptr.ListOfOps_ops=append(t.ptr.ListOfOps_ops,oneOp)
+				}
+			}
+		}
+	}
 }
 
 // Additional Helper Functions

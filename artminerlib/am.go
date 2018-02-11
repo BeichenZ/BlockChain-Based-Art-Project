@@ -16,7 +16,7 @@ type ArtNodeStruct struct {
 	ArtNodeId  int
 	PairKey    ecdsa.PrivateKey
 	AmConn     *rpc.Client
-} 
+}
 
 type CanvasSettings struct {
 	// Canvas dimensions
@@ -26,9 +26,9 @@ type CanvasSettings struct {
 
 type InitialCanvasSetting struct{
 	Cs CanvasSettings
-	ListOfOps []string
+	ListOfOps_str []string
 }
- 
+
 // var ArtNodeHeartBeat uint32; ArtNodeHeartBeat = 800
 // Heartbeat from the Art node -- implements this interface
 func (a *ArtNodeStruct) ArtNodeHeartBeat() {
@@ -40,7 +40,7 @@ func (a *ArtNodeStruct) ArtNodeHeartBeat() {
 		}
 		time.Sleep(time.Millisecond * time.Duration(800))
 		fmt.Println("ArtNodeHeartBeat(): Art node is alive")
-	}	
+	}
 }
 
 func (a *ArtNodeStruct) GetCanvasSettings () (InitialCanvasSetting, error) {

@@ -117,7 +117,7 @@ func (l *KeyCheck) ArtNodeKeyCheck(privKey string, reply *bool) error {
 func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *am.InitialCanvasSetting) error {
 	fmt.Println("request for CanvasSettings")
 	ics.Cs=am.CanvasSettings(thisInkMiner.Settings.CanvasSettings)
-	ics.ListOfOps = thisInkMiner.ListOfOps
+	ics.ListOfOps_str = thisInkMiner.ListOfOps_str
 	fmt.Println("GetCanvasSettingsFromMiner() ", *ics)
 	return nil
 	}
