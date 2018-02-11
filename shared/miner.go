@@ -43,6 +43,7 @@ type MinerStruct struct {
 	LeafNodesMap          map[string]*Block
 	FoundHash             bool
 	RecentHeartbeat       int64
+	ListOfOps []string
 }
 
 type MinerInfo struct {

@@ -220,14 +220,16 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	if reply {
 		fmt.Println("ArtNode has same key as miner")
 	var thisCanvasObj CanvasObject
-	 thisCanvasObj.ArtNode.AmConn = art2MinerCon
+	 thisCanvasObj.ptr = new(CanvasObjectReal)
+	 thisCanvasObj.ptr.ArtNode.AmConn = art2MinerCon
 
 	 // Art node gets canvas settings from Miner node
 	 fmt.Println("ArtNode going to get settings from miner")
 	 // old
-	 initMs, err := thisCanvasObj.ArtNode.GetCanvasSettings() // get the canvas settings, list of current operations
-	 thisCanvasObj.ListOfOps = initMs.ListOfOps
+	 initMs, err := thisCanvasObj.ptr.ArtNode.GetCanvasSettings() // get the canvas settings, list of current operations
+	 thisCanvasObj.ptr.ListOfOps = initMs.ListOfOps
 	 setting = CanvasSettings(initMs.Cs)
+	 fmt.Println("i am at 232")
 	 CheckError(err)
 
 	return thisCanvasObj, setting, nil
@@ -237,11 +239,14 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 }
 
 //Implementation of Canvas Interface
-type CanvasObject struct{
+type CanvasObjectReal struct{
 	ArtNode am.ArtNodeStruct
 	ListOfOps []string
 	LastPenPosition Point
 	// Canvas settings field?
+}
+type CanvasObject struct {
+	ptr *CanvasObjectReal
 }
 
 func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
@@ -258,6 +263,9 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	if !t.IsSvgOutofBounds(shapeSvgString) {
 		return "", "", 0, OutOfBoundsError{}
 	}
+
+	//Once successfully add shape. Finish Post Settings
+		//1.update LastPenPosition
 	return "", "", 0, nil
 }
 func (t CanvasObject) GetSvgString(shapeHash string) (svgString string, err error) {
@@ -332,6 +340,7 @@ func (t CanvasObject) IsSvgStringValid(svgStr string) bool {
 }
 func (t CanvasObject) IsSvgOutofBounds(shapeSvgString string) bool {
 	//To be Implemented
+
 	return false
 }
 

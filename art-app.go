@@ -20,7 +20,7 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	//"encoding/gob"
-	) 
+	)
 
 func main() {
 	minerAddr := "127.0.0.1:39865" // hardcoded for now
@@ -30,10 +30,11 @@ func main() {
 	minerPublicKey := flag.String("mp", "minerPublicKey missing", "a string")
 	flag.Parse()
 	fmt.Println("command line arguments ",*minerAddrP," ", *minerPublicKey, minerAddr)
-	
+
 // 	// Open a canvas.
 	canvas, settings, err := blockartlib.OpenCanvas(*minerAddrP, privKey)
 	if checkError(err) != nil {
+		fmt.Println("this is 37")
 		return
 	}
 
