@@ -8,15 +8,19 @@ library (blockartlib) to be used in project 1 of UBC CS 416 2017W2.
 package blockartlib
 
 import (
-	"bytes"
+	//"bytes"
 	"crypto/ecdsa"
 	"fmt"
-	"strings"
+	//"strings"
 	"net/rpc"
-	am "./artminerlib"
-	
-)
+	am "../artminerlib"
+	"regexp"
 
+)
+//Struct for descripting Geometry
+type Point struct {
+	X,Y int
+}
 // Represents a type of shape in the BlockArt system.
 type ShapeType int
 
@@ -220,7 +224,7 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 
 	 // Art node gets canvas settings from Miner node
 	 fmt.Println("ArtNode going to get settings from miner")
-	 // old 
+	 // old
 	 initMs, err := thisCanvasObj.ArtNode.GetCanvasSettings() // get the canvas settings, list of current operations
 	 thisCanvasObj.ListOfOps = initMs.ListOfOps
 	 setting = CanvasSettings(initMs.Cs)
@@ -229,15 +233,16 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	return thisCanvasObj, setting, nil
 	} else { fmt.Println("ArtNode does not have same key as miner")
 		return nil, CanvasSettings{}, DisconnectedError("")  }
- 	
+
 }
 
 //Implementation of Canvas Interface
 type CanvasObject struct{
 	ArtNode am.ArtNodeStruct
 	ListOfOps []string
+	LastPenPosition Point
 	// Canvas settings field?
-}  
+}
 
 func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
 	// check if there's enough ink for the operation
@@ -258,7 +263,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 func (t CanvasObject) GetSvgString(shapeHash string) (svgString string, err error) {
 	// TODO
 	return "", nil
-	
+
 }
 func (t CanvasObject) GetInk() (inkRemaining uint32, err error) {
 	// TODO
@@ -275,7 +280,7 @@ func (t CanvasObject) GetShapes(blockHash string) (shapeHashes []string, err err
 	}
 func (t CanvasObject) GetGenesisBlock() (blockHash string, err error) {
 	// TODO
-	// Request block chain from miner 
+	// Request block chain from miner
 	return "", nil
 }
 func (t CanvasObject) GetChildren(blockHash string) (blockHashes []string, err error) {
@@ -285,21 +290,45 @@ func (t CanvasObject) GetChildren(blockHash string) (blockHashes []string, err e
 func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error){
 	// TODO
 	return 0, nil
-	
+
 }
-// Added helpers
-func (t CanvasObject) IsSvgStringValid(shapeSvgString string) bool {
+func (t CanvasObject) IsSvgStringValid(svgStr string) bool {
 	//To Be Implemented
-	availableCmds := []byte{77, 109, 86, 118, 72, 104, 76, 108, 90, 122} // MmVvLlZz
-	svgCharArray := []byte(strings.TrimSpace(shapeSvgString))
-
-	if !bytes.Contains(availableCmds, svgCharArray[0:0]) {
+	//Legal Example: "m 20 0 L 19 21",all separated by space,always start at m/M
+	strCnt := len(svgStr)
+	if strCnt < 3 {
 		return false
-	} else {
-
 	}
+	if svgStr[0] != 'M' && svgStr[0] != 'm' {
+		return false
+	}
+	regex_2 := regexp.MustCompile("[mMvVlLhHZz][\\s][0-9]+[\\s][0-9]+")
+	regex_1 := regexp.MustCompile("[mMvVlLhHZz][\\s][0-9]+")
 
-	return false
+	for i := 0; i < strCnt; i = i {
+		thisRune := svgStr[i]
+		switch thisRune {
+		case 'm', 'M', 'L', 'l':
+			arr := regex_2.FindStringIndex(svgStr[i:])
+			if arr == nil {
+				return false
+			} else {
+				i = arr[1]
+			}
+		case 'v', 'V', 'H', 'h':
+			arr := regex_1.FindStringIndex(svgStr[i:])
+			if arr == nil {
+				return false
+			} else {
+				i = arr[1]
+			}
+		case 'Z':
+			i = i + 2
+		default:
+			return false
+		}
+	}
+	return true //pass all tests
 }
 func (t CanvasObject) IsSvgOutofBounds(shapeSvgString string) bool {
 	//To be Implemented
@@ -312,4 +341,3 @@ func CheckError(err error) {
 		fmt.Println("Error: ", err)
 	}
 }
-
