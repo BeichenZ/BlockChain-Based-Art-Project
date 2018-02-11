@@ -45,8 +45,8 @@ type Point struct {
 //one move , represent like : m 100 100
 type SingleMov struct {
 	Cmd rune
-	Val1 int
-	Val2 int
+	X int
+	Y int
 	ValCnt int
 }
 // One operation contains multiple movs

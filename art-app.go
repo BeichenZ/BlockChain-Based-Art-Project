@@ -37,10 +37,12 @@ func main() {
 		fmt.Println("this is 37")
 		return
 	}
-//For testing
-  isOpvalid,testOp := canvas.IsSvgStringValid("m 20 100 v 23")
+//For testing,Can be deleted
+  isOpvalid,testOp := canvas.IsSvgStringValid("m 100 100 l 500 400 l 1000 2000")
+	isOutofBound := canvas.IsSvgOutofBounds(testOp)
 	fmt.Println("operation first second third",isOpvalid,string(testOp.MovList[0].Cmd),string(testOp.MovList[1].Cmd))
-	//fmt.Println("operation first second third",isOpvalid)
+	fmt.Println("Operation is out of bound!:",isOutofBound)
+
     validateNum := 2
     fmt.Println("remove after", canvas, settings, validateNum)
 	// Add a line.

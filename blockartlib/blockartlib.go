@@ -191,8 +191,10 @@ type Canvas interface {
 	CloseCanvas() (inkRemaining uint32, err error)
 
 	//Testing functions, to be deleted
-	//IsSvgStringValid(svgStr string) (isValid bool,Op shared.SingleOp)
-
+	/*
+	IsSvgStringValid(svgStr string) (isValid bool,Op shared.SingleOp)
+  IsSvgOutofBounds(svgOP shared.SingleOp) bool
+  */
 }
 
 // The constructor for a new Canvas object instance. Takes the miner's
@@ -229,9 +231,10 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	 fmt.Println("ArtNode going to get settings from miner")
 	 // old
 	 initMs, err := thisCanvasObj.ptr.ArtNode.GetCanvasSettings() // get the canvas settings, list of current operations
-	 thisCanvasObj.ptr.ListOfOps_str = initMs.ListOfOps_str
 	 setting = CanvasSettings(initMs.Cs)
-	 fmt.Println("i am at 232")
+	 thisCanvasObj.ptr.ListOfOps_str = initMs.ListOfOps_str
+	 thisCanvasObj.ptr.XYLimit = shared.Point{X:int(setting.CanvasXMax),Y:int(setting.CanvasYMax)}
+
 	 CheckError(err)
 
 	return thisCanvasObj, setting, nil
@@ -240,12 +243,13 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 
 }
 
-//Implementation of Canvas Interface
+//Underlying struct holding the info for canvas
 type CanvasObjectReal struct{
 	ArtNode am.ArtNodeStruct
 	ListOfOps_str []string
 	ListOfOps_ops []shared.SingleOp
 	LastPenPosition shared.Point
+	XYLimit				shared.Point
 
 	// Canvas settings field?
 }
@@ -259,13 +263,15 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	// send operation to the miner Call()
 	//t.ArtNode.AmConn.doOp(s string)
 	//Check for ShapeSvgStringTooLongError
+	var svgOP shared.SingleOp
 	if len(shapeSvgString) > 128 {
 		return "", "", 0, ShapeSvgStringTooLongError(shapeSvgString)
 	}
-	if valid,_:=t.IsSvgStringValid(shapeSvgString);!valid {
+	valid,svgOP :=t.IsSvgStringValid(shapeSvgString);
+	if !valid {
 		return "", "", 0, InvalidShapeSvgStringError(shapeSvgString)
 	}
-	if !t.IsSvgOutofBounds(shapeSvgString) {
+	if !t.IsSvgOutofBounds(svgOP) {
 		return "", "", 0, OutOfBoundsError{}
 	}
 
@@ -317,8 +323,8 @@ func (t CanvasObject) IsSvgStringValid(svgStr string) (isValid bool,Op shared.Si
 	if svgStr[0] != 'M' && svgStr[0] != 'm' {
 		return false,parsedOp
 	}
-	regex_2 := regexp.MustCompile("([mMvVlLhHZz])[\\s]([0-9]+)[\\s]([0-9]+)")
-	regex_1 := regexp.MustCompile("([mMvVlLhHZz])[\\s]([0-9]+)")
+	regex_2 := regexp.MustCompile("([mMvVlLhHZz])[\\s]([-]*[0-9]+)[\\s]([-]*[0-9]+)")
+	regex_1 := regexp.MustCompile("([mMvVlLhHZz])[\\s]([-]*[0-9]+)")
   var matches []string
 	var oneMov shared.SingleMov
 	var thisRune rune
@@ -336,7 +342,7 @@ func (t CanvasObject) IsSvgStringValid(svgStr string) (isValid bool,Op shared.Si
 				matches = regex_2.FindStringSubmatch(svgStr[i:])
 				intVal1,_ := strconv.Atoi(matches[2])
 				intVal2,_ := strconv.Atoi(matches[3])
-				oneMov = shared.SingleMov{Cmd:rune(thisRune),Val1:intVal1,Val2:intVal2,ValCnt:2}
+				oneMov = shared.SingleMov{Cmd:rune(thisRune),X:intVal1,Y:intVal2,ValCnt:2}
 				parsedOp.MovList = append(parsedOp.MovList,oneMov)
 				//Update Index
 				fmt.Println("ML update next index is",arr[0],arr[1])
@@ -350,7 +356,7 @@ func (t CanvasObject) IsSvgStringValid(svgStr string) (isValid bool,Op shared.Si
 			} else {
 				matches = regex_1.FindStringSubmatch(svgStr[i:])
 				intVal1,_ := strconv.Atoi(matches[2])
-				oneMov = shared.SingleMov{Cmd:rune(thisRune),Val1:intVal1,ValCnt:1}
+				oneMov = shared.SingleMov{Cmd:rune(thisRune),X:intVal1,Y:0,ValCnt:1}
 				parsedOp.MovList = append(parsedOp.MovList,oneMov)
 				i = i+arr[1]+1
 			}
@@ -364,8 +370,28 @@ func (t CanvasObject) IsSvgStringValid(svgStr string) (isValid bool,Op shared.Si
 	}
 	return true,parsedOp//pass all tests
 }
-func (t CanvasObject) IsSvgOutofBounds(shapeSvgString string) bool {
-
+func (t CanvasObject) IsSvgOutofBounds(svgOP shared.SingleOp) bool {
+	xVal := t.ptr.LastPenPosition.X
+	yVal := t.ptr.LastPenPosition.Y
+	for _,element := range svgOP.MovList {
+		switch element.Cmd {
+		case 'M','L','H','V':
+			if element.X > t.ptr.XYLimit.X || element.X < 0 || element.Y > t.ptr.XYLimit.Y || element.Y < 0{
+				return true
+			} else {
+					xVal = xVal + element.X
+					yVal = yVal + element.Y
+			}
+		case 'm','l','v','h':
+			if element.X+xVal > t.ptr.XYLimit.X || element.X+xVal < 0 || element.Y+yVal > t.ptr.XYLimit.Y || element.Y+yVal < 0 {
+				return true
+			} else {
+				xVal = xVal + element.X
+				yVal = yVal + element.Y
+			}
+		default:
+		}
+	}
 	return false
 }
 func (t CanvasObject) ParseOpsStrings(){
