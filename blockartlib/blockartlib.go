@@ -200,31 +200,41 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	// TODO
 	fmt.Print("OpenCanvas(): Going to connect to miner")
 
-	// 1. connect to Miner
+	// Connect to Miner
 	art2MinerCon, err := rpc.Dial("tcp", minerAddr)
 	CheckError(err)
 	fmt.Println("Connected  to Miner")
 
 	// see if the Miner key matches the one you have
 	var reply bool
-	//err = art2MinerCon.Call("KeyCheck.ArtNodeKeyCheck", privKey, &reply)
 	Key := "test"
 	err = art2MinerCon.Call("KeyCheck.ArtNodeKeyCheck", Key, &reply)
 	CheckError(err)
 	if reply {
 		fmt.Println("ArtNode has same key as miner")
-		var thisCanvas Canvas
-		// For now return DisconnectedError
-		return thisCanvas, CanvasSettings{}, nil
-	} else {
-		fmt.Println("ArtNode does not have same key as miner")
-		return nil, CanvasSettings{}, DisconnectedError("")
-	}
+	var thisCanvasObj CanvasObject
+	 thisCanvasObj.ArtNode.AmConn = art2MinerCon
+
+	 // Art node gets canvas settings from Miner node
+	 fmt.Println("ArtNode going to get settings from miner")
+	 // old 
+	 initMs, err := thisCanvasObj.ArtNode.GetCanvasSettings() // get the canvas settings, list of current operations
+	 thisCanvasObj.ListOfOps = initMs.ListOfOps
+	 setting = CanvasSettings(initMs.Cs)
+	 CheckError(err)
+
+	return thisCanvasObj, setting, nil
+	} else { fmt.Println("ArtNode does not have same key as miner")
+		return nil, CanvasSettings{}, DisconnectedError("")  }
 
 }
 
 //Implementation of Canvas Interface
-type CanvasObject int
+type CanvasObject struct{
+	ArtNode am.ArtNodeStruct
+	ListOfOps []string
+	// Canvas settings field?
+}
 
 func (t *CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
 	//Check for ShapeSvgStringTooLongError
@@ -239,44 +249,7 @@ func (t *CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvg
 	}
 	return "", "", 0, nil
 }
-func (t CanvasObject) IsSvgStringValid(svgStr string) bool {
-	//To Be Implemented
-	//Legal Example: "m 20 0 L 19 21",all separated by space,always start at m/M,all value are integers
-	strCnt := len(svgStr)
-	if strCnt < 3 {
-		return false
-	}
-	if svgStr[0] != 'M' && svgStr[0] != 'm' {
-		return false
-	}
-	regex_2 := regexp.MustCompile("[mMvVlLhHZz][\\s][0-9]+[\\s][0-9]+")
-	regex_1 := regexp.MustCompile("[mMvVlLhHZz][\\s][0-9]+")
 
-	for i := 0; i < strCnt; i = i {
-		thisRune := svgStr[i]
-		switch thisRune {
-		case 'm', 'M', 'L', 'l':
-			arr := regex_2.FindStringIndex(svgStr[i:])
-			if arr == nil {
-				return false
-			} else {
-				i = arr[1]
-			}
-		case 'v', 'V', 'H', 'h':
-			arr := regex_1.FindStringIndex(svgStr[i:])
-			if arr == nil {
-				return false
-			} else {
-				i = arr[1]
-			}
-		case 'Z':
-			i = i + 2
-		default:
-			return false
-		}
-	}
-	return true //pass all tests
-}
 func (t *CanvasObject) IsSvgOutofBounds(shapeSvgString string) bool {
 	//To be Implemented
 	return false
