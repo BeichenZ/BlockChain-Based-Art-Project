@@ -2,12 +2,24 @@ package shared
 
 import (
 	"crypto/ecdsa"
+	"crypto/rand"
 	"fmt"
 	"log"
 	"net"
 	"net/rpc"
 	"os"
+	"sync"
 	"time"
+)
+
+type AllNeighbour struct {
+	sync.RWMutex
+	all map[string]*MinerStruct
+}
+
+var (
+	allNeighbour AllNeighbour = AllNeighbour{all: make(map[string]*MinerStruct)}
+	// listofNeighbourIP              = make([]net.Addr, 0)
 )
 
 type Miner interface {
@@ -47,7 +59,6 @@ type MinerStruct struct {
 	MinerAddr             string
 	PairKey               ecdsa.PrivateKey
 	Threshold             int
-	Neighbours            map[string]MinerStruct
 	ArtNodes              []string
 	BlockChain            *Block
 	ServerConnection      *rpc.Client
@@ -61,6 +72,10 @@ type MinerStruct struct {
 	ListOfOps_str []string
 }
 
+type MinerHeartbeatPayload struct {
+	client    rpc.Client
+	MinerAddr string
+}
 type MinerInfo struct {
 	Address net.Addr
 	Key     ecdsa.PublicKey
@@ -186,14 +201,16 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 			fmt.Println("I'm starting to mine")
 			leadingBlock := m.FindtheLeadingBlock()[0]
 			fmt.Println(leadingBlock)
-			nonce := leadingBlock.GetNonce()
-			nonce += newOperation.Command + "," + newOperation.Shapetype + " by " + newOperation.UserSignature + " \n "
+			// nonce := leadingBlock.GetString()
+			nonce := newOperation.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
 
 			newBlock := doProofOfWork(m, nonce, 4, 100, newOperation, leadingBlock)
 			leadingBlock.Children = append(leadingBlock.Children, newBlock)
 			// TODO maybe validate block here
-			printBlock(m.BlockChain)
+			// printBlock(m.BlockChain)
 			fmt.Println("\n")
+			// time.Sleep(5000 * time.Millisecond)
+
 			// if m.MinerAddr[len(m.MinerAddr)-1:] == "8" {
 			// 	time.Sleep(time.Millisecond * time.Duration(delay))
 			// }
@@ -212,12 +229,12 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 }
 
 // Bare minimum flooding protocol, Miner will disseminate notification through the network
-func (m MinerStruct) Flood(newBlock *Block, visited *[]MinerStruct) {
+func (m MinerStruct) Flood(newBlock *Block, visited *[]*MinerStruct) {
 	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
 	// TODO what happense if node A calls flood, and before it can reach node B, node B calls flood?
-	validNeighbours := make([]MinerStruct, 0)
+	validNeighbours := make([]*MinerStruct, 0)
 	fmt.Println("Flooding is called.......................................................")
-	for _, v := range m.Neighbours {
+	for _, v := range allNeighbour.all {
 		if filter(v, visited) {
 			validNeighbours = append(validNeighbours, v)
 		}
@@ -232,10 +249,16 @@ func (m MinerStruct) Flood(newBlock *Block, visited *[]MinerStruct) {
 		*visited = append(*visited, v)
 	}
 	for _, n := range validNeighbours {
+		client, error := rpc.Dial("tcp", n.MinerAddr)
+		if error != nil {
+			fmt.Println(error)
+			return
+		}
+
 		alive := false
 		fmt.Println("visiting miner: ", n.MinerAddr)
-		passingBlock := copyBlock(newBlock)
-		err := n.MinerConnection.Call("MinerRPCServer.StopMining", passingBlock, &alive)
+		// passingBlock := copyBlock(newBlock)
+		err := client.Call("MinerRPCServer.StopMining", newBlock, &alive)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -246,13 +269,21 @@ func (m MinerStruct) Flood(newBlock *Block, visited *[]MinerStruct) {
 
 func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingBlock *Block) *Block {
 	// visitedMiners := make([]MinerStruct, 0)
-	visitedMiners := []MinerStruct{*m}
+	visitedMiners := []*MinerStruct{m}
 	/// Find the leading block
-	LocalOPs := []Operation{newOP}
+	// CurrentOPs := []Operation{newOP}
+	r, s, err := ecdsa.Sign(rand.Reader, &m.PairKey, []byte(currentHash))
+	if err != nil {
+		os.Exit(500)
+	}
 	fmt.Println("Creating a new block with the new hash")
 	producedBlock := &Block{CurrentHash: currentHash,
-		PreviousHash:      leadingBlock.CurrentHash,
-		LocalOPs:          LocalOPs,
+		PreviousHash: leadingBlock.CurrentHash,
+		CurrentOP:    newOP,
+		UserSignature: UserSignatureSturct{
+			r: r,
+			s: s,
+		},
 		Children:          make([]*Block, 0),
 		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1}
 	m.Flood(producedBlock, &visitedMiners)
@@ -264,37 +295,61 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 	return producedBlock
 }
 
+func (m *MinerStruct) minerSendHeartBeat(minerNeighbourAddr string) error {
+	alive := false
+	fmt.Println(minerNeighbourAddr)
+	// fmt.Println("MAKING RPC CALL TO NEIGHBOUR ", minerNeighbourAddr)
+	client, _ := rpc.Dial("tcp", minerNeighbourAddr)
+	for {
+		fmt.Println("sending heartbeat")
+		// fmt.Println(minerToMinerConnection)
+		err := client.Call("MinerRPCServer.ReceiveMinerHeartBeat", m.MinerAddr, &alive)
+		if err == nil {
+			// fmt.Println("////////////////////////////////////////////////////////////////")
+			log.Println(err)
+		} else {
+			return err
+		}
+		time.Sleep(time.Millisecond * time.Duration(400))
+	}
+
+}
+
 func (m *MinerStruct) CheckForNeighbour() {
-	listofNeighbourIP := make([]net.Addr, 0)
+	// NeighbourMap := reflect.ValueOf(allNeighbour).MapKeys()
+	// NeighbourSlice := make([]net.Addr, 0)
+	var listofNeighbourIP = make([]net.Addr, 0)
 	for len(listofNeighbourIP) < int(m.Settings.MinNumMinerConnections) {
 		error := m.ServerConnection.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
 		if error != nil {
 			fmt.Println(error)
 		}
 	}
-
 	for _, netIP := range listofNeighbourIP {
+
 		fmt.Println("neighbour ip address", netIP.String())
 		client, error := rpc.Dial("tcp", netIP.String())
 		fmt.Println(client)
 
 		if error != nil {
-			fmt.Println("Fucked; can't connect")
+			fmt.Println(" can't connect")
 			fmt.Println(error)
 			log.Fatal(error)
 			os.Exit(0)
 		}
+		alive := false
+		// payLoad := MinerHeartbeatPayload{MinerAddr: netIP.String(), client: *client}
+		log.Println("NETIP IS ", netIP.String())
+		client.Call("MinerRPCServer.MinerRegister", m.MinerAddr, &alive)
 
-		if _, exists := m.Neighbours[netIP.String()]; exists {
-			fmt.Println("neighbour exist and alive")
-		} else {
-			m.Neighbours[netIP.String()] = MinerStruct{
-				MinerAddr:       netIP.String(),
-				MinerConnection: client,
-				RecentHeartbeat: time.Now().UnixNano(),
+		for {
+			if _, exists := allNeighbour.all[netIP.String()]; exists {
+				fmt.Printf("The neighbour %v has registered as client", netIP.String())
+				break
 			}
-			go monitor(netIP.String(), *m, 500)
 		}
+
+		// go m.minerSendHeartBeat(netIP.String())
 
 	}
 }

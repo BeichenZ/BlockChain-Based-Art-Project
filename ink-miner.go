@@ -8,15 +8,16 @@ import (
 	"flag"
 	"fmt"
 	"net"
-	"os"
 	"net/rpc"
+	"os"
 
-	shared "./shared"
 	am "./artminerlib"
+	shared "./shared"
 )
 
 //var globalInkMinerPairKey ecdsa.PrivateKey
 var thisInkMiner *shared.MinerStruct
+
 func main() {
 	// Register necessary struct for server communications
 	servAddr := "127.0.0.1:12345"
@@ -32,7 +33,7 @@ func main() {
 	inkMinerStruct := initializeMiner(servAddr, minerAddr)
 	//globalInkMinerPairKey = inkMinerStruct.PairKey
 	fmt.Println("Miner Key: ", inkMinerStruct.PairKey.X)
-  thisInkMiner =&inkMinerStruct
+	thisInkMiner = &inkMinerStruct
 	// RPC - Register this miner to the server
 	minerSettings, error := inkMinerStruct.Register(servAddr, inkMinerStruct.PairKey.PublicKey)
 	if error != nil {
@@ -49,22 +50,20 @@ func main() {
 	// <-heartBeatChannel
 
 	// While the heart is beating, keep fetching for neighbours
-	inkMinerStruct.CheckForNeighbour()
 
 	// After going over the minimum neighbours value, start doing no-op
-	OP := shared.Operation{Command: "no-op"}
-	// i := 1
-	// for {
-	// fmt.Println("=============================", i)
-	inkMinerStruct.Mine(OP)
-	// i++
-	// }
 
-  // Listen for Art noded that want to connect to it
+	OP := shared.Operation{Command: "no-op"}
+	for {
+		inkMinerStruct.CheckForNeighbour()
+		inkMinerStruct.Mine(OP)
+	}
+
+	// Listen for Art noded that want to connect to it
 	fmt.Println("Going to Listen to Art Nodes: ")
 	listenArtConn, err := net.Listen("tcp", "127.0.0.1:") // listening on wtv port
 	CheckError(err)
-	fmt.Println("Port Miner is lisening on ",  listenArtConn.Addr())
+	fmt.Println("Port Miner is lisening on ", listenArtConn.Addr())
 
 	// check that the art node has the correct public/private key pair
 	initArt := new(KeyCheck)
@@ -81,7 +80,6 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 	killSig := make(chan *shared.Block)
 	NotEnoughNeighbourSig := make(chan bool)
 	LeafMap := make(map[string]*shared.Block)
-	minerNeighbourMap := make(map[string]shared.MinerStruct)
 	return shared.MinerStruct{ServerAddr: servAddr,
 		MinerAddr:             minerAddr,
 		PairKey:               *minerKey,
@@ -89,7 +87,6 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 		NotEnoughNeighbourSig: NotEnoughNeighbourSig,
 		LeafNodesMap:          LeafMap,
 		FoundHash:             false,
-		Neighbours:            minerNeighbourMap,
 	}
 }
 
@@ -116,11 +113,11 @@ func (l *KeyCheck) ArtNodeKeyCheck(privKey string, reply *bool) error {
 }
 func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *am.InitialCanvasSetting) error {
 	fmt.Println("request for CanvasSettings")
-	ics.Cs=am.CanvasSettings(thisInkMiner.Settings.CanvasSettings)
+	ics.Cs = am.CanvasSettings(thisInkMiner.Settings.CanvasSettings)
 	ics.ListOfOps_str = thisInkMiner.ListOfOps_str
 	fmt.Println("GetCanvasSettingsFromMiner() ", *ics)
 	return nil
-	}
+}
 func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)

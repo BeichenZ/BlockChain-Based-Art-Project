@@ -2,6 +2,8 @@ package shared
 
 import (
 	"bytes"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -12,22 +14,31 @@ import (
 
 func monitor(minerNeighbourAddr string, miner MinerStruct, heartBeatInterval time.Duration) {
 	for {
-		minerToBeChecked := miner.Neighbours[minerNeighbourAddr]
-		if time.Now().UnixNano()-minerToBeChecked.RecentHeartbeat > int64(heartBeatInterval) {
-			log.Printf("%s timed out, walalalalala\n", minerToBeChecked.MinerAddr)
-			delete(miner.Neighbours, minerNeighbourAddr)
-			if len(miner.Neighbours) < int(miner.Settings.MinNumMinerConnections) {
+		fmt.Println("Duration is ", heartBeatInterval)
+
+		allNeighbour.Lock()
+
+		log.Println("MONITOR Time is: ", time.Now().UnixNano())
+
+		log.Println("MONITOR AT %v", (time.Now().UnixNano() - allNeighbour.all[minerNeighbourAddr].RecentHeartbeat))
+		if time.Now().UnixNano()-allNeighbour.all[minerNeighbourAddr].RecentHeartbeat > int64(heartBeatInterval) {
+			log.Printf("%s timed out, walalalalala\n", allNeighbour.all[minerNeighbourAddr].MinerAddr)
+			delete(allNeighbour.all, minerNeighbourAddr)
+
+			if len(allNeighbour.all) < int(miner.Settings.MinNumMinerConnections) {
 				miner.NotEnoughNeighbourSig <- true
 			}
+			allNeighbour.Unlock()
+
 			return
 		}
-		log.Printf("%s is alive\n", minerToBeChecked.MinerAddr)
-		// allMiners.Unlock()
+		log.Printf("%s is alive\n", allNeighbour.all[minerNeighbourAddr].MinerAddr)
+		allNeighbour.Unlock()
 		time.Sleep(heartBeatInterval)
 	}
 }
 
-func filter(m MinerStruct, visited *[]MinerStruct) bool {
+func filter(m *MinerStruct, visited *[]*MinerStruct) bool {
 	for _, s := range *visited {
 		if s.MinerAddr == m.MinerAddr {
 			return false
@@ -40,7 +51,7 @@ func copyBlock(thisBlock *Block) *Block {
 
 	producedBlock := &Block{CurrentHash: thisBlock.CurrentHash,
 		PreviousHash:      thisBlock.PreviousHash,
-		LocalOPs:          thisBlock.LocalOPs,
+		CurrentOP:         thisBlock.CurrentOP,
 		Children:          make([]*Block, 0),
 		DistanceToGenesis: thisBlock.DistanceToGenesis}
 	return producedBlock
@@ -62,7 +73,7 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 		zeroesBuffer.WriteString("0")
 	}
 	zeroes := zeroesBuffer.String()
-	fmt.Println("Begin Proof of work")
+	fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++Begin Proof of work+++++++++++++++++++++++++++++")
 	for {
 		select {
 		case recievedBlock := <-m.MiningStopSig:
@@ -85,6 +96,10 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 			// }
 		}
 	}
+}
+
+func pubKeyToString(key ecdsa.PublicKey) string {
+	return string(elliptic.Marshal(key.Curve, key.X, key.Y))
 }
 
 func printBlock(m *Block) {
