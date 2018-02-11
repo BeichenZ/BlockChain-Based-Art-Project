@@ -253,7 +253,7 @@ type CanvasObject struct {
 func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
 	// check if there's enough ink for the operation
 	// send operation to the miner Call()
-	//t.ArtNode.AmConn.doOp(s string)
+	t.ptr.ArtNode.ArtnodeOp("hey")
 	//Check for ShapeSvgStringTooLongError
 	if len(shapeSvgString) > 128 {
 		return "", "", 0, ShapeSvgStringTooLongError(shapeSvgString)
@@ -359,21 +359,21 @@ func (t CanvasObject) IsSvgStringValid(svgStr string) (isValid bool,Op shared.Si
 func (t CanvasObject) IsSvgOutofBounds(shapeSvgString string) bool {
 	return false
 }
-func (t CanvasObject) ParseOpsStrings(){
-	opsArrSize := len(t.ptr.ListOfOps_ops)
-	for i,element := range t.ptr.ListOfOps_ops {
-		movCnt := len(element.MovList)
-		for i := 0;i<movCnt;i = i {
-			if valid,oneOp := IsSvgStringValid(t.ptr.ListOfOps_str[i]);valid{
-				if i <= (opsArrSize-1){
-					t.ptr.ListOfOps_ops[i] = oneOp
-				} else {
-					t.ptr.ListOfOps_ops=append(t.ptr.ListOfOps_ops,oneOp)
-				}
-			}
-		}
-	}
-}
+//func (t CanvasObject) ParseOpsStrings(){
+//	opsArrSize := len(t.ptr.ListOfOps_ops)
+//	for i,element := range t.ptr.ListOfOps_ops {
+//		movCnt := len(element.MovList)
+//		for i := 0;i<movCnt;i = i {
+//			if valid,oneOp := IsSvgStringValid(t.ptr.ListOfOps_str[i]);valid{
+//				if i <= (opsArrSize-1){
+//					t.ptr.ListOfOps_ops[i] = oneOp
+//				} else {
+//					t.ptr.ListOfOps_ops=append(t.ptr.ListOfOps_ops,oneOp)
+//				}
+//			}
+//		}
+//	}
+//}
 
 // Additional Helper Functions
 func CheckError(err error) {

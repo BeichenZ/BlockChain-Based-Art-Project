@@ -10,8 +10,6 @@ import (
 	"net"
 	"net/rpc"
 	"os"
-
-	am "./artminerlib"
 	shared "./shared"
 )
 
@@ -49,6 +47,24 @@ func main() {
 	go inkMinerStruct.HeartBeat()
 	// <-heartBeatChannel
 
+	// Listen for Art noded that want to connect to it
+	fmt.Println("Going to Listen to Art Nodes: ")
+	listenArtConn, err := net.Listen("tcp", "127.0.0.1:") // listening on wtv port
+	shared.CheckError(err)
+	fmt.Println("Port Miner is lisening on ", listenArtConn.Addr())
+
+	// check that the art node has the correct public/private key pair
+	initArt := new(shared.KeyCheck)
+	rpc.Register(initArt)
+	cs := &shared.CanvasSet{inkMinerStruct}
+	rpc.Register(cs)
+	anr := &shared.ArtNodeOpReg{inkMinerStruct}
+	rpc.Register(anr)
+	go rpc.Accept(listenArtConn)
+
+
+
+
 	// While the heart is beating, keep fetching for neighbours
 
 	// After going over the minimum neighbours value, start doing no-op
@@ -58,20 +74,6 @@ func main() {
 		inkMinerStruct.CheckForNeighbour()
 		inkMinerStruct.Mine(OP)
 	}
-
-	// Listen for Art noded that want to connect to it
-	fmt.Println("Going to Listen to Art Nodes: ")
-	listenArtConn, err := net.Listen("tcp", "127.0.0.1:") // listening on wtv port
-	CheckError(err)
-	fmt.Println("Port Miner is lisening on ", listenArtConn.Addr())
-
-	// check that the art node has the correct public/private key pair
-	initArt := new(KeyCheck)
-	rpc.Register(initArt)
-	cs := new(CanvasSet)
-	rpc.Register(cs)
-	rpc.Accept(listenArtConn)
-
 	return
 }
 
@@ -87,39 +89,5 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 		NotEnoughNeighbourSig: NotEnoughNeighbourSig,
 		LeafNodesMap:          LeafMap,
 		FoundHash:             false,
-	}
-}
-
-// TODO
-//type ArtNodeOpReq int
-type KeyCheck int
-type HeartBeat int
-type CanvasSet int
-
-// func (l *ArtNodeOpReq) doArtNodeOp(o am.Operation, reply *int) error {
-// 	// TODO
-// 	return nil
-// }
-
-// func (l *KeyCheck) ArtNodeKeyCheck(privKey ecdsa.PrivateKey, reply *bool) error {
-// 	*reply = (privKey == globalInkMinerPairKey )
-// 	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")
-// 	return nil
-// }
-func (l *KeyCheck) ArtNodeKeyCheck(privKey string, reply *bool) error {
-	*reply = true
-	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")
-	return nil
-}
-func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *am.InitialCanvasSetting) error {
-	fmt.Println("request for CanvasSettings")
-	ics.Cs = am.CanvasSettings(thisInkMiner.Settings.CanvasSettings)
-	ics.ListOfOps_str = thisInkMiner.ListOfOps_str
-	fmt.Println("GetCanvasSettingsFromMiner() ", *ics)
-	return nil
-}
-func CheckError(err error) {
-	if err != nil {
-		fmt.Println("Error: ", err)
 	}
 }

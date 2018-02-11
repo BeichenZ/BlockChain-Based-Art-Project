@@ -41,10 +41,12 @@ func main() {
     validateNum := 2
     fmt.Println("remove after", canvas, settings, validateNum)
 	// Add a line.
-//	shapeHash, blockHash, ink, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
+	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
 	if checkError(err) != nil {
 		return
 	}
+
+	return 
 
 	// Add another line.
 //	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 5 0", "transparent", "blue")

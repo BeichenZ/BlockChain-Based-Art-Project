@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/rpc"
 	"time"
+	am "../artminerlib"
 )
 
 type MinerRPCServer struct {
@@ -86,4 +87,46 @@ func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, alive *boo
 
 	}
 	return nil
+}
+
+
+
+// TODO
+//type ArtNodeOpReq int
+type KeyCheck int
+type CanvasSet struct {
+	Miner MinerStruct
+}
+type ArtNodeOpReg struct {
+	Miner MinerStruct
+}
+
+ func (l *ArtNodeOpReg) DoArtNodeOp(s *string , reply *int) error {
+
+ 	fmt.Println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+ 	// TODO
+ 	// check errors
+ 	// Insuffcient errors
+ 	// shape overlap
+ 	return nil
+ }
+
+// gil
+// }
+func (l *KeyCheck) ArtNodeKeyCheck(privKey string, reply *bool) error {
+	*reply = true
+	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")
+	return nil
+}
+func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *am.InitialCanvasSetting) error {
+	fmt.Println("request for CanvasSettings")
+	ics.Cs = am.CanvasSettings(l.Miner.Settings.CanvasSettings)
+	ics.ListOfOps_str = l.Miner.ListOfOps_str
+	fmt.Println("GetCanvasSettingsFromMiner() ", *ics)
+	return nil
+}
+func CheckError(err error) {
+	if err != nil {
+		fmt.Println("Error: ", err)
+	}
 }

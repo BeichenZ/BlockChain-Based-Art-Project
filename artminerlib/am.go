@@ -50,6 +50,13 @@ func (a *ArtNodeStruct) GetCanvasSettings () (InitialCanvasSetting, error) {
 	return *initCS, err
 }
 
+func (a *ArtNodeStruct) ArtnodeOp (s string) {
+	alive := false
+	err := a.AmConn.Call("ArtNodeOpReg.DoArtNodeOp", "hey", &alive)
+	CheckError(err)
+
+}
+
 func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
