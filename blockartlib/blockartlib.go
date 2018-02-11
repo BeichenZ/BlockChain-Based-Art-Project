@@ -14,6 +14,7 @@ import (
 	"strings"
 	"net/rpc"
 	am "./artminerlib"
+	
 )
 
 // Represents a type of shape in the BlockArt system.
@@ -228,7 +229,7 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	return thisCanvasObj, setting, nil
 	} else { fmt.Println("ArtNode does not have same key as miner")
 		return nil, CanvasSettings{}, DisconnectedError("")  }
-
+ 	
 }
 
 //Implementation of Canvas Interface
@@ -236,9 +237,12 @@ type CanvasObject struct{
 	ArtNode am.ArtNodeStruct
 	ListOfOps []string
 	// Canvas settings field?
-}
+}  
 
-func (t *CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
+func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
+	// check if there's enough ink for the operation
+	// send operation to the miner Call()
+	//t.ArtNode.AmConn.doOp(s string)
 	//Check for ShapeSvgStringTooLongError
 	if len(shapeSvgString) > 128 {
 		return "", "", 0, ShapeSvgStringTooLongError(shapeSvgString)
@@ -251,8 +255,53 @@ func (t *CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvg
 	}
 	return "", "", 0, nil
 }
+func (t CanvasObject) GetSvgString(shapeHash string) (svgString string, err error) {
+	// TODO
+	return "", nil
+	
+}
+func (t CanvasObject) GetInk() (inkRemaining uint32, err error) {
+	// TODO
+	// get longest branch from miner compute ink based on how many signitures are from the miner
+	return 0, nil
+}
+func (t CanvasObject) DeleteShape(validateNum uint8, shapeHash string) (inkRemaining uint32, err error) {
+	// TODO
+	return 0, nil
+}
+func (t CanvasObject) GetShapes(blockHash string) (shapeHashes []string, err error) {
+	var s []string
+	return s, nil
+	}
+func (t CanvasObject) GetGenesisBlock() (blockHash string, err error) {
+	// TODO
+	// Request block chain from miner 
+	return "", nil
+}
+func (t CanvasObject) GetChildren(blockHash string) (blockHashes []string, err error) {
+	var s []string
+	return s, nil
+}
+func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error){
+	// TODO
+	return 0, nil
+	
+}
+// Added helpers
+func (t CanvasObject) IsSvgStringValid(shapeSvgString string) bool {
+	//To Be Implemented
+	availableCmds := []byte{77, 109, 86, 118, 72, 104, 76, 108, 90, 122} // MmVvLlZz
+	svgCharArray := []byte(strings.TrimSpace(shapeSvgString))
 
-func (t *CanvasObject) IsSvgOutofBounds(shapeSvgString string) bool {
+	if !bytes.Contains(availableCmds, svgCharArray[0:0]) {
+		return false
+	} else {
+
+	}
+
+	return false
+}
+func (t CanvasObject) IsSvgOutofBounds(shapeSvgString string) bool {
 	//To be Implemented
 	return false
 }
@@ -263,3 +312,4 @@ func CheckError(err error) {
 		fmt.Println("Error: ", err)
 	}
 }
+
