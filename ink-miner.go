@@ -47,14 +47,15 @@ func main() {
 	go inkMinerStruct.HeartBeat()
 	// <-heartBeatChannel
 
-	inkMinerStruct.CheckForNeighbour()
-
 	// While the heart is beating, keep fetching for neighbours
 
 	// After going over the minimum neighbours value, start doing no-op
 
 	OP := shared.Operation{Command: "no-op"}
-	inkMinerStruct.Mine(OP)
+	for {
+		inkMinerStruct.CheckForNeighbour()
+		inkMinerStruct.Mine(OP)
+	}
 
 	return
 }

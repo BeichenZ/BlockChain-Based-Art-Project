@@ -19,6 +19,7 @@ type AllNeighbour struct {
 
 var (
 	allNeighbour AllNeighbour = AllNeighbour{all: make(map[string]*MinerStruct)}
+	// listofNeighbourIP              = make([]net.Addr, 0)
 )
 
 type Miner interface {
@@ -192,7 +193,7 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 			// TODO maybe validate block here
 			// printBlock(m.BlockChain)
 			fmt.Println("\n")
-			time.Sleep(5000 * time.Millisecond)
+			// time.Sleep(5000 * time.Millisecond)
 
 			// if m.MinerAddr[len(m.MinerAddr)-1:] == "8" {
 			// 	time.Sleep(time.Millisecond * time.Duration(delay))
@@ -235,7 +236,9 @@ func (m MinerStruct) Flood(newBlock *Block, visited *[]*MinerStruct) {
 		client, error := rpc.Dial("tcp", n.MinerAddr)
 		if error != nil {
 			fmt.Println(error)
+			return
 		}
+
 		alive := false
 		fmt.Println("visiting miner: ", n.MinerAddr)
 		// passingBlock := copyBlock(newBlock)
@@ -279,14 +282,14 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 func (m *MinerStruct) minerSendHeartBeat(minerNeighbourAddr string) error {
 	alive := false
 	fmt.Println(minerNeighbourAddr)
-	fmt.Println("MAKING RPC CALL TO NEIGHBOUR ", minerNeighbourAddr)
+	// fmt.Println("MAKING RPC CALL TO NEIGHBOUR ", minerNeighbourAddr)
 	client, _ := rpc.Dial("tcp", minerNeighbourAddr)
 	for {
 		fmt.Println("sending heartbeat")
 		// fmt.Println(minerToMinerConnection)
 		err := client.Call("MinerRPCServer.ReceiveMinerHeartBeat", m.MinerAddr, &alive)
 		if err == nil {
-			fmt.Println("////////////////////////////////////////////////////////////////")
+			// fmt.Println("////////////////////////////////////////////////////////////////")
 			log.Println(err)
 		} else {
 			return err
@@ -297,7 +300,9 @@ func (m *MinerStruct) minerSendHeartBeat(minerNeighbourAddr string) error {
 }
 
 func (m *MinerStruct) CheckForNeighbour() {
-	listofNeighbourIP := make([]net.Addr, 0)
+	// NeighbourMap := reflect.ValueOf(allNeighbour).MapKeys()
+	// NeighbourSlice := make([]net.Addr, 0)
+	var listofNeighbourIP = make([]net.Addr, 0)
 	for len(listofNeighbourIP) < int(m.Settings.MinNumMinerConnections) {
 		error := m.ServerConnection.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
 		if error != nil {

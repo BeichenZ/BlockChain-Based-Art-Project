@@ -72,7 +72,7 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 		zeroesBuffer.WriteString("0")
 	}
 	zeroes := zeroesBuffer.String()
-	fmt.Println("Begin Proof of work")
+	fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++Begin Proof of work+++++++++++++++++++++++++++++")
 	for {
 		select {
 		case recievedBlock := <-m.MiningStopSig:

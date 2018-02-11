@@ -36,8 +36,8 @@ func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 func (m *MinerRPCServer) ReceiveMinerHeartBeat(minerNeighbourAddr string, alive *bool) error {
 	allNeighbour.Lock()
 	defer allNeighbour.Unlock()
-	log.Println("Heartbeat received from ", minerNeighbourAddr)
-	fmt.Println("_____________________________________________________________________________________")
+	// log.Println("Heartbeat received from ", minerNeighbourAddr)
+	// fmt.Println("_____________________________________________________________________________________")
 	// fmt.Printf("%+v", allNeighbour.all)
 	if _, ok := allNeighbour.all[minerNeighbourAddr]; ok {
 		// log.Println("The miner is in the map")
