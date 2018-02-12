@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"log"
+	"math/big"
 	"net"
 	"net/rpc"
 	"os"
@@ -19,7 +20,6 @@ type AllNeighbour struct {
 
 var (
 	allNeighbour AllNeighbour = AllNeighbour{all: make(map[string]*MinerStruct)}
-	// listofNeighbourIP              = make([]net.Addr, 0)
 )
 
 type Miner interface {
@@ -120,7 +120,32 @@ type MinerNetSettings struct {
 	CanvasSettings CanvasSettings `json:"canvas-settings"`
 }
 
-func (m *MinerStruct) FindtheLeadingBlock() []*Block {
+func copyBigInt(b *big.Int) int64 {
+	return b.Int64()
+}
+
+func CopyBlockChain(thisBlock *Block) *Block {
+	fmt.Println("start copying the chain")
+
+	producedBlock := &Block{
+		CurrentHash:       thisBlock.CurrentHash,
+		PreviousHash:      thisBlock.PreviousHash,
+		R:                 thisBlock.R,
+		S:                 thisBlock.S,
+		CurrentOP:         thisBlock.CurrentOP,
+		DistanceToGenesis: thisBlock.DistanceToGenesis,
+		Nonce:             thisBlock.Nonce,
+		SolverPublicKey:   thisBlock.SolverPublicKey,
+	}
+	producedBlockChilden := make([]*Block, 0)
+	for _, child := range thisBlock.Children {
+		producedBlockChilden = append(producedBlockChilden, CopyBlockChain(child))
+	}
+	fmt.Println("finshed copying the chain, the current hash is: ", producedBlock.CurrentHash)
+	return producedBlock
+}
+
+func (m *MinerStruct) FindtheLeadingBlock() (int, []*Block) {
 
 	var maxBlock *Block
 	localMax := -1
@@ -133,7 +158,7 @@ func (m *MinerStruct) FindtheLeadingBlock() []*Block {
 	}
 
 	thing := []*Block{maxBlock}
-	return thing
+	return localMax, thing
 }
 
 func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (MinerNetSettings, error) {
@@ -211,7 +236,8 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			return "", nil
 		default:
 			fmt.Println("I'm starting to mine")
-			leadingBlock := m.FindtheLeadingBlock()[0]
+			_, leadingBlocks := m.FindtheLeadingBlock()
+			leadingBlock := leadingBlocks[0]
 			fmt.Println(leadingBlock)
 			// nonce := leadingBlock.GetString()
 			var nonce string
@@ -225,10 +251,11 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 				fmt.Println(AllOperationsCommands(m.OPBuffer))
 				m.OPBuffer = make([]Operation, 0)
 			}
-			newBlock := doProofOfWork(m, nonce, 8, 100, initialOP, leadingBlock)
+			newBlock := doProofOfWork(m, nonce, 5, 100, initialOP, leadingBlock)
 			leadingBlock.Children = append(leadingBlock.Children, newBlock)
+			fmt.Println(len(leadingBlock.Children))
 			// TODO maybe validate block here
-			// printBlock(m.BlockChain)
+			printBlock(m.BlockChain)
 			fmt.Println("\n")
 
 			// time.Sleep(5000 * time.Millisecond)
@@ -337,13 +364,16 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 		os.Exit(500)
 	}
 	fmt.Println("Creating a new block with the new hash")
+	// TODO this is not right, we're putting solver's publicKey in producedBlock
 	producedBlock := &Block{CurrentHash: currentHash,
 		PreviousHash: leadingBlock.CurrentHash,
 		CurrentOP:    newOP,
-		UserSignature: UserSignatureSturct{
-			r: r,
-			s: s,
-		},
+		R:            r,
+		S:            s,
+		// UserSignature: UserSignatureSturct{
+		// 	r: r,
+		// 	s: s,
+		// },
 		Children:          make([]*Block, 0),
 		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1}
 	m.Flood(producedBlock, &visitedMiners)
@@ -352,6 +382,7 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 	fmt.Println("Need to let the other miners about this block")
 	m.FoundHash = false
 	m.LeafNodesMap[producedBlock.CurrentHash] = producedBlock
+	// printBlock(m.BlockChain)
 	return producedBlock
 }
 
@@ -385,6 +416,9 @@ func (m *MinerStruct) CheckForNeighbour() {
 			fmt.Println(error)
 		}
 	}
+	localMax := -1
+	var neighbourWithLongestChain string
+	blockChain := new(Block)
 	for _, netIP := range listofNeighbourIP {
 
 		fmt.Println("neighbour ip address", netIP.String())
@@ -397,16 +431,31 @@ func (m *MinerStruct) CheckForNeighbour() {
 			log.Fatal(error)
 			os.Exit(0)
 		}
-		alive := false
+		neighbourBlockChainLength := 0
 		// payLoad := MinerHeartbeatPayload{MinerAddr: netIP.String(), client: *client}
 		log.Println("NETIP IS ", netIP.String())
-		client.Call("MinerRPCServer.MinerRegister", m.MinerAddr, &alive)
-
+		client.Call("MinerRPCServer.MinerRegister", m.MinerAddr, &neighbourBlockChainLength)
+		log.Println("the neighbour's blockchain length is: ", neighbourBlockChainLength)
 		for {
 			if _, exists := allNeighbour.all[netIP.String()]; exists {
 				fmt.Printf("The neighbour %v has registered as client", netIP.String())
 				break
 			}
 		}
+
+		if neighbourBlockChainLength > localMax {
+			localMax = neighbourBlockChainLength
+			neighbourWithLongestChain = netIP.String()
+		}
 	}
+	// TODO get the chain from the neighbour with the longest chain
+	longClient, err := rpc.Dial("tcp", neighbourWithLongestChain)
+	log.Println("Connected to the longest client")
+	if err != nil {
+		log.Println(err)
+	}
+	longClient.Call("MinerRPCServer.SendChain", "give me your chain", &blockChain)
+	m.BlockChain = blockChain
+	log.Println("received block chain")
+	log.Printf("%+v", blockChain)
 }

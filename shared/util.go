@@ -47,15 +47,18 @@ func filter(m *MinerStruct, visited *[]*MinerStruct) bool {
 	return true
 }
 
-func copyBlock(thisBlock *Block) *Block {
-
-	producedBlock := &Block{CurrentHash: thisBlock.CurrentHash,
-		PreviousHash:      thisBlock.PreviousHash,
-		CurrentOP:         thisBlock.CurrentOP,
-		Children:          make([]*Block, 0),
-		DistanceToGenesis: thisBlock.DistanceToGenesis}
-	return producedBlock
-}
+// func copyBlock(thisBlock *Block) *Block {
+//
+// 	producedBlock := &Block{
+// 		CurrentHash:       thisBlock.CurrentHash,
+// 		PreviousHash:      thisBlock.PreviousHash,
+// 		UserSignature:     thisBlock.UserSignature,
+// 		CurrentOP:         thisBlock.CurrentOP,
+// 		Children:          make([]*Block, 0),
+// 		DistanceToGenesis: thisBlock.DistanceToGenesis,
+// 	}
+// 	return producedBlock
+// }
 
 func computeNonceSecretHash(nonce string, secret string) string {
 	h := md5.New()
@@ -87,7 +90,7 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 			m.OPBuffer = append(m.OPBuffer, opFromMineNode)
 			fmt.Println("M-UPDATED OPERATION LIST FROM MINERS " + AllOperationsCommands(m.OPBuffer))
 			nonce = opFromMineNode.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
- 		case opFromArtnode := <-m.RecievedArtNodeSig:
+		case opFromArtnode := <-m.RecievedArtNodeSig:
 			fmt.Println("ArtNode asked for this operation")
 			nonce = opFromArtnode.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
 			visitedMiners := []*MinerStruct{m}
@@ -99,7 +102,7 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 
 			hash := computeNonceSecretHash(nonce, guessString)
 			if hash[32-numberOfZeroes:] == zeroes {
-				log.Println("Found the hash")
+				log.Println("Found the hash, it is: ", hash)
 				m.FoundHash = true
 				return m.produceBlock(hash, newOP, leadingBlock)
 			}
