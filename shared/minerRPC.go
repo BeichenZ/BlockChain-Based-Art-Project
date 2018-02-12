@@ -33,6 +33,14 @@ func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 	return nil
 }
 
+
+func (m *MinerRPCServer) ReceivedOperation(operation *Operation, alive *bool) error {
+
+	m.Miner.RecievedOpSig <- *operation
+
+	return nil
+}
+
 func (m *MinerRPCServer) ReceiveMinerHeartBeat(minerNeighbourAddr string, alive *bool) error {
 	allNeighbour.Lock()
 	defer allNeighbour.Unlock()
@@ -86,4 +94,49 @@ func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, alive *boo
 
 	}
 	return nil
+}
+
+
+
+// TODO
+//type ArtNodeOpReq int
+type KeyCheck int
+type CanvasSet struct {
+	Miner MinerStruct
+}
+type ArtNodeOpReg struct {
+	Miner MinerStruct
+}
+
+ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation , reply *bool) error {
+
+ 	fmt.Println(op.Command)
+	go func (){
+		l.Miner.RecievedArtNodeSig <- *op
+	}()
+ 	// TODO
+ 	// check errors
+ 	// Insuffcient errors
+ 	// shape overlap
+ 	return nil
+ }
+
+// gil
+// }
+func (l *KeyCheck) ArtNodeKeyCheck(privKey string, reply *bool) error {
+	*reply = true
+	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")
+	return nil
+}
+func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *InitialCanvasSetting) error {
+	fmt.Println("request for CanvasSettings")
+	ics.Cs = CanvasSettings(l.Miner.Settings.CanvasSettings)
+	ics.ListOfOps_str = l.Miner.ListOfOps_str
+	fmt.Println("GetCanvasSettingsFromMiner() ", *ics)
+	return nil
+}
+func CheckError(err error) {
+	if err != nil {
+		fmt.Println("Error: ", err)
+	}
 }

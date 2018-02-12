@@ -13,11 +13,11 @@ import (
 	"fmt"
 	//"strings"
 	"net/rpc"
-	am "../artminerlib"
 	"regexp"
 	shared "../shared"
 	"strconv"
 
+	"log"
 )
 // Represents a type of shape in the BlockArt system.
 type ShapeType int
@@ -245,7 +245,7 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 
 //Underlying struct holding the info for canvas
 type CanvasObjectReal struct{
-	ArtNode am.ArtNodeStruct
+	ArtNode shared.ArtNodeStruct
 	ListOfOps_str []string
 	ListOfOps_ops []shared.SingleOp
 	LastPenPosition shared.Point
@@ -261,7 +261,11 @@ type CanvasObject struct {
 func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
 	// check if there's enough ink for the operation
 	// send operation to the miner Call()
-	//t.ArtNode.AmConn.doOp(s string)
+	newOP := shared.Operation{
+		Command:"draw things",
+	}
+	t.ptr.ArtNode.ArtnodeOp(newOP)
+	log.Println("I got here")
 	//Check for ShapeSvgStringTooLongError
 	var svgOP shared.SingleOp
 	if len(shapeSvgString) > 128 {
@@ -406,6 +410,7 @@ func (t CanvasObject) ParseOpsStrings(){
 		}
 	}
 }
+
 
 // Additional Helper Functions
 func CheckError(err error) {

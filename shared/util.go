@@ -72,6 +72,9 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 	for i := int64(0); i < int64(numberOfZeroes); i++ {
 		zeroesBuffer.WriteString("0")
 	}
+
+	//return "",nil
+
 	zeroes := zeroesBuffer.String()
 	fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++Begin Proof of work+++++++++++++++++++++++++++++")
 	for {
@@ -81,6 +84,14 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 			delete(m.LeafNodesMap, leadingBlock.CurrentHash)
 			m.LeafNodesMap[recievedBlock.CurrentHash] = recievedBlock
 			return recievedBlock
+		case opFromMineNode := <-m.RecievedOpSig:
+			fmt.Println("A miner sent me an operation from its art node")
+			nonce = opFromMineNode.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
+ 		case opFromArtnode := <-m.RecievedArtNodeSig:
+			fmt.Println("ArtNode asked for this operation")
+			nonce = opFromArtnode.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
+			visitedMiners := []*MinerStruct{m}
+			m.FloodOperation(&opFromArtnode, &visitedMiners)
 		default:
 			guessString := strconv.FormatInt(i, 10)
 

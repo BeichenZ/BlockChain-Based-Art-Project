@@ -38,10 +38,12 @@ type Miner interface {
 	// RPC methods of Miner
 	StopMining(miner MinerStruct, r *MinerStruct) error
 }
+
 //Struct for descripting Geometry
 type Point struct {
-	X,Y int
+	X, Y int
 }
+
 //one move , represent like : m 100 100
 type SingleMov struct {
 	Cmd rune
@@ -49,10 +51,11 @@ type SingleMov struct {
 	Y int
 	ValCnt int
 }
+
 // One operation contains multiple movs
 type SingleOp struct {
-		IsClosedShape bool
-		MovList []SingleMov
+	IsClosedShape bool
+	MovList       []SingleMov
 }
 type MinerStruct struct {
 	ServerAddr            string
@@ -69,7 +72,10 @@ type MinerStruct struct {
 	LeafNodesMap          map[string]*Block
 	FoundHash             bool
 	RecentHeartbeat       int64
-	ListOfOps_str []string
+	ListOfOps_str         []string
+	RecievedArtNodeSig    chan Operation
+	RecievedOpSig         chan Operation
+
 }
 
 type MinerHeartbeatPayload struct {
@@ -189,7 +195,6 @@ func (m MinerStruct) HeartBeat() error {
 func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 	// currentBlock := m.BlockChain[len(m.BlockChain)-1]
 	// listOfOperation := currentBlock.GetStringOperations()
-
 	for {
 		select {
 		case <-m.NotEnoughNeighbourSig:
@@ -198,17 +203,17 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 			// m.LeafNodesMap[recievedBlock.CurrentHash] = recievedBlock
 			return "", nil
 		default:
-			fmt.Println("I'm starting to mine")
-			leadingBlock := m.FindtheLeadingBlock()[0]
-			fmt.Println(leadingBlock)
-			// nonce := leadingBlock.GetString()
-			nonce := newOperation.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
+				fmt.Println("I'm starting to mine")
+				leadingBlock := m.FindtheLeadingBlock()[0]
+				fmt.Println(leadingBlock)
+				// nonce := leadingBlock.GetString()
+				nonce := newOperation.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
+				newBlock := doProofOfWork(m, nonce, 4, 100, newOperation, leadingBlock)
+				leadingBlock.Children = append(leadingBlock.Children, newBlock)
+				// TODO maybe validate block here
+				// printBlock(m.BlockChain)
+				fmt.Println("\n")
 
-			newBlock := doProofOfWork(m, nonce, 4, 100, newOperation, leadingBlock)
-			leadingBlock.Children = append(leadingBlock.Children, newBlock)
-			// TODO maybe validate block here
-			// printBlock(m.BlockChain)
-			fmt.Println("\n")
 			// time.Sleep(5000 * time.Millisecond)
 
 			// if m.MinerAddr[len(m.MinerAddr)-1:] == "8" {
@@ -266,6 +271,47 @@ func (m MinerStruct) Flood(newBlock *Block, visited *[]*MinerStruct) {
 	}
 	return
 }
+
+
+func (m MinerStruct) FloodOperation(newOP *Operation, visited *[]*MinerStruct) {
+	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
+	// TODO what happense if node A calls flood, and before it can reach node B, node B calls flood?
+	validNeighbours := make([]*MinerStruct, 0)
+	fmt.Println("Flooding is called.......................................................")
+	for _, v := range allNeighbour.all {
+		if filter(v, visited) {
+			validNeighbours = append(validNeighbours, v)
+		}
+	}
+	fmt.Println("valid nei", len(validNeighbours))
+	if len(validNeighbours) == 0 {
+
+		return
+	}
+
+	for _, v := range validNeighbours {
+		*visited = append(*visited, v)
+	}
+	for _, n := range validNeighbours {
+		client, error := rpc.Dial("tcp", n.MinerAddr)
+		if error != nil {
+			fmt.Println(error)
+			return
+		}
+
+		alive := false
+		fmt.Println("visiting miner: ", n.MinerAddr)
+		// passingBlock := copyBlock(newBlock)
+		err := client.Call("MinerRPCServer.ReceivedOperation", newOP, &alive)
+		if err != nil {
+			fmt.Println(err)
+		}
+		n.FloodOperation(newOP, visited)
+	}
+	return
+}
+
+
 
 func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingBlock *Block) *Block {
 	// visitedMiners := make([]MinerStruct, 0)
@@ -348,8 +394,5 @@ func (m *MinerStruct) CheckForNeighbour() {
 				break
 			}
 		}
-
-		// go m.minerSendHeartBeat(netIP.String())
-
 	}
 }
