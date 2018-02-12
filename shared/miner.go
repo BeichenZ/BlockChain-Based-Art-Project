@@ -46,9 +46,9 @@ type Point struct {
 
 //one move , represent like : m 100 100
 type SingleMov struct {
-	Cmd rune
-	X int
-	Y int
+	Cmd    rune
+	X      int
+	Y      int
 	ValCnt int
 }
 
@@ -75,8 +75,7 @@ type MinerStruct struct {
 	ListOfOps_str         []string
 	RecievedArtNodeSig    chan Operation
 	RecievedOpSig         chan Operation
-	OPBuffer			  []Operation
-
+	OPBuffer              []Operation
 }
 
 type MinerHeartbeatPayload struct {
@@ -195,7 +194,7 @@ func (m MinerStruct) HeartBeat() error {
 
 func AllOperationsCommands(buffer []Operation) string {
 	retstring := ""
-	for _, op := range buffer{
+	for _, op := range buffer {
 		retstring += op.Command
 	}
 	return retstring
@@ -211,10 +210,10 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			// m.LeafNodesMap[recievedBlock.CurrentHash] = recievedBlock
 			return "", nil
 		default:
-				fmt.Println("I'm starting to mine")
-				leadingBlock := m.FindtheLeadingBlock()[0]
-				fmt.Println(leadingBlock)
-				// nonce := leadingBlock.GetString()
+			fmt.Println("I'm starting to mine")
+			leadingBlock := m.FindtheLeadingBlock()[0]
+			fmt.Println(leadingBlock)
+			// nonce := leadingBlock.GetString()
 			var nonce string
 			if len(m.OPBuffer) == 0 {
 				//	Mine for no-op
@@ -226,12 +225,11 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 				fmt.Println(AllOperationsCommands(m.OPBuffer))
 				m.OPBuffer = make([]Operation, 0)
 			}
-				newBlock := doProofOfWork(m, nonce, 8, 100, initialOP, leadingBlock)
-				leadingBlock.Children = append(leadingBlock.Children, newBlock)
-				// TODO maybe validate block here
-				// printBlock(m.BlockChain)
-				fmt.Println("\n")
-
+			newBlock := doProofOfWork(m, nonce, 8, 100, initialOP, leadingBlock)
+			leadingBlock.Children = append(leadingBlock.Children, newBlock)
+			// TODO maybe validate block here
+			// printBlock(m.BlockChain)
+			fmt.Println("\n")
 
 			// time.Sleep(5000 * time.Millisecond)
 
@@ -291,7 +289,6 @@ func (m MinerStruct) Flood(newBlock *Block, visited *[]*MinerStruct) {
 	return
 }
 
-
 func (m MinerStruct) FloodOperation(newOP *Operation, visited *[]*MinerStruct) {
 	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
 	// TODO what happense if node A calls flood, and before it can reach node B, node B calls flood?
@@ -329,8 +326,6 @@ func (m MinerStruct) FloodOperation(newOP *Operation, visited *[]*MinerStruct) {
 	}
 	return
 }
-
-
 
 func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingBlock *Block) *Block {
 	// visitedMiners := make([]MinerStruct, 0)
