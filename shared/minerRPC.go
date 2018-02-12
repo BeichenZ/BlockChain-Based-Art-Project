@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/rpc"
 	"time"
-	am "../artminerlib"
 )
 
 type MinerRPCServer struct {
@@ -31,6 +30,14 @@ func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 		log.Print("I have found the hash, but so did at least one other miner")
 	}
 	log.Println("Sent channel info")
+	return nil
+}
+
+
+func (m *MinerRPCServer) ReceivedOperation(operation *Operation, alive *bool) error {
+
+	m.Miner.RecievedOpSig <- *operation
+
 	return nil
 }
 
@@ -101,13 +108,12 @@ type ArtNodeOpReg struct {
 	Miner MinerStruct
 }
 
- func (l *ArtNodeOpReg) DoArtNodeOp(s *string , reply *bool) error {
+ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation , reply *bool) error {
 
- 	fmt.Println("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+ 	fmt.Println(op.Command)
 	go func (){
-		l.Miner.RecievedArtNodeSig <- true
+		l.Miner.RecievedArtNodeSig <- *op
 	}()
-
  	// TODO
  	// check errors
  	// Insuffcient errors
@@ -122,9 +128,9 @@ func (l *KeyCheck) ArtNodeKeyCheck(privKey string, reply *bool) error {
 	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")
 	return nil
 }
-func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *am.InitialCanvasSetting) error {
+func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *InitialCanvasSetting) error {
 	fmt.Println("request for CanvasSettings")
-	ics.Cs = am.CanvasSettings(l.Miner.Settings.CanvasSettings)
+	ics.Cs = CanvasSettings(l.Miner.Settings.CanvasSettings)
 	ics.ListOfOps_str = l.Miner.ListOfOps_str
 	fmt.Println("GetCanvasSettingsFromMiner() ", *ics)
 	return nil

@@ -80,7 +80,9 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 	killSig := make(chan *shared.Block)
 	NotEnoughNeighbourSig := make(chan bool)
 	LeafMap := make(map[string]*shared.Block)
-	RecievedArtNodeSig := make(chan bool)
+	RecievedArtNodeSig := make(chan shared.Operation)
+	RecievedOpSig      := make(chan shared.Operation)
+
 	return shared.MinerStruct{ServerAddr: servAddr,
 		MinerAddr:             minerAddr,
 		PairKey:               *minerKey,
@@ -89,5 +91,6 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 		LeafNodesMap:          LeafMap,
 		FoundHash:             false,
 		RecievedArtNodeSig:   RecievedArtNodeSig,
+		RecievedOpSig:        RecievedOpSig,
 	}
 }

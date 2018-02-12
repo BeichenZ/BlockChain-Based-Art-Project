@@ -13,7 +13,6 @@ import (
 	"fmt"
 	//"strings"
 	"net/rpc"
-	am "../artminerlib"
 	"regexp"
 	shared "../shared"
 	"strconv"
@@ -239,7 +238,7 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 
 //Implementation of Canvas Interface
 type CanvasObjectReal struct{
-	ArtNode am.ArtNodeStruct
+	ArtNode shared.ArtNodeStruct
 	ListOfOps_str []string
 	ListOfOps_ops []shared.SingleOp
 	LastPenPosition shared.Point
@@ -254,7 +253,10 @@ type CanvasObject struct {
 func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
 	// check if there's enough ink for the operation
 	// send operation to the miner Call()
-	t.ptr.ArtNode.ArtnodeOp("hey")
+	newOP := shared.Operation{
+		Command:"draw things",
+	}
+	t.ptr.ArtNode.ArtnodeOp(newOP)
 	log.Println("I got here")
 	//Check for ShapeSvgStringTooLongError
 	if len(shapeSvgString) > 128 {
