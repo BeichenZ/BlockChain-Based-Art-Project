@@ -123,9 +123,10 @@ type ArtNodeOpReg struct {
 
 // gil
 // }
-func (l *KeyCheck) ArtNodeKeyCheck(privKey string, reply *bool) error {
+func (l *KeyCheck) ArtNodeKeyCheck(privKey *string, reply *bool) error {
 	*reply = true
 	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")
+
 	return nil
 }
 func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *InitialCanvasSetting) error {

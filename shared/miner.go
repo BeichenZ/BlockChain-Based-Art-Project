@@ -75,6 +75,7 @@ type MinerStruct struct {
 	ListOfOps_str         []string
 	RecievedArtNodeSig    chan Operation
 	RecievedOpSig         chan Operation
+	OPBuffer			  []Operation
 
 }
 
@@ -192,7 +193,14 @@ func (m MinerStruct) HeartBeat() error {
 	}
 }
 
-func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
+func AllOperationsCommands(buffer []Operation) string {
+	retstring := ""
+	for _, op := range buffer{
+		retstring += op.Command
+	}
+	return retstring
+}
+func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 	// currentBlock := m.BlockChain[len(m.BlockChain)-1]
 	// listOfOperation := currentBlock.GetStringOperations()
 	for {
@@ -207,12 +215,23 @@ func (m *MinerStruct) Mine(newOperation Operation) (string, error) {
 				leadingBlock := m.FindtheLeadingBlock()[0]
 				fmt.Println(leadingBlock)
 				// nonce := leadingBlock.GetString()
-				nonce := newOperation.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
-				newBlock := doProofOfWork(m, nonce, 4, 100, newOperation, leadingBlock)
+			var nonce string
+			if len(m.OPBuffer) == 0 {
+				//	Mine for no-op
+				fmt.Println("Start doing no-op")
+				nonce = initialOP.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
+			} else {
+				nonce = AllOperationsCommands(m.OPBuffer) + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
+				log.Println("Loggin out what's in the buffer")
+				fmt.Println(AllOperationsCommands(m.OPBuffer))
+				m.OPBuffer = make([]Operation, 0)
+			}
+				newBlock := doProofOfWork(m, nonce, 8, 100, initialOP, leadingBlock)
 				leadingBlock.Children = append(leadingBlock.Children, newBlock)
 				// TODO maybe validate block here
 				// printBlock(m.BlockChain)
 				fmt.Println("\n")
+
 
 			// time.Sleep(5000 * time.Millisecond)
 

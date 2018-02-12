@@ -70,7 +70,7 @@ func main() {
 	OP := shared.Operation{Command: "no-op"}
 	for {
 		inkMinerStruct.CheckForNeighbour()
-		inkMinerStruct.Mine(OP)
+		inkMinerStruct.StartMining(OP)
 	}
 	return
 }

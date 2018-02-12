@@ -73,8 +73,6 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 		zeroesBuffer.WriteString("0")
 	}
 
-	//return "",nil
-
 	zeroes := zeroesBuffer.String()
 	fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++Begin Proof of work+++++++++++++++++++++++++++++")
 	for {
@@ -86,11 +84,15 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 			return recievedBlock
 		case opFromMineNode := <-m.RecievedOpSig:
 			fmt.Println("A miner sent me an operation from its art node")
+			m.OPBuffer = append(m.OPBuffer, opFromMineNode)
+			fmt.Println("M-UPDATED OPERATION LIST FROM MINERS " + AllOperationsCommands(m.OPBuffer))
 			nonce = opFromMineNode.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
  		case opFromArtnode := <-m.RecievedArtNodeSig:
 			fmt.Println("ArtNode asked for this operation")
 			nonce = opFromArtnode.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
 			visitedMiners := []*MinerStruct{m}
+			m.OPBuffer = append(m.OPBuffer, opFromArtnode)
+			fmt.Println("A-UPDATED OPERATION LIST FROM ART NODE" + AllOperationsCommands(m.OPBuffer))
 			m.FloodOperation(&opFromArtnode, &visitedMiners)
 		default:
 			guessString := strconv.FormatInt(i, 10)
@@ -102,9 +104,6 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 				return m.produceBlock(hash, newOP, leadingBlock)
 			}
 			i++
-			// if m.MinerAddr[len(m.MinerAddr)-1:] == "8" {
-			// 	time.Sleep(time.Millisecond * time.Duration(delay))
-			// }
 		}
 	}
 }

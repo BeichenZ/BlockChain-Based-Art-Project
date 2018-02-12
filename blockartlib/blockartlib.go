@@ -18,6 +18,9 @@ import (
 	"strconv"
 
 	"log"
+	//"time"
+	"math/rand"
+	"time"
 )
 // Represents a type of shape in the BlockArt system.
 type ShapeType int
@@ -219,6 +222,7 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	// see if the Miner key matches the one you have
 	var reply bool
 	Key := "test"
+	fmt.Println("GOING TO CALL ARTNODEKEYCHECK")
 	err = art2MinerCon.Call("KeyCheck.ArtNodeKeyCheck", Key, &reply)
 	CheckError(err)
 	if reply {
@@ -261,8 +265,15 @@ type CanvasObject struct {
 func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
 	// check if there's enough ink for the operation
 	// send operation to the miner Call()
+	//time.Sleep(20000 * time.Millisecond)
+
+	s1 := rand.NewSource(time.Now().UnixNano())
+	r1 := rand.New(s1)
+
+	randNum := r1.Intn(100)
+	fmt.Println("The command is draw thing " + string(randNum) )
 	newOP := shared.Operation{
-		Command:"draw things",
+		Command:"draw things" + string(randNum),
 	}
 	t.ptr.ArtNode.ArtnodeOp(newOP)
 	log.Println("I got here")

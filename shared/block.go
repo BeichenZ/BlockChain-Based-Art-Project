@@ -23,12 +23,12 @@ type Block struct {
 	Children          []*Block
 	DistanceToGenesis int
 	Nonce             int32
-	PublicKey         *ecdsa.PublicKey
+	SolverPublicKey         *ecdsa.PublicKey
 }
 
 // Return a string repersentation of PreviousHash, op, op-signature, pub-key,
 func (b Block) GetString() string {
-	return b.PreviousHash + b.CurrentOP.Command + b.UserSignature.getStringFromBigInt() + pubKeyToString(*b.PublicKey)
+	return b.PreviousHash + b.CurrentOP.Command + b.UserSignature.getStringFromBigInt() + pubKeyToString(*b.SolverPublicKey)
 }
 
 func (b *Block) checkMD5() bool {
@@ -39,7 +39,7 @@ func (b *Block) checkMD5() bool {
 }
 
 func (b *Block) checkValidOPsSig() bool {
-	return ecdsa.Verify(b.PublicKey, []byte(b.CurrentHash), b.UserSignature.r, b.UserSignature.s)
+	return ecdsa.Verify(b.SolverPublicKey, []byte(b.CurrentHash), b.UserSignature.r, b.UserSignature.s)
 }
 
 func (b *Block) checkPreviousHash() bool {
