@@ -141,7 +141,7 @@ func CopyBlockChain(thisBlock *Block) *Block {
 	for _, child := range thisBlock.Children {
 		producedBlockChilden = append(producedBlockChilden, CopyBlockChain(child))
 	}
-	producedBlock.Children = make([]*Block, 0)
+	producedBlock.Children = producedBlockChilden
 	fmt.Println("finshed copying the chain, the current hash is: ", producedBlock.CurrentHash)
 	return producedBlock
 }

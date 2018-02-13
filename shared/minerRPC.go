@@ -18,8 +18,10 @@ func (e BadBlockError) Error() string {
 }
 
 func (m *MinerRPCServer) SendChain(s string, blockChain *Block) error {
+	log.Println(s)
 	thisMinerBlockChain := CopyBlockChain(m.Miner.BlockChain)
 	*blockChain = *thisMinerBlockChain
+	log.Println(thisMinerBlockChain)
 	return nil
 }
 
