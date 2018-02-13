@@ -137,15 +137,16 @@ func CopyBlockChain(thisBlock *Block) *Block {
 		Nonce:             thisBlock.Nonce,
 		SolverPublicKey:   thisBlock.SolverPublicKey,
 	}
-	producedBlockChilden := make([]*Block, 0)
+	var producedBlockChilden []*Block
 	for _, child := range thisBlock.Children {
 		producedBlockChilden = append(producedBlockChilden, CopyBlockChain(child))
 	}
+	producedBlock.Children = make([]*Block, 0)
 	fmt.Println("finshed copying the chain, the current hash is: ", producedBlock.CurrentHash)
 	return producedBlock
 }
 
-func (m *MinerStruct) FindtheLeadingBlock() (int, []*Block) {
+func (m *MinerStruct) FindtheLeadingBlock() []*Block {
 
 	var maxBlock *Block
 	localMax := -1
@@ -158,7 +159,21 @@ func (m *MinerStruct) FindtheLeadingBlock() (int, []*Block) {
 	}
 
 	thing := []*Block{maxBlock}
-	return localMax, thing
+	return thing
+}
+
+func (m *MinerStruct) FindLongestChainLength() int {
+
+	localMax := -1
+	for _, v := range m.LeafNodesMap {
+		if v.DistanceToGenesis > localMax {
+			fmt.Println("Finding the leading block: The hash is" + v.CurrentHash)
+			localMax = v.DistanceToGenesis
+
+		}
+	}
+
+	return localMax
 }
 
 func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (MinerNetSettings, error) {
@@ -236,10 +251,11 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			return "", nil
 		default:
 			fmt.Println("I'm starting to mine")
-			_, leadingBlocks := m.FindtheLeadingBlock()
-			leadingBlock := leadingBlocks[0]
-			fmt.Println(leadingBlock)
-			// nonce := leadingBlock.GetString()
+			leadingBlock := m.FindtheLeadingBlock()[0]
+			//
+			// fmt.Println("Logging out leading block here")
+			// fmt.Println(leadingBlock)
+
 			var nonce string
 			if len(m.OPBuffer) == 0 {
 				//	Mine for no-op
@@ -253,9 +269,12 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			}
 			newBlock := doProofOfWork(m, nonce, 5, 100, initialOP, leadingBlock)
 			leadingBlock.Children = append(leadingBlock.Children, newBlock)
-			fmt.Println(len(leadingBlock.Children))
+			// fmt.Println("Logging out leading block")
+			// fmt.Printf("%+v", leadingBlock)
+			// fmt.Println(&leadingBlock)
 			// TODO maybe validate block here
 			printBlock(m.BlockChain)
+			// fmt.Println(&m.BlockChain)
 			fmt.Println("\n")
 
 			// time.Sleep(5000 * time.Millisecond)
@@ -407,8 +426,6 @@ func (m *MinerStruct) minerSendHeartBeat(minerNeighbourAddr string) error {
 }
 
 func (m *MinerStruct) CheckForNeighbour() {
-	// NeighbourMap := reflect.ValueOf(allNeighbour).MapKeys()
-	// NeighbourSlice := make([]net.Addr, 0)
 	var listofNeighbourIP = make([]net.Addr, 0)
 	for len(listofNeighbourIP) < int(m.Settings.MinNumMinerConnections) {
 		error := m.ServerConnection.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
@@ -418,7 +435,8 @@ func (m *MinerStruct) CheckForNeighbour() {
 	}
 	localMax := -1
 	var neighbourWithLongestChain string
-	blockChain := new(Block)
+	blockChain := Block{}
+	nodesMap := make(map[string]*Block)
 	for _, netIP := range listofNeighbourIP {
 
 		fmt.Println("neighbour ip address", netIP.String())
@@ -455,7 +473,16 @@ func (m *MinerStruct) CheckForNeighbour() {
 		log.Println(err)
 	}
 	longClient.Call("MinerRPCServer.SendChain", "give me your chain", &blockChain)
-	m.BlockChain = blockChain
+	m.BlockChain = &blockChain
 	log.Println("received block chain")
-	log.Printf("%+v", blockChain)
+	log.Println(m.BlockChain)
+	// TODO request for LeafNodesMap, bugs happen because this miner's leafnodemap is not updated
+	longClient.Call("MinerRPCServer.SendLeafNodesMap", "give me your leaf", &nodesMap)
+	log.Println("received leaf nodes map")
+	for _, node := range nodesMap {
+		log.Println(&node)
+	}
+	// The bug is caused by m.Blockchain and m.LeftNodesMap pointing to different address
+	m.LeafNodesMap[deepestBlock(m.BlockChain).CurrentHash] = deepestBlock(m.BlockChain)
+
 }

@@ -18,11 +18,17 @@ func (e BadBlockError) Error() string {
 }
 
 func (m *MinerRPCServer) SendChain(s string, blockChain *Block) error {
-	log.Println(s)
 	thisMinerBlockChain := CopyBlockChain(m.Miner.BlockChain)
-	log.Println("---------------------------copied chain right here-------------------")
-	log.Println(thisMinerBlockChain)
 	*blockChain = *thisMinerBlockChain
+	return nil
+}
+
+func (m *MinerRPCServer) SendLeafNodesMap(s string, leafNodes *map[string]*Block) error {
+	newMap := make(map[string]*Block)
+	for k, v := range m.Miner.LeafNodesMap {
+		newMap[k] = CopyBlockChain(v)
+	}
+	*leafNodes = newMap
 	return nil
 }
 
@@ -87,7 +93,7 @@ func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, thisMinerC
 			// MinerConnection: &MinerNeighbourPayload.client,
 			RecentHeartbeat: time.Now().UnixNano(),
 		}
-		length, _ := m.Miner.FindtheLeadingBlock()
+		length := m.Miner.FindLongestChainLength()
 		*thisMinerChainLength = length
 		log.Println("Registration time is: ", time.Now().UnixNano())
 		log.Println("Successfully recorded this neighbouring miner", (*MinerNeighbourPayload))

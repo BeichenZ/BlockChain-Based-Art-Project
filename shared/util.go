@@ -115,7 +115,16 @@ func pubKeyToString(key ecdsa.PublicKey) string {
 	return string(elliptic.Marshal(key.Curve, key.X, key.Y))
 }
 
+func deepestBlock(m *Block) *Block {
+	if len(m.Children) == 0 {
+		return m
+	}
+	return deepestBlock(m.Children[0])
+}
+
 func printBlock(m *Block) {
+	// fmt.Println("inside printblock")
+	// fmt.Println(m.Children)
 	fmt.Printf("%v -> ", len(m.Children))
 	for _, c := range m.Children {
 		printBlock(c)
