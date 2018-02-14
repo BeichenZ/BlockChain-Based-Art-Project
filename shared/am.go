@@ -49,16 +49,12 @@ func (a *ArtNodeStruct) GetCanvasSettings () (InitialCanvasSetting, error) {
 	CheckError(err)
 	return *initCS, err
 }
-
-func (a *ArtNodeStruct) ArtnodeOp (op Operation) (error) {
-	alive := false
-	err := a.AmConn.Call("ArtNodeOpReg.DoArtNodeOp", op, &alive)
+// Artnode issues an operation
+// returns a number which indicates which indicates the status of the operation
+		// for now boolean
+func (a *ArtNodeStruct) ArtnodeOp (op Operation) (validOp bool) {
+	validOp = false
+	err := a.AmConn.Call("ArtNodeOpReg.DoArtNodeOp", op, &validOp)
 	CheckError(err)
-	return nil
+	return validOp
 }
-
-//func CheckError(err error) {
-//	if err != nil {
-//		fmt.Println("Error: ", err)
-//	}
-//}

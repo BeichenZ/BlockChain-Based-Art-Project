@@ -16,8 +16,6 @@ import (
 	"regexp"
 	shared "../shared"
 	"strconv"
-
-	"log"
 	//"time"
 	"math/rand"
 	"time"
@@ -271,12 +269,14 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	r1 := rand.New(s1)
 
 	randNum := r1.Intn(100)
-	fmt.Println("The command is draw thing " + string(randNum) )
+	fmt.Println("AddShape(): The command is draw thing " + string(randNum) )
 	newOP := shared.Operation{
 		Command:"draw things" + string(randNum),
+		ValidFBlkNum: validateNum,
+		Opid: rand.Uint32(),
 	}
-	t.ptr.ArtNode.ArtnodeOp(newOP)
-	log.Println("I got here")
+	validOp:=t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
+	fmt.Println("AddShape() ", validOp)
 	//Check for ShapeSvgStringTooLongError
 	var svgOP shared.SingleOp
 	if len(shapeSvgString) > 128 {

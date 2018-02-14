@@ -96,10 +96,6 @@ func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, alive *boo
 	return nil
 }
 
-
-
-// TODO
-//type ArtNodeOpReq int
 type KeyCheck int
 type CanvasSet struct {
 	Miner MinerStruct
@@ -110,19 +106,27 @@ type ArtNodeOpReg struct {
 
  func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation , reply *bool) error {
 
+ 	// check errors
+ 	// Insuffcient errors
+ 	// shape overlap
  	fmt.Println(op.Command)
 	go func (){
 		l.Miner.RecievedArtNodeSig <- *op
 	}()
- 	// TODO
- 	// check errors
- 	// Insuffcient errors
- 	// shape overlap
+	loop :=true
+	// while l.Miner.chain is not validateNum more than before don't return anything, only return when its not
+	// TODO set a timer
+	for loop {
+	for _, b := range l.Miner.LeafNodesMap{
+		if (b.CurrentOP.Opid == op.Opid) && (len(b.Children) >= int(op.ValidFBlkNum)) {  // Given operation is added into the blockchain
+				*reply = true; loop = false 
+			}else { fmt.Println("DoArtNodeOp() validateNum condition NOT satisfied") }
+		}
+	}
+	fmt.Println("DoArtNodeOp() validateNum condition satisfied")
  	return nil
  }
 
-// gil
-// }
 func (l *KeyCheck) ArtNodeKeyCheck(privKey *string, reply *bool) error {
 	*reply = true
 	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")

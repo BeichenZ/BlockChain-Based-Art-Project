@@ -12,6 +12,8 @@ type Operation struct {
 	Fill           string
 	Stroke         string
 	PairKey        ecdsa.PrivateKey
+	ValidFBlkNum	   uint8
+	Opid		   uint32
 }
 
 func (o *Operation) CheckInk() bool {
