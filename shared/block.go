@@ -42,28 +42,35 @@ func (b *Block) checkMD5() bool {
 	if computeNonceSecretHash(b.GetString(), strconv.FormatInt(int64(b.Nonce), 10)) == b.CurrentHash {
 		return true
 	}
-	fmt.Println(b.GetString())
-	fmt.Println("checkMD5")
-	fmt.Println(b.Nonce)
-	fmt.Println(computeNonceSecretHash(b.GetString(), strconv.FormatInt(int64(b.Nonce), 10)) == b.CurrentHash)
+
 	return false
 }
 
-func (b *Block) checkValidOPsSig() bool {
-	fmt.Println("BadBlockError")
-	fmt.Println(ecdsa.Verify(b.SolverPublicKey, []byte(b.CurrentHash), b.R, b.S))
+func (b *Block) checkSolversSigForBlock() bool {
 	return ecdsa.Verify(b.SolverPublicKey, []byte(b.CurrentHash), b.R, b.S)
 }
 
-//func (b *Block) checkPreviousHash() bool {
-//	return true
-//}
+func (b *Block) checkIssuerSigForOperation() bool {
+	if len(b.CurrentOPs) == 0 {
+		return true
+	}
+
+	for _, operation := range b.CurrentOPs {
+		fmt.Println("AAAAAAABBBBBBB")
+		fmt.Println(operation.Command)
+		if !operation.CheckIssuerSig() {
+			return false
+		}
+	}
+
+	return true
+}
 
 func (b *Block) Validate() bool {
 	// Check that the nonce for the block is valid: PoW is correct and has the right difficulty.
 	// Check that each operation in the block has a valid signature (this signature should be generated using the private key and the operation).
 	// Check that the previous block hash points to a legal, previously generated, block.
-	return b.checkMD5() && b.checkValidOPsSig()
+	return b.checkMD5() && b.checkSolversSigForBlock() && b.checkIssuerSigForOperation()
 }
 
 func (b *Block) getStringFromBigInt() string {

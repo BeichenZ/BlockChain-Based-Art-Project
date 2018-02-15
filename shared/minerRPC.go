@@ -5,6 +5,8 @@ import (
 	"log"
 	"net/rpc"
 	"time"
+	"crypto/ecdsa"
+	"crypto/rand"
 )
 
 type MinerRPCServer struct {
@@ -14,7 +16,7 @@ type MinerRPCServer struct {
 type BadBlockError string
 
 func (e BadBlockError) Error() string {
-	return fmt.Sprintf("BAD BLOAAAAAAAAAACK")
+	return fmt.Sprintf("BAD BLOCK")
 }
 
 func (m *MinerRPCServer) SendChain(s string, blockChain *BlockPayloadStruct) error {
@@ -41,7 +43,6 @@ func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 		if block.Validate() {
 			m.Miner.MiningStopSig <- block
 		} else {
-			block.Validate()
 			return BadBlockError("BAD BLOCK")
 		}
 	} else {
@@ -130,14 +131,26 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *bool) error {
  	// Insuffcient errors
  	// shape overlap
  	fmt.Println(op.Command)
+
+ 	// Sign the Operation
+	r, s, err := ecdsa.Sign(rand.Reader, &l.Miner.PairKey, []byte(op.Command))
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	op.Issuer = &l.Miner.PairKey
+	op.IssuerR = r
+	op.IssuerS = s
 	go func (){
 		l.Miner.RecievedArtNodeSig <- *op
 	}()
+
 	 blockCounter.Lock()
 	 blockCounter.counter = 0
 	 blockCounter.Unlock()
 
-
+	// TODO  What if multiple art node tries to make operation
 
 	 validNum := op.ValidFBlkNum
 	// ** Maybe set timeout if it takes too long
@@ -190,30 +203,4 @@ func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
-}
-func blockFollowers(curBlock *Block, vd int, validateNum int) bool {
-	// f :=0;
-	// bc:=curBlock.Children
-	// for f < vd {
-	// 	f += blkChild(bc)
-	// 	bc = bc.Children[0].Children
-	// }
-	// return true
-	fmt.Println("blockFollowers() in herrr")
-	if len(curBlock.Children) == 0 {
-		return false
-	}
-	if vd == validateNum{
-		fmt.Println("Return trues from validateNum")
-		return true
-	} else {
-		return blockFollowers(curBlock.Children[0], vd + 1, validateNum)
-	}
-	
-
-	return false
-}
-
-func blkChild(ch []*Block) int {
-	return len(ch)
 }

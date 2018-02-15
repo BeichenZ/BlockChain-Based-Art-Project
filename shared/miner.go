@@ -31,8 +31,8 @@ type GlobalBlockCreationCounter struct {
 }
 
 var (
-	allNeighbour AllNeighbour = AllNeighbour{all: make(map[string]*MinerStruct)}
-	LeafNodesMap LeafNodes =  LeafNodes{all: make(map[string]*Block) }
+	allNeighbour  = AllNeighbour{all: make(map[string]*MinerStruct)}
+	LeafNodesMap  =  LeafNodes{all: make(map[string]*Block) }
 	blockCounter = GlobalBlockCreationCounter{counter: 0}
 	)
 
@@ -286,6 +286,7 @@ func AllOperationsCommands(buffer []Operation) string {
 func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 	// currentBlock := m.BlockChain[len(m.BlockChain)-1]
 	// listOfOperation := currentBlock.GetStringOperations()
+
 	for {
 		select {
 		case <-m.NotEnoughNeighbourSig:
@@ -301,39 +302,41 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			// fmt.Println(leadingBlock)
 
 			var nonce string
+			isCalculatingNoOp := true
 			listOfOpeartion := make([]Operation,0)
 			if len(m.OPBuffer) == 0 {
 				//	Mine for no-op
 				fmt.Println("Start doing no-op")
+
+				initialOP = Operation{Command: "no-op"}
 				nonce = leadingBlock.CurrentHash + initialOP.Command + pubKeyToString(m.PairKey.PublicKey)
-				listOfOpeartion = append(listOfOpeartion, Operation{Command: "no-op"})
+
+				// Sign the Operation
+				r, s, err := ecdsa.Sign(rand.Reader, &m.PairKey, []byte(initialOP.Command))
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				initialOP.Issuer = &m.PairKey
+				initialOP.IssuerR = r
+				initialOP.IssuerS = s
+
+				listOfOpeartion = append(listOfOpeartion, initialOP)
 			} else {
 				nonce = leadingBlock.CurrentHash + AllOperationsCommands(m.OPBuffer) + pubKeyToString(m.PairKey.PublicKey)
 				log.Println("Loggin out what's in the buffer")
-				//fmt.Println(AllOperationsCommands(m.OPBuffer))
 				fmt.Println(leadingBlock.CurrentHash + AllOperationsCommands(m.OPBuffer) + pubKeyToString(m.PairKey.PublicKey))
 				listOfOpeartion = m.OPBuffer
 				m.OPBuffer = make([]Operation, 0)
-
-
-
+				isCalculatingNoOp = false
 			}
-			newBlock := doProofOfWork(m, nonce, 5, 100, listOfOpeartion, leadingBlock)
+			newBlock := doProofOfWork(m, nonce, 5, listOfOpeartion, leadingBlock, isCalculatingNoOp)
 			blockCounter.Lock()
 			blockCounter.counter++
 			blockCounter.Unlock()
-
-				leadingBlock.Children = append(leadingBlock.Children, newBlock)
-				// TODO maybe validate block here
-				// printBlock(m.BlockChain)
-				fmt.Println("\n")
-
-
-			// time.Sleep(5000 * time.Millisecond)
-
-			// if m.MinerAddr[len(m.MinerAddr)-1:] == "8" {
-			// 	time.Sleep(time.Millisecond * time.Duration(delay))
-			// }
+			leadingBlock.Children = append(leadingBlock.Children, newBlock)
+			// TODO maybe validate block here
+			fmt.Println("\n")
 		}
 	}
 
@@ -432,24 +435,17 @@ func (m *MinerStruct) produceBlock(currentHash string, newOPs []Operation, leadi
 	// CurrentOPs := []Operation{newOP}
 	r, s, err := ecdsa.Sign(rand.Reader, &m.PairKey, []byte(currentHash))
 	if err != nil {
+		fmt.Println(err)
 		os.Exit(500)
 	}
 	fmt.Println("Creating a new block with the new hash")
 
-
 	sss, err := strconv.Atoi(nonce)
 
 	if err != nil {
-
 		fmt.Println(err)
 	}
 
-	fmt.Println("THE NONCE IS ", nonce)
-
-	fmt.Println("THE INT NONCE IS ", sss)
-	fmt.Println("THE INT32 NONCE IS ", int32(sss))
-
-	// TODO this is not right, we're putting solver's publicKey in producedBlock
 	producedBlock := &Block{CurrentHash: currentHash,
 		PreviousHash: leadingBlock.CurrentHash,
 		CurrentOPs:    newOPs,
@@ -458,7 +454,7 @@ func (m *MinerStruct) produceBlock(currentHash string, newOPs []Operation, leadi
 		Children:          make([]*Block, 0),
 		SolverPublicKey:   &m.PairKey.PublicKey,
 		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1,
-		Nonce:              int32(sss) }
+		Nonce:              int32(sss)}
 	m.Flood(producedBlock, &visitedMiners)
 	LeafNodesMap.Lock()
 	delete(LeafNodesMap.all, leadingBlock.CurrentHash)

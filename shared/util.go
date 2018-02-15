@@ -48,28 +48,15 @@ func filter(m *MinerStruct, visited *[]*MinerStruct) bool {
 	return true
 }
 
-// func copyBlock(thisBlock *Block) *Block {
-//
-// 	producedBlock := &Block{
-// 		CurrentHash:       thisBlock.CurrentHash,
-// 		PreviousHash:      thisBlock.PreviousHash,
-// 		UserSignature:     thisBlock.UserSignature,
-// 		CurrentOP:         thisBlock.CurrentOP,
-// 		Children:          make([]*Block, 0),
-// 		DistanceToGenesis: thisBlock.DistanceToGenesis,
-// 	}
-// 	return producedBlock
-// }
 
 func computeNonceSecretHash(nonce string, secret string) string {
 	h := md5.New()
 	h.Write([]byte(nonce + secret))
 	str := hex.EncodeToString(h.Sum(nil))
-	// fmt.Println(str)
 	return str
 }
 
-func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, newOPs []Operation, leadingBlock *Block) *Block {
+func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, newOPs []Operation, leadingBlock *Block, isDoingWorkForNoOp bool) *Block {
 	i := int64(0)
 
 	var zeroesBuffer bytes.Buffer
@@ -78,6 +65,7 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 	}
 
 	zeroes := zeroesBuffer.String()
+
 	fmt.Println("+++++++++++++++++++++++++++++++++++++++++++++++Begin Proof of work+++++++++++++++++++++++++++++")
 	for {
 		select {
@@ -90,17 +78,26 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 			return recievedBlock
 		case opFromMineNode := <-m.RecievedOpSig:
 			fmt.Println("A miner sent me an operation from its art node")
-			m.OPBuffer = append(m.OPBuffer, opFromMineNode)
-			newOPs = m.OPBuffer
-			fmt.Println("M-UPDATED OPERATION LIST FROM MINERS " + AllOperationsCommands(m.OPBuffer))
-			nonce = leadingBlock.CurrentHash + opFromMineNode.Command + pubKeyToString(m.PairKey.PublicKey)
+			fmt.Println("M-UPDATED OPERATION LIST FROM MINERS ")
+			if isDoingWorkForNoOp {
+				nonce = leadingBlock.CurrentHash + opFromMineNode.Command + pubKeyToString(m.PairKey.PublicKey)
+				newOPs = []Operation{opFromMineNode}
+				isDoingWorkForNoOp = false
+				fmt.Println("M-Was calculating No-op, now calculating Operation ", opFromMineNode.Command)
+			} else {
+				m.OPBuffer = append(m.OPBuffer, opFromMineNode)
+				fmt.Println("M-UPDATED OPERATION LIST FROM MINERS " + AllOperationsCommands(m.OPBuffer))
+			}
 		case opFromArtnode := <-m.RecievedArtNodeSig:
-			fmt.Println("ArtNode asked for this operation")
-			nonce = leadingBlock.CurrentHash + opFromArtnode.Command + pubKeyToString(m.PairKey.PublicKey)
-			fmt.Println(leadingBlock.CurrentHash + opFromArtnode.Command + pubKeyToString(m.PairKey.PublicKey))
+			if isDoingWorkForNoOp {
+				isDoingWorkForNoOp = false
+				nonce = leadingBlock.CurrentHash + opFromArtnode.Command + pubKeyToString(m.PairKey.PublicKey)
+				newOPs = []Operation{opFromArtnode}
+				fmt.Println("A-Was calculating No-op, now calculating Operation ", opFromArtnode.Command)
+			} else {
+				m.OPBuffer = append(m.OPBuffer, opFromArtnode)
+			}
 			visitedMiners := []*MinerStruct{m}
-			m.OPBuffer = append(m.OPBuffer, opFromArtnode)
-			newOPs = m.OPBuffer
 			fmt.Println("A-UPDATED OPERATION LIST FROM ART NODE" + AllOperationsCommands(m.OPBuffer))
 			m.FloodOperation(&opFromArtnode, &visitedMiners)
 		default:
