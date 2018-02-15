@@ -17,10 +17,27 @@ func (e BadBlockError) Error() string {
 	return fmt.Sprintf("BAD BLOCK")
 }
 
+func (m *MinerRPCServer) SendChain(s string, blockChain *BlockPayloadStruct) error {
+	log.Println(s)
+	thisMinerBlockChain := CopyBlockChainPayload(m.Miner.BlockChain)
+	*blockChain = thisMinerBlockChain
+	log.Println(thisMinerBlockChain)
+	return nil
+}
+
+// func (m *MinerRPCServer) SendLeafNodesMap(s string, leafNodes *map[string]*Block) error {
+// 	newMap := make(map[string]*Block)
+// 	for k, v := range m.Miner.LeafNodesMap {
+// 		newMap[k] = CopyBlockChain(v)
+// 	}
+// 	*leafNodes = newMap
+// 	return nil
+// }
+
 func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 	log.Println("stopped")
 	if !m.Miner.FoundHash {
-		log.Print("I didn't find the block, so I have recieved the block from another miner")
+		log.Print("Someone send me a block, its hash is: ", block.CurrentHash)
 		if block.Validate() {
 			m.Miner.MiningStopSig <- block
 		} else {
@@ -32,7 +49,6 @@ func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 	log.Println("Sent channel info")
 	return nil
 }
-
 
 func (m *MinerRPCServer) ReceivedOperation(operation *Operation, alive *bool) error {
 
@@ -62,7 +78,7 @@ func (m *MinerRPCServer) ActivateHeartBeat(SenderAddr string, alive *bool) error
 	return nil
 }
 
-func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, alive *bool) error {
+func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, thisMinerChainLength *int) error {
 	fmt.Println("------------------------------------I got here--------------------------------------")
 	fmt.Println(MinerNeighbourPayload)
 	// if len(allNeighbour.all) > int(m.Miner.Settings.MinNumMinerConnections) {
@@ -73,18 +89,21 @@ func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, alive *boo
 		log.Println("The Miner is already here")
 	} else {
 		alive := false
+		number := 0
 		allNeighbour.all[(*MinerNeighbourPayload)] = &MinerStruct{
 			MinerAddr: (*MinerNeighbourPayload),
 			// MinerConnection: &MinerNeighbourPayload.client,
 			RecentHeartbeat: time.Now().UnixNano(),
 		}
+		length := m.Miner.FindLongestChainLength()
+		*thisMinerChainLength = length
 		log.Println("Registration time is: ", time.Now().UnixNano())
 		log.Println("Successfully recorded this neighbouring miner", (*MinerNeighbourPayload))
 		client, error := rpc.Dial("tcp", *MinerNeighbourPayload)
 		if error != nil {
 			fmt.Println(error)
 		}
-		err := client.Call("MinerRPCServer.MinerRegister", m.Miner.MinerAddr, &alive)
+		err := client.Call("MinerRPCServer.MinerRegister", m.Miner.MinerAddr, &number)
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -96,8 +115,6 @@ func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, alive *boo
 	return nil
 }
 
-
-
 // TODO
 //type ArtNodeOpReq int
 type KeyCheck int
@@ -108,21 +125,19 @@ type ArtNodeOpReg struct {
 	Miner MinerStruct
 }
 
- func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation , reply *bool) error {
+func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *bool) error {
 
- 	fmt.Println(op.Command)
-	go func (){
+	fmt.Println(op.Command)
+	go func() {
 		l.Miner.RecievedArtNodeSig <- *op
 	}()
- 	// TODO
- 	// check errors
- 	// Insuffcient errors
- 	// shape overlap
- 	return nil
- }
+	// TODO
+	// check errors
+	// Insuffcient errors
+	// shape overlap
+	return nil
+}
 
-// gil
-// }
 func (l *KeyCheck) ArtNodeKeyCheck(privKey *string, reply *bool) error {
 	*reply = true
 	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")
