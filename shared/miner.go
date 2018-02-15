@@ -56,14 +56,16 @@ type Miner interface {
 
 //Struct for descripting Geometry
 type Point struct {
-	X, Y int
+	X, Y float64
 }
-
+type LineSectVector struct {
+	Start,End Point
+}
 //one move , represent like : m 100 100
 type SingleMov struct {
-	Cmd    rune
-	X      int
-	Y      int
+	Cmd rune
+	X float64
+	Y float64
 	ValCnt int
 }
 
@@ -71,6 +73,7 @@ type SingleMov struct {
 type SingleOp struct {
 	IsClosedShape bool
 	MovList       []SingleMov
+	InkCost       int
 }
 
 type BlockPayloadStruct struct {
