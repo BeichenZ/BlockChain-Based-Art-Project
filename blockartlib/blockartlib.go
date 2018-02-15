@@ -266,52 +266,40 @@ type CanvasObject struct {
 }
 
 func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
-	// check if there's enough ink for the operation
-	// send operation to the miner Call()
-	//time.Sleep(20000 * time.Millisecond)
+	//Check for ShapeSvgStringTooLongError
+	//var IsTransFill bool
+	var isClosedCurve bool
+	var svgOP shared.SingleOp
+	var vtxArr []shared.Point
+	var edgeArr []shared.LineSectVector
 
-	s1 := rand.NewSource(time.Now().UnixNano())
-	r1 := rand.New(s1)
+	//Check for InValidSvg, OutofBound, SvgString too long errors
+	if len(shapeSvgString) > 128 { return "", "", 0, ShapeSvgStringTooLongError(shapeSvgString)}
+	parsable,svgOP := t.IsSvgStringParsable_Parse(shapeSvgString)
+	if !parsable {return "", "", 0, InvalidShapeSvgStringError(shapeSvgString)} else {
+		isSvgValid,isClosedCurve,vtxArr,edgeArr := t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
+		if !isSvgValid {return "", "", 0, InvalidShapeSvgStringError(shapeSvgString + fill + stroke)}
+	}
+	if !t.IsSvgOutofBounds(svgOP) {return "", "", 0, OutOfBoundsError{}}
 
-	randNum := r1.Intn(100)
-	fmt.Println("AddShape(): The command is draw thing " + string(randNum) )
+	//Create New OPERATION
+	//TODO:Fill up the new struct
+	area := uint32(CalculateShapeArea（isClosedCurve,vtxArr,edgeArr）)
+	fmt.Println("AddShape(),The command is ",shapeSvgString)
 	newOP := shared.Operation{
-		Command:"draw things" + string(randNum),
-		ValidFBlkNum: validateNum,
+		Command:shapeSvgString,
+		AmountofInk:area,
+		//ShapeType:,
+    ShapeSvgString:shapeSvgString,
+		Fill:fill,
+		Stroke:stroke,
+		ValidFBlkNum:validateNum
 	}
 	validOp:=t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
 
-	fmt.Println("AddShape() ", validOp)
-	//Check for ShapeSvgStringTooLongError
-	//var IsTransFill bool
-	//var IsClosedCurve bool
-	var svgOP shared.SingleOp
-	//var vtxArr []shared.Point
-	//var edgeArr []shared.LineSectVector
+	//TODO:Once RPC call finished successfully.Store it in canvas
 
 
-
-	//Check Three Errors related to the Svg String itself
-	if len(shapeSvgString) > 128 {
-		return "", "", 0, shared.ShapeSvgStringTooLongError(shapeSvgString)
-	}
-
-	parsable, svgOP := t.IsSvgStringParsable_Parse(shapeSvgString)
-	if !parsable {
-		return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString)
-	} else {
-		isSvgValid,_,_ := t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
-		if !isSvgValid {
-			return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString + fill + stroke)
-		}
-	}
-
-	if !t.IsSvgOutofBounds(svgOP) {
-		return "", "", 0, shared.OutOfBoundsError{}
-	}
-	//
-	//Once successfully add shape. Finish Post Settings
-	//1.update LastPenPosition
 	return "", "", 0, nil
 }
 func (t CanvasObject) GetSvgString(shapeHash string) (svgString string, err error) {
@@ -411,25 +399,26 @@ func (t CanvasObject) IsSvgStringParsable_Parse(svgStr string) (isValid bool, Op
 }
 
 //varify If string is closed, return vtxArray and EdgeArray
-func (t CanvasObject) IsParsableSvgValid_GetVtxEdge(svgStr string, fill string, stroke string, Op shared.SingleOp) (isClosed bool, vtxArray []shared.Point, edgeArray []shared.LineSectVector) {
+func (t CanvasObject) IsParsableSvgValid_GetVtxEdge(svgStr string, fill string, stroke string, Op shared.SingleOp) (isValid bool,isClosed bool, vtxArray []shared.Point, edgeArray []shared.LineSectVector) {
 	var vtxArr []shared.Point
 	var edgeArr []shared.LineSectVector
+	var isthisClosed bool
+	// For Non-Transparent Fill, Must be closed
+	if isthisClosed, vtxArr, edgeArr := t.IsClosedShapeAndGetVtx(Op); !isClosed && fill != "transparent" {
+		fmt.Println("Non-closed curve shape", svgStr, "but with fill:", fill)
+		return false,isthisClosed, vtxArr, edgeArr
+	}
 	//No Fully Transparent Shape
 	if fill == "transparent" && stroke == "transparent" {
-		return false, vtxArr, edgeArr
-	}
-	// For Non-Transparent Fill, Must be closed
-	if isClosed, vtxArr, edgeArr := t.IsClosedShapeAndGetVtx(Op); !isClosed && fill != "transparent" {
-		fmt.Println("Non-closed curve shape", svgStr, "but with fill:", fill)
-		return false, vtxArr, edgeArr
+		return false, isthisClosed,vtxArr, edgeArr
 	}
 	// For Non-Transparent Fill,Must Not Be Self-Intersecting
 	if isSelfInterSected := t.IsSelfIntersect(vtxArr,edgeArr); fill != "transparent" && isSelfInterSected {
 		fmt.Println("Self intersected shape", svgStr, "but with fill:", fill)
-		return false, vtxArr, edgeArr
+		return false, isthisClosed,vtxArr, edgeArr
 	}
 	// Pass all tests:
-	return true, vtxArr, edgeArr
+	return true, isthisClosed,vtxArr, edgeArr
 }
 func (t CanvasObject) IsSvgOutofBounds(svgOP shared.SingleOp) bool {
 	xVal := t.ptr.LastPenPosition.X
@@ -537,18 +526,17 @@ func (t CanvasObject) IsClosedShapeAndGetVtx(op shared.SingleOp) (IsClosed bool,
 		return true, vtxArr[:uniqueVtxCount], edgeArr // the last "nextVtx" will be an overlapping of the staring point
 	}
 }
-func (t CanvasObject) CalculateShapeArea(IsClosed bool, vtxArr []shared.Point, edgeArr []shared.LineSectVector) float64 {
+func (t CanvasObject) CalculateShapeArea(IsClosed bool, vtxArr []shared.Point, edgeArr []shared.LineSectVector,fill string) float64 {
 	//Given the parsed results from IsClosedShapeAndGetVtx
 	var area float64
 	area = float64(0)
-	if !IsClosed {
+	if !IsClosed || fill == "transparent"{
 		//Non-Closed Shape's Area is the summation of the
 		for _, element := range edgeArr {
 			area += Distance_TwoPoint(element.Start, element.End)
 		}
-	} else {
-		//TODO: Check if it is  self intersecting and calculate area accordingly
-
+	} else { //non-self-intersecting closed polygon,Checked by other functions inside AddShape
+			area = Area_SingleClosedPolygon(vtxArr)
 	}
 	return area
 }
