@@ -27,6 +27,7 @@ type Block struct {
 	DistanceToGenesis int
 	Nonce             int32
 	SolverPublicKey   *ecdsa.PublicKey
+	OpSig 				string
 }
 
 // Return a string repersentation of PreviousHash, op, op-signature, pub-key,

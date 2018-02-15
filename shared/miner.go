@@ -52,6 +52,8 @@ type Miner interface {
 
 	// RPC methods of Miner
 	StopMining(miner MinerStruct, r *MinerStruct) error
+
+	GetBlkChildren(bh string) ([]string, error)
 }
 
 //Struct for descripting Geometry
@@ -106,6 +108,7 @@ type MinerStruct struct {
 	RecievedArtNodeSig    chan Operation
 	RecievedOpSig         chan Operation
 	OPBuffer              []Operation
+	MinerInk			  uint32
 }
 
 type MinerHeartbeatPayload struct {
@@ -550,4 +553,11 @@ func (m *MinerStruct) CheckForNeighbour() {
 	LeafNodesMap.all[deepestBlock(m.BlockChain).CurrentHash] = deepestBlock(m.BlockChain)
 	LeafNodesMap.Unlock()
 
+}
+
+func (m *MinerStruct) GetBlkChildren(bh string) ([]string, error) {
+	//
+	var s []string
+	var e error
+	return s,e
 }

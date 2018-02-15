@@ -274,18 +274,9 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	newOP := shared.Operation{
 		Command:"draw things" + string(randNum),
 		ValidFBlkNum: validateNum,
-		Opid: rand.Uint32(),
 	}
 	validOp:=t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
 
-
-	//
-	//for {
-	//	if condition {
-	//		break
-	//	}
-	//
-	//}
 	fmt.Println("AddShape() ", validOp)
 	//Check for ShapeSvgStringTooLongError
 	var svgOP shared.SingleOp
@@ -310,9 +301,10 @@ func (t CanvasObject) GetSvgString(shapeHash string) (svgString string, err erro
 
 }
 func (t CanvasObject) GetInk() (inkRemaining uint32, err error) {
-	// TODO
+	ink, err := t.ptr.ArtNode.GetInkBalFromMiner();
+	fmt.Println("GetInk() Ink of miner", ink)
 	// get longest branch from miner compute ink based on how many signitures are from the miner
-	return 0, nil
+	return ink, err
 }
 func (t CanvasObject) DeleteShape(validateNum uint8, shapeHash string) (inkRemaining uint32, err error) {
 	// TODO
@@ -323,13 +315,13 @@ func (t CanvasObject) GetShapes(blockHash string) (shapeHashes []string, err err
 	return s, nil
 	}
 func (t CanvasObject) GetGenesisBlock() (blockHash string, err error) {
-	// TODO
-	// Request block chain from miner
-	return "", nil
+	gb, err := t.ptr.ArtNode.GetGenesisBlockFromMiner();
+	fmt.Println("GetGenesisBlock() Genesis blk hash", gb)
+	return gb, err
 }
 func (t CanvasObject) GetChildren(blockHash string) (blockHashes []string, err error) {
-	var s []string
-	return s, nil
+	blockHashes, err = t.ptr.ArtNode.GetChildrenFromMiner(blockHash)
+	return blockHashes, err
 }
 func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error){
 	// TODO

@@ -58,3 +58,21 @@ func (a *ArtNodeStruct) ArtnodeOp (op Operation) (validOp bool) {
 	CheckError(err)
 	return validOp
 }
+
+func (a *ArtNodeStruct) GetInkBalFromMiner() (uint32, error) {
+	var i uint32
+	err := a.AmConn.Call("ArtNodeOpReg.ArtnodeInkRequest", "ink pls", &i)
+	fmt.Println("GetInkBalFromMiner() ", i)
+	return i, err	
+}
+func (a *ArtNodeStruct) GetGenesisBlockFromMiner() (string, error) {
+	var gb string
+	err := a.AmConn.Call("ArtNodeOpReg.ArtnodeGenBlkRequest", "Genisis blk", &gb)
+	return gb, err	
+}
+func (a *ArtNodeStruct) GetChildrenFromMiner(bHash string) ([]string, error)  {
+	var mch []string
+
+	err:= a.AmConn.Call("ArtNodeOpReg.ArtnodeBlkChildRequest", "Children", &mch)
+	return mch, err
+}

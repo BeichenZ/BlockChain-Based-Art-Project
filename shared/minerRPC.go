@@ -157,6 +157,21 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *bool) error {
  	return nil
  }
 
+func (l *ArtNodeOpReg) ArtnodeInkRequest(s string, remainInk *uint32) error {
+	*remainInk= l.Miner.MinerInk
+	return nil
+}
+
+func (l *ArtNodeOpReg) ArtnodeGenBlkRequest(s string, genBlkHash *string) error {
+	*genBlkHash=l.Miner.BlockChain.CurrentHash
+	fmt.Println("ArtnodeGenBlkRequest() ", genBlkHash)
+	return nil
+}
+
+func (l *ArtNodeOpReg) ArtnodeBlkChildRequest(s string, blkCh *[]string) error {
+	
+	return nil
+}
 
 func (l *KeyCheck) ArtNodeKeyCheck(privKey *string, reply *bool) error {
 	*reply = true
