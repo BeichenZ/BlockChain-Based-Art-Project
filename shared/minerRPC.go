@@ -168,9 +168,9 @@ func (l *ArtNodeOpReg) ArtnodeGenBlkRequest(s string, genBlkHash *string) error 
 	return nil
 }
 
-func (l *ArtNodeOpReg) ArtnodeBlkChildRequest(s string, blkCh *[]string) error {
-	
-	return nil
+func (l *ArtNodeOpReg) ArtnodeBlkChildRequest(bHash string, blkCh *[]string) (err error) {
+	*blkCh, err =l.Miner.GetBlkChildren(l.Miner.BlockChain, bHash)
+	return err
 }
 
 func (l *KeyCheck) ArtNodeKeyCheck(privKey *string, reply *bool) error {
