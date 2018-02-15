@@ -462,6 +462,11 @@ func (m *MinerStruct) produceBlock(currentHash string, newOPs []Operation, leadi
 	fmt.Println("I have found the hash, this is my public key")
 	fmt.Printf("%+v", producedBlock.SolverPublicKey)
 	printBlock(m.BlockChain)
+	if len(newOPs) == 1 && newOPs[0].Command == "no-op" {
+		m.MinerInk += m.Settings.InkPerNoOpBlock
+	} else {
+		m.MinerInk += m.Settings.InkPerOpBlock
+	}
 	return producedBlock
 }
 
