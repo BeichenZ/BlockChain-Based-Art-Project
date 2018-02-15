@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+
 	shared "./shared"
 )
 
@@ -62,7 +63,6 @@ func main() {
 	rpc.Register(anr)
 	go rpc.Accept(listenArtConn)
 
-
 	// While the heart is beating, keep fetching for neighbours
 
 	// After going over the minimum neighbours value, start doing no-op
@@ -80,7 +80,7 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 	killSig := make(chan *shared.Block)
 	NotEnoughNeighbourSig := make(chan bool)
 	RecievedArtNodeSig := make(chan shared.Operation)
-	RecievedOpSig      := make(chan shared.Operation)
+	RecievedOpSig := make(chan shared.Operation)
 
 	return shared.MinerStruct{ServerAddr: servAddr,
 		MinerAddr:             minerAddr,
@@ -88,7 +88,7 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 		MiningStopSig:         killSig,
 		NotEnoughNeighbourSig: NotEnoughNeighbourSig,
 		FoundHash:             false,
-		RecievedArtNodeSig:   RecievedArtNodeSig,
-		RecievedOpSig:        RecievedOpSig,
+		RecievedArtNodeSig:    RecievedArtNodeSig,
+		RecievedOpSig:         RecievedOpSig,
 	}
 }

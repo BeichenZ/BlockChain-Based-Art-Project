@@ -2,14 +2,17 @@ package shared
 
 import (
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"fmt"
 	"log"
+	"math/big"
 	"net"
 	"net/rpc"
 	"os"
 	"sync"
 	"time"
+	"strconv"
 )
 
 type AllNeighbour struct {
@@ -32,6 +35,7 @@ var (
 	LeafNodesMap LeafNodes =  LeafNodes{all: make(map[string]*Block) }
 	blockCounter = GlobalBlockCreationCounter{counter: 0}
 	)
+
 
 type Miner interface {
 	Register(address string, publicKey ecdsa.PublicKey) (*MinerNetSettings, error)
@@ -57,9 +61,9 @@ type Point struct {
 
 //one move , represent like : m 100 100
 type SingleMov struct {
-	Cmd rune
-	X int
-	Y int
+	Cmd    rune
+	X      int
+	Y      int
 	ValCnt int
 }
 
@@ -68,6 +72,19 @@ type SingleOp struct {
 	IsClosedShape bool
 	MovList       []SingleMov
 }
+
+type BlockPayloadStruct struct {
+	CurrentHash       string
+	PreviousHash      string
+	R                 big.Int
+	S                 big.Int
+	CurrentOPs        []Operation
+	Children          []BlockPayloadStruct
+	DistanceToGenesis int
+	Nonce             int32
+	SolverPublicKey   string //Make this field a string so no more seg fault
+}
+
 type MinerStruct struct {
 	ServerAddr            string
 	MinerAddr             string
@@ -85,8 +102,7 @@ type MinerStruct struct {
 	ListOfOps_str         []string
 	RecievedArtNodeSig    chan Operation
 	RecievedOpSig         chan Operation
-	OPBuffer			  []Operation
-
+	OPBuffer              []Operation
 }
 
 type MinerHeartbeatPayload struct {
@@ -133,6 +149,11 @@ type MinerNetSettings struct {
 	CanvasSettings CanvasSettings `json:"canvas-settings"`
 }
 
+func copyBigInt(b *big.Int) int64 {
+	return b.Int64()
+}
+
+
 func (m *MinerStruct) FindtheLeadingBlock() []*Block {
 
 	var maxBlock *Block
@@ -150,6 +171,22 @@ func (m *MinerStruct) FindtheLeadingBlock() []*Block {
 
 	thing := []*Block{maxBlock}
 	return thing
+}
+
+func (m *MinerStruct) FindLongestChainLength() int {
+
+	localMax := -1
+	LeafNodesMap.Lock()
+	for _, v := range LeafNodesMap.all {
+		if v.DistanceToGenesis > localMax {
+			fmt.Println("Finding the leading block: The hash is" + v.CurrentHash)
+			localMax = v.DistanceToGenesis
+
+		}
+	}
+	LeafNodesMap.Unlock()
+
+	return localMax
 }
 
 func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (MinerNetSettings, error) {
@@ -189,8 +226,31 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 	if err != nil {
 		return *minerSettings, err
 	}
-
-	genesisBlock := Block{CurrentHash: minerSettings.GenesisBlockHash, Children: make([]*Block, 0)}
+	// CurrentHash  string
+	// PreviousHash string
+	// // UserSignature     UserSignatureSturct
+	// R                 *big.Int
+	// S                 *big.Int
+	// CurrentOP         Operation
+	// Children          []*Block
+	// DistanceToGenesis int
+	// Nonce             int32
+	// SolverPublicKey   *ecdsa.PublicKey
+	genesisBlock := Block{
+		CurrentHash:       minerSettings.GenesisBlockHash,
+		PreviousHash:      "",
+		R:                 &big.Int{},
+		S:                 &big.Int{},
+		CurrentOPs:         make([]Operation,0),
+		DistanceToGenesis: 0,
+		Nonce:             int32(0),
+		Children:          make([]*Block, 0),
+		SolverPublicKey: &ecdsa.PublicKey{
+			Curve: elliptic.P384(),
+			X:     &big.Int{},
+			Y:     &big.Int{},
+		},
+	}
 	m.BlockChain = &genesisBlock
 	LeafNodesMap.Lock()
 	LeafNodesMap.all[genesisBlock.CurrentHash] = &genesisBlock
@@ -212,7 +272,7 @@ func (m MinerStruct) HeartBeat() error {
 
 func AllOperationsCommands(buffer []Operation) string {
 	retstring := ""
-	for _, op := range buffer{
+	for _, op := range buffer {
 		retstring += op.Command
 	}
 	return retstring
@@ -228,22 +288,31 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			// m.LeafNodesMap[recievedBlock.CurrentHash] = recievedBlock
 			return "", nil
 		default:
-				fmt.Println("I'm starting to mine")
-				leadingBlock := m.FindtheLeadingBlock()[0]
-				fmt.Println(leadingBlock)
-				// nonce := leadingBlock.GetString()
+			fmt.Println("I'm starting to mine")
+			leadingBlock := m.FindtheLeadingBlock()[0]
+			//
+			// fmt.Println("Logging out leading block here")
+			// fmt.Println(leadingBlock)
+
 			var nonce string
+			listOfOpeartion := make([]Operation,0)
 			if len(m.OPBuffer) == 0 {
 				//	Mine for no-op
 				fmt.Println("Start doing no-op")
-				nonce = initialOP.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
+				nonce = leadingBlock.CurrentHash + initialOP.Command + pubKeyToString(m.PairKey.PublicKey)
+				listOfOpeartion = append(listOfOpeartion, Operation{Command: "no-op"})
 			} else {
-				nonce = AllOperationsCommands(m.OPBuffer) + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
+				nonce = leadingBlock.CurrentHash + AllOperationsCommands(m.OPBuffer) + pubKeyToString(m.PairKey.PublicKey)
 				log.Println("Loggin out what's in the buffer")
-				fmt.Println(AllOperationsCommands(m.OPBuffer))
+				//fmt.Println(AllOperationsCommands(m.OPBuffer))
+				fmt.Println(leadingBlock.CurrentHash + AllOperationsCommands(m.OPBuffer) + pubKeyToString(m.PairKey.PublicKey))
+				listOfOpeartion = m.OPBuffer
 				m.OPBuffer = make([]Operation, 0)
+
+
+
 			}
-			newBlock := doProofOfWork(m, nonce, 5, 100, initialOP, leadingBlock)
+			newBlock := doProofOfWork(m, nonce, 5, 100, listOfOpeartion, leadingBlock)
 			blockCounter.Lock()
 			blockCounter.counter++
 			blockCounter.Unlock()
@@ -312,7 +381,6 @@ func (m MinerStruct) Flood(newBlock *Block, visited *[]*MinerStruct) {
 	return
 }
 
-
 func (m MinerStruct) FloodOperation(newOP *Operation, visited *[]*MinerStruct) {
 	// TODO construct a list of MinerStruct excluding the senders to avoid infinite loop
 	// TODO what happense if node A calls flood, and before it can reach node B, node B calls flood?
@@ -351,9 +419,7 @@ func (m MinerStruct) FloodOperation(newOP *Operation, visited *[]*MinerStruct) {
 	return
 }
 
-
-
-func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingBlock *Block) *Block {
+func (m *MinerStruct) produceBlock(currentHash string, newOPs []Operation, leadingBlock *Block, nonce string) *Block {
 	// visitedMiners := make([]MinerStruct, 0)
 	visitedMiners := []*MinerStruct{m}
 	/// Find the leading block
@@ -363,15 +429,30 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 		os.Exit(500)
 	}
 	fmt.Println("Creating a new block with the new hash")
+
+
+	sss, err := strconv.Atoi(nonce)
+
+	if err != nil {
+
+		fmt.Println(err)
+	}
+
+	fmt.Println("THE NONCE IS ", nonce)
+
+	fmt.Println("THE INT NONCE IS ", sss)
+	fmt.Println("THE INT32 NONCE IS ", int32(sss))
+
+	// TODO this is not right, we're putting solver's publicKey in producedBlock
 	producedBlock := &Block{CurrentHash: currentHash,
 		PreviousHash: leadingBlock.CurrentHash,
-		CurrentOP:    newOP,
-		UserSignature: UserSignatureSturct{
-			r: r,
-			s: s,
-		},
+		CurrentOPs:    newOPs,
+		R:            r,
+		S:            s,
 		Children:          make([]*Block, 0),
-		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1}
+		SolverPublicKey:   &m.PairKey.PublicKey,
+		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1,
+		Nonce:              int32(sss) }
 	m.Flood(producedBlock, &visitedMiners)
 	LeafNodesMap.Lock()
 	delete(LeafNodesMap.all, leadingBlock.CurrentHash)
@@ -379,6 +460,9 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 	m.FoundHash = false
 	LeafNodesMap.all[producedBlock.CurrentHash] = producedBlock
 	LeafNodesMap.Unlock()
+	fmt.Println("I have found the hash, this is my public key")
+	fmt.Printf("%+v", producedBlock.SolverPublicKey)
+	printBlock(m.BlockChain)
 	return producedBlock
 }
 
@@ -399,12 +483,9 @@ func (m *MinerStruct) minerSendHeartBeat(minerNeighbourAddr string) error {
 		}
 		time.Sleep(time.Millisecond * time.Duration(400))
 	}
-
 }
 
 func (m *MinerStruct) CheckForNeighbour() {
-	// NeighbourMap := reflect.ValueOf(allNeighbour).MapKeys()
-	// NeighbourSlice := make([]net.Addr, 0)
 	var listofNeighbourIP = make([]net.Addr, 0)
 	for len(listofNeighbourIP) < int(m.Settings.MinNumMinerConnections) {
 		error := m.ServerConnection.Call("RServer.GetNodes", m.PairKey.PublicKey, &listofNeighbourIP)
@@ -412,6 +493,10 @@ func (m *MinerStruct) CheckForNeighbour() {
 			fmt.Println(error)
 		}
 	}
+	localMax := -1
+	var neighbourWithLongestChain string
+	blockChain := BlockPayloadStruct{}
+	nodesMap := make(map[string]*Block)
 	for _, netIP := range listofNeighbourIP {
 
 		fmt.Println("neighbour ip address", netIP.String())
@@ -424,16 +509,42 @@ func (m *MinerStruct) CheckForNeighbour() {
 			log.Fatal(error)
 			os.Exit(0)
 		}
-		alive := false
+		neighbourBlockChainLength := 0
 		// payLoad := MinerHeartbeatPayload{MinerAddr: netIP.String(), client: *client}
 		log.Println("NETIP IS ", netIP.String())
-		client.Call("MinerRPCServer.MinerRegister", m.MinerAddr, &alive)
-
+		client.Call("MinerRPCServer.MinerRegister", m.MinerAddr, &neighbourBlockChainLength)
+		log.Println("the neighbour's blockchain length is: ", neighbourBlockChainLength)
 		for {
 			if _, exists := allNeighbour.all[netIP.String()]; exists {
 				fmt.Printf("The neighbour %v has registered as client", netIP.String())
 				break
 			}
 		}
+
+		if neighbourBlockChainLength > localMax {
+			localMax = neighbourBlockChainLength
+			neighbourWithLongestChain = netIP.String()
+		}
 	}
+	// TODO get the chain from the neighbour with the longest chain
+	longClient, err := rpc.Dial("tcp", neighbourWithLongestChain)
+	log.Println("Connected to the longest client")
+	if err != nil {
+		log.Println(err)
+	}
+	longClient.Call("MinerRPCServer.SendChain", "give me your chain", &blockChain)
+	m.BlockChain = ParseBlockChain(blockChain)
+	log.Println("received block chain")
+	log.Println(m.BlockChain)
+	// TODO request for LeafNodesMap, bugs happen because this miner's leafnodemap is not updated
+	longClient.Call("MinerRPCServer.SendLeafNodesMap", "give me your leaf", &nodesMap)
+	log.Println("received leaf nodes map")
+	for _, node := range nodesMap {
+		log.Println(&node)
+	}
+	// The bug is caused by m.Blockchain and m.LeftNodesMap pointing to different address
+	LeafNodesMap.Lock()
+	LeafNodesMap.all[deepestBlock(m.BlockChain).CurrentHash] = deepestBlock(m.BlockChain)
+	LeafNodesMap.Unlock()
+
 }

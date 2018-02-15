@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"math/big"
 	"strconv"
 	"time"
 )
@@ -47,15 +48,18 @@ func filter(m *MinerStruct, visited *[]*MinerStruct) bool {
 	return true
 }
 
-func copyBlock(thisBlock *Block) *Block {
-
-	producedBlock := &Block{CurrentHash: thisBlock.CurrentHash,
-		PreviousHash:      thisBlock.PreviousHash,
-		CurrentOP:         thisBlock.CurrentOP,
-		Children:          make([]*Block, 0),
-		DistanceToGenesis: thisBlock.DistanceToGenesis}
-	return producedBlock
-}
+// func copyBlock(thisBlock *Block) *Block {
+//
+// 	producedBlock := &Block{
+// 		CurrentHash:       thisBlock.CurrentHash,
+// 		PreviousHash:      thisBlock.PreviousHash,
+// 		UserSignature:     thisBlock.UserSignature,
+// 		CurrentOP:         thisBlock.CurrentOP,
+// 		Children:          make([]*Block, 0),
+// 		DistanceToGenesis: thisBlock.DistanceToGenesis,
+// 	}
+// 	return producedBlock
+// }
 
 func computeNonceSecretHash(nonce string, secret string) string {
 	h := md5.New()
@@ -65,7 +69,7 @@ func computeNonceSecretHash(nonce string, secret string) string {
 	return str
 }
 
-func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, newOP Operation, leadingBlock *Block) *Block {
+func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, newOPs []Operation, leadingBlock *Block) *Block {
 	i := int64(0)
 
 	var zeroesBuffer bytes.Buffer
@@ -87,13 +91,16 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 		case opFromMineNode := <-m.RecievedOpSig:
 			fmt.Println("A miner sent me an operation from its art node")
 			m.OPBuffer = append(m.OPBuffer, opFromMineNode)
+			newOPs = m.OPBuffer
 			fmt.Println("M-UPDATED OPERATION LIST FROM MINERS " + AllOperationsCommands(m.OPBuffer))
-			nonce = opFromMineNode.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
- 		case opFromArtnode := <-m.RecievedArtNodeSig:
+			nonce = leadingBlock.CurrentHash + opFromMineNode.Command + pubKeyToString(m.PairKey.PublicKey)
+		case opFromArtnode := <-m.RecievedArtNodeSig:
 			fmt.Println("ArtNode asked for this operation")
-			nonce = opFromArtnode.Command + pubKeyToString(m.PairKey.PublicKey) + leadingBlock.CurrentHash
+			nonce = leadingBlock.CurrentHash + opFromArtnode.Command + pubKeyToString(m.PairKey.PublicKey)
+			fmt.Println(leadingBlock.CurrentHash + opFromArtnode.Command + pubKeyToString(m.PairKey.PublicKey))
 			visitedMiners := []*MinerStruct{m}
 			m.OPBuffer = append(m.OPBuffer, opFromArtnode)
+			newOPs = m.OPBuffer
 			fmt.Println("A-UPDATED OPERATION LIST FROM ART NODE" + AllOperationsCommands(m.OPBuffer))
 			m.FloodOperation(&opFromArtnode, &visitedMiners)
 		default:
@@ -101,9 +108,9 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 
 			hash := computeNonceSecretHash(nonce, guessString)
 			if hash[32-numberOfZeroes:] == zeroes {
-				log.Println("Found the hash")
+				log.Println("Found the hash, it is: ", hash)
 				m.FoundHash = true
-				return m.produceBlock(hash, newOP, leadingBlock)
+				return m.produceBlock(hash, newOPs, leadingBlock, guessString)
 			}
 			i++
 		}
@@ -114,7 +121,73 @@ func pubKeyToString(key ecdsa.PublicKey) string {
 	return string(elliptic.Marshal(key.Curve, key.X, key.Y))
 }
 
+func ParseBlockChain(thisBlock BlockPayloadStruct) *Block {
+	fmt.Println("I'm receiving the blockchain")
+	x, y := elliptic.Unmarshal(elliptic.P384(), []byte(thisBlock.SolverPublicKey))
+	if thisBlock.PreviousHash == "" {
+		x = &big.Int{}
+		y = &big.Int{}
+	}
+	fmt.Println(thisBlock.SolverPublicKey)
+	fmt.Println(x)
+	fmt.Println(y)
+	producedBlock := &Block{
+		CurrentHash:       thisBlock.CurrentHash,
+		PreviousHash:      thisBlock.PreviousHash,
+		R:                 &thisBlock.R,
+		S:                 &thisBlock.S,
+		CurrentOPs:        thisBlock.CurrentOPs,
+		DistanceToGenesis: thisBlock.DistanceToGenesis,
+		Nonce:             thisBlock.Nonce,
+		SolverPublicKey: &ecdsa.PublicKey{
+			Curve: elliptic.P384(),
+			X:     x,
+			Y:     y,
+		},
+	}
+	var producedBlockChilden []*Block
+	for _, child := range thisBlock.Children {
+		producedBlockChilden = append(producedBlockChilden, ParseBlockChain(child))
+	}
+	producedBlock.Children = producedBlockChilden
+	// fmt.Println("finshed copying the chain, the current hash is: ", producedBlock.CurrentHash)
+	return producedBlock
+}
+
+func CopyBlockChainPayload(thisBlock *Block) BlockPayloadStruct {
+	fmt.Println("start copying the chain")
+	fmt.Println(thisBlock.CurrentHash)
+	fmt.Printf("%+v", thisBlock.SolverPublicKey)
+	producedBlockPayload := BlockPayloadStruct{
+		CurrentHash:       thisBlock.CurrentHash,
+		PreviousHash:      thisBlock.PreviousHash,
+		R:                 *thisBlock.R,
+		S:                 *thisBlock.S,
+		CurrentOPs:         thisBlock.CurrentOPs,
+		DistanceToGenesis: thisBlock.DistanceToGenesis,
+		Nonce:             thisBlock.Nonce,
+		SolverPublicKey:   pubKeyToString(*thisBlock.SolverPublicKey),
+	}
+	fmt.Println("I got here")
+	var producedBlockChilden []BlockPayloadStruct
+	for _, child := range thisBlock.Children {
+		producedBlockChilden = append(producedBlockChilden, CopyBlockChainPayload(child))
+	}
+	producedBlockPayload.Children = producedBlockChilden
+	// fmt.Println("finshed copying the chain, the current hash is: ", producedBlock.CurrentHash)
+	return producedBlockPayload
+}
+
+func deepestBlock(m *Block) *Block {
+	if len(m.Children) == 0 {
+		return m
+	}
+	return deepestBlock(m.Children[0])
+}
+
 func printBlock(m *Block) {
+	// fmt.Println("inside printblock")
+	// fmt.Println(m.Children)
 	fmt.Printf("%v -> ", len(m.Children))
 	for _, c := range m.Children {
 		printBlock(c)
