@@ -79,8 +79,10 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 		select {
 		case recievedBlock := <-m.MiningStopSig:
 			fmt.Println("Received block from another miner")
-			delete(m.LeafNodesMap, leadingBlock.CurrentHash)
-			m.LeafNodesMap[recievedBlock.CurrentHash] = recievedBlock
+			LeafNodesMap.Lock()
+			delete(LeafNodesMap.all, leadingBlock.CurrentHash)
+			LeafNodesMap.all[recievedBlock.CurrentHash] = recievedBlock
+			LeafNodesMap.Unlock()
 			return recievedBlock
 		case opFromMineNode := <-m.RecievedOpSig:
 			fmt.Println("A miner sent me an operation from its art node")

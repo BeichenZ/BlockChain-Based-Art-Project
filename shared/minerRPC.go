@@ -113,21 +113,27 @@ type ArtNodeOpReg struct {
 	go func (){
 		l.Miner.RecievedArtNodeSig <- *op
 	}()
+	 blockCounter.Lock()
+	 blockCounter.counter = 0
+	 blockCounter.Unlock()
 
-	loop :=true	
+
+
+	 validNum := op.ValidFBlkNum
 	// ** Maybe set timeout if it takes too long
 	// while l.Miner.chain is not validateNum more than before don't return anything, only return when its not
 
-		for loop {
-	for _, b := range l.Miner.LeafNodesMap{
-		if (b.CurrentOP.Opid == op.Opid) && blockFollowers(b, 0, int(op.ValidFBlkNum)) {  // Given operation is added into the blockchain
-				fmt.Println("DoArtNodeOp() validateNum condition satisfied")
-				*reply = true; loop = false
-			}else { //fmt.Println("DoArtNodeOp() validateNum condition NOT satisfied") 
+
+	 for  {
+		 //fmt.Println("DoArtNodeOp: IN loop")
+		 blockCounter.Lock()
+		 if blockCounter.counter == validNum {
+			*reply = true
+			break
 		}
-		}
+		 blockCounter.Unlock()
 	}
-	fmt.Println("DoArtNodeOp() validateNum condition satisfied")
+	 fmt.Println("DoArtNodeOp() validateNum condition satisfied")
  	return nil
  }
 
@@ -158,7 +164,7 @@ func blockFollowers(curBlock *Block, vd int, validateNum int) bool {
 	// }
 	// return true
 	fmt.Println("blockFollowers() in herrr")
-if len(curBlock.Children) == 0 {
+	if len(curBlock.Children) == 0 {
 		return false
 	}
 	if vd == validateNum{

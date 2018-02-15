@@ -276,6 +276,15 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 		Opid: rand.Uint32(),
 	}
 	validOp:=t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
+
+
+	//
+	//for {
+	//	if condition {
+	//		break
+	//	}
+	//
+	//}
 	fmt.Println("AddShape() ", validOp)
 	//Check for ShapeSvgStringTooLongError
 	var svgOP shared.SingleOp

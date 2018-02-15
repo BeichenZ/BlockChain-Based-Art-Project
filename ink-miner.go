@@ -79,7 +79,6 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 	minerKey, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
 	killSig := make(chan *shared.Block)
 	NotEnoughNeighbourSig := make(chan bool)
-	LeafMap := make(map[string]*shared.Block)
 	RecievedArtNodeSig := make(chan shared.Operation)
 	RecievedOpSig      := make(chan shared.Operation)
 
@@ -88,7 +87,6 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 		PairKey:               *minerKey,
 		MiningStopSig:         killSig,
 		NotEnoughNeighbourSig: NotEnoughNeighbourSig,
-		LeafNodesMap:          LeafMap,
 		FoundHash:             false,
 		RecievedArtNodeSig:   RecievedArtNodeSig,
 		RecievedOpSig:        RecievedOpSig,

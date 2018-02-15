@@ -17,10 +17,21 @@ type AllNeighbour struct {
 	all map[string]*MinerStruct
 }
 
+type LeafNodes struct {
+	sync.RWMutex
+	all map[string]*Block
+}
+
+type GlobalBlockCreationCounter struct {
+	sync.RWMutex
+	counter uint8
+}
+
 var (
 	allNeighbour AllNeighbour = AllNeighbour{all: make(map[string]*MinerStruct)}
-	// listofNeighbourIP              = make([]net.Addr, 0)
-)
+	LeafNodesMap LeafNodes =  LeafNodes{all: make(map[string]*Block) }
+	blockCounter = GlobalBlockCreationCounter{counter: 0}
+	)
 
 type Miner interface {
 	Register(address string, publicKey ecdsa.PublicKey) (*MinerNetSettings, error)
@@ -69,7 +80,6 @@ type MinerStruct struct {
 	Settings              MinerNetSettings
 	MiningStopSig         chan *Block
 	NotEnoughNeighbourSig chan bool
-	LeafNodesMap          map[string]*Block
 	FoundHash             bool
 	RecentHeartbeat       int64
 	ListOfOps_str         []string
@@ -87,6 +97,8 @@ type MinerInfo struct {
 	Address net.Addr
 	Key     ecdsa.PublicKey
 }
+
+
 
 type MinerSettings struct {
 	// Hash of the very first (empty) block in the chain.
@@ -125,13 +137,16 @@ func (m *MinerStruct) FindtheLeadingBlock() []*Block {
 
 	var maxBlock *Block
 	localMax := -1
-	for _, v := range m.LeafNodesMap {
+	LeafNodesMap.Lock()
+	for _, v := range LeafNodesMap.all {
 		if v.DistanceToGenesis > localMax {
 			fmt.Println("Finding the leading block: The hash is" + v.CurrentHash)
 			localMax = v.DistanceToGenesis
 			maxBlock = v
 		}
 	}
+
+	LeafNodesMap.Unlock()
 
 	thing := []*Block{maxBlock}
 	return thing
@@ -177,7 +192,9 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 
 	genesisBlock := Block{CurrentHash: minerSettings.GenesisBlockHash, Children: make([]*Block, 0)}
 	m.BlockChain = &genesisBlock
-	m.LeafNodesMap[genesisBlock.CurrentHash] = &genesisBlock
+	LeafNodesMap.Lock()
+	LeafNodesMap.all[genesisBlock.CurrentHash] = &genesisBlock
+	LeafNodesMap.Unlock()
 	return *minerSettings, err
 }
 
@@ -226,7 +243,11 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 				fmt.Println(AllOperationsCommands(m.OPBuffer))
 				m.OPBuffer = make([]Operation, 0)
 			}
-				newBlock := doProofOfWork(m, nonce, 5, 100, initialOP, leadingBlock)
+			newBlock := doProofOfWork(m, nonce, 5, 100, initialOP, leadingBlock)
+			blockCounter.Lock()
+			blockCounter.counter++
+			blockCounter.Unlock()
+
 				leadingBlock.Children = append(leadingBlock.Children, newBlock)
 				// TODO maybe validate block here
 				// printBlock(m.BlockChain)
@@ -352,11 +373,12 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 		Children:          make([]*Block, 0),
 		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1}
 	m.Flood(producedBlock, &visitedMiners)
-
-	delete(m.LeafNodesMap, leadingBlock.CurrentHash)
+	LeafNodesMap.Lock()
+	delete(LeafNodesMap.all, leadingBlock.CurrentHash)
 	fmt.Println("Need to let the other miners about this block")
 	m.FoundHash = false
-	m.LeafNodesMap[producedBlock.CurrentHash] = producedBlock
+	LeafNodesMap.all[producedBlock.CurrentHash] = producedBlock
+	LeafNodesMap.Unlock()
 	return producedBlock
 }
 
