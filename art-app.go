@@ -45,6 +45,14 @@ func main() {
 
     validateNum := 2
     fmt.Println("remove after", canvas, settings, validateNum)
+
+    // Getter method checks
+    fmt.Println("remove after", canvas, settings, validateNum)
+    ink, err := canvas.GetInk()
+    fmt.Println("art-app.main(): going to get ink from miner", ink, "   ", err)
+    gb, err := canvas.GetGenesisBlock()
+    fmt.Println("art-app.main(): going to get genesis block from miner", gb, "   ", err)
+    
 	// Add a line.
 	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
 	if checkError(err) != nil {

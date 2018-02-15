@@ -1,6 +1,8 @@
 package shared
 
 import (
+	"crypto/ecdsa"
+	"crypto/rand"
 	"fmt"
 	"log"
 	"net/rpc"
@@ -25,21 +27,15 @@ func (m *MinerRPCServer) SendChain(s string, blockChain *BlockPayloadStruct) err
 	return nil
 }
 
-// func (m *MinerRPCServer) SendLeafNodesMap(s string, leafNodes *map[string]*Block) error {
-// 	newMap := make(map[string]*Block)
-// 	for k, v := range m.Miner.LeafNodesMap {
-// 		newMap[k] = CopyBlockChain(v)
-// 	}
-// 	*leafNodes = newMap
-// 	return nil
-// }
-
 func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 	log.Println("stopped")
 	if !m.Miner.FoundHash {
 		log.Print("Someone send me a block, its hash is: ", block.CurrentHash)
 		if block.Validate() {
-			m.Miner.MiningStopSig <- block
+
+			go func() {
+				m.Miner.MiningStopSig <- block
+			}()
 		} else {
 			return BadBlockError("BAD BLOCK")
 		}
@@ -115,8 +111,6 @@ func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, thisMinerC
 	return nil
 }
 
-// TODO
-//type ArtNodeOpReq int
 type KeyCheck int
 type CanvasSet struct {
 	Miner MinerStruct
@@ -127,14 +121,62 @@ type ArtNodeOpReg struct {
 
 func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *bool) error {
 
-	fmt.Println(op.Command)
-	go func() {
-		l.Miner.RecievedArtNodeSig <- *op
-	}()
-	// TODO
 	// check errors
 	// Insuffcient errors
 	// shape overlap
+	fmt.Println(op.Command)
+
+	// Sign the Operation
+	r, s, err := ecdsa.Sign(rand.Reader, &l.Miner.PairKey, []byte(op.Command))
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	op.Issuer = &l.Miner.PairKey
+	op.IssuerR = r
+	op.IssuerS = s
+	go func() {
+		l.Miner.RecievedArtNodeSig <- *op
+	}()
+
+	blockCounter.Lock()
+	blockCounter.counter = 0
+	blockCounter.Unlock()
+
+	// TODO  What if multiple art node tries to make operation
+
+	validNum := op.ValidFBlkNum
+	// ** Maybe set timeout if it takes too long
+	// while l.Miner.chain is not validateNum more than before don't return anything, only return when its not
+
+	for {
+		//fmt.Println("DoArtNodeOp: IN loop")
+		blockCounter.Lock()
+		if blockCounter.counter == validNum {
+			*reply = true
+			blockCounter.Unlock()
+			break
+		}
+		blockCounter.Unlock()
+	}
+	fmt.Println("DoArtNodeOp() validateNum condition satisfied")
+	return nil
+}
+
+func (l *ArtNodeOpReg) ArtnodeInkRequest(s string, remainInk *uint32) error {
+	*remainInk = l.Miner.MinerInk
+	return nil
+}
+
+func (l *ArtNodeOpReg) ArtnodeGenBlkRequest(s string, genBlkHash *string) error {
+	*genBlkHash = l.Miner.BlockChain.CurrentHash
+	fmt.Println("ArtnodeGenBlkRequest() ", genBlkHash)
+	return nil
+}
+
+func (l *ArtNodeOpReg) ArtnodeBlkChildRequest(s string, blkCh *[]string) error {
+
 	return nil
 }
 
