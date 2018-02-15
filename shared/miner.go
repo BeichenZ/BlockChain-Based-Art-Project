@@ -335,6 +335,8 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			blockCounter.counter++
 			blockCounter.Unlock()
 			leadingBlock.Children = append(leadingBlock.Children, newBlock)
+			// TODO:: 
+			// Add current blocks' operation to this miners ListOfOps_str
 			// TODO maybe validate block here
 			fmt.Println("\n")
 		}
@@ -552,8 +554,12 @@ func (m *MinerStruct) CheckForNeighbour() {
 }
 
 func (m *MinerStruct) GetBlkChildren(curBlk *Block, bh string) ([]string, error) {
+	//fmt.Println("miner.go: GetBlkChildren() prinint the miners genesisBlock Children ", m.BlockChain.Children)
 	var bChildHash []string
 	if (curBlk.CurrentHash==bh){
+		//fmt.Println("miner.go: GetBlkChildren() found same hash ")
+		//fmt.Println("miner.go: GetBlkChildren() going to print children of the block ")
+		//fmt.Println(curBlk.Children)
 		bChildHash = make([]string, len(curBlk.Children))
 		for i,bc := range curBlk.Children{
 			bChildHash[i]=bc.CurrentHash
