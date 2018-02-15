@@ -70,81 +70,81 @@ type MinerNetSettings struct {
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////
-// <ERROR DEFINITIONS>
+// // <ERROR DEFINITIONS>
 
-// These type definitions allow the application to explicitly check
-// for the kind of error that occurred. Each API call below lists the
-// errors that it is allowed to raise.
-//
-// Also see:
-// https://blog.golang.org/error-handling-and-go
-// https://blog.golang.org/errors-are-values
+// // These type definitions allow the application to explicitly check
+// // for the kind of error that occurred. Each API call below lists the
+// // errors that it is allowed to raise.
+// //
+// // Also see:
+// // https://blog.golang.org/error-handling-and-go
+// // https://blog.golang.org/errors-are-values
 
-// Contains address IP:port that art node cannot connect to.
-type DisconnectedError string
+// // Contains address IP:port that art node cannot connect to.
+// type DisconnectedError string
 
-func (e DisconnectedError) Error() string {
-	return fmt.Sprintf("BlockArt: cannot connect to [%s]", string(e))
-}
+// func (e DisconnectedError) Error() string {
+// 	return fmt.Sprintf("BlockArt: cannot connect to [%s]", string(e))
+// }
 
-// Contains amount of ink remaining.
-type InsufficientInkError uint32
+// // Contains amount of ink remaining.
+// type InsufficientInkError uint32
 
-func (e InsufficientInkError) Error() string {
-	return fmt.Sprintf("BlockArt: Not enough ink to addShape [%d]", uint32(e))
-}
+// func (e InsufficientInkError) Error() string {
+// 	return fmt.Sprintf("BlockArt: Not enough ink to addShape [%d]", uint32(e))
+// }
 
-// Contains the offending svg string.
-type InvalidShapeSvgStringError string
+// // Contains the offending svg string.
+// type InvalidShapeSvgStringError string
 
-func (e InvalidShapeSvgStringError) Error() string {
-	return fmt.Sprintf("BlockArt: Bad shape svg string [%s]", string(e))
-}
+// func (e InvalidShapeSvgStringError) Error() string {
+// 	return fmt.Sprintf("BlockArt: Bad shape svg string [%s]", string(e))
+// }
 
-// Contains the offending svg string.
-type ShapeSvgStringTooLongError string
+// // Contains the offending svg string.
+// type ShapeSvgStringTooLongError string
 
-func (e ShapeSvgStringTooLongError) Error() string {
-	return fmt.Sprintf("BlockArt: Shape svg string too long [%s]", string(e))
-}
+// func (e ShapeSvgStringTooLongError) Error() string {
+// 	return fmt.Sprintf("BlockArt: Shape svg string too long [%s]", string(e))
+// }
 
-// Contains the bad shape hash string.
-type InvalidShapeHashError string
+// // Contains the bad shape hash string.
+// type InvalidShapeHashError string
 
-func (e InvalidShapeHashError) Error() string {
-	return fmt.Sprintf("BlockArt: Invalid shape hash [%s]", string(e))
-}
+// func (e InvalidShapeHashError) Error() string {
+// 	return fmt.Sprintf("BlockArt: Invalid shape hash [%s]", string(e))
+// }
 
-// Contains the bad shape hash string.
-type ShapeOwnerError string
+// // Contains the bad shape hash string.
+// type ShapeOwnerError string
 
-func (e ShapeOwnerError) Error() string {
-	return fmt.Sprintf("BlockArt: Shape owned by someone else [%s]", string(e))
-}
+// func (e ShapeOwnerError) Error() string {
+// 	return fmt.Sprintf("BlockArt: Shape owned by someone else [%s]", string(e))
+// }
 
-// Empty
-type OutOfBoundsError struct{}
+// // Empty
+// type OutOfBoundsError struct{}
 
-func (e OutOfBoundsError) Error() string {
-	return fmt.Sprintf("BlockArt: Shape is outside the bounds of the canvas")
-}
+// func (e OutOfBoundsError) Error() string {
+// 	return fmt.Sprintf("BlockArt: Shape is outside the bounds of the canvas")
+// }
 
-// Contains the hash of the shape that this shape overlaps with.
-type ShapeOverlapError string
+// // Contains the hash of the shape that this shape overlaps with.
+// type ShapeOverlapError string
 
-func (e ShapeOverlapError) Error() string {
-	return fmt.Sprintf("BlockArt: Shape overlaps with a previously added shape [%s]", string(e))
-}
+// func (e ShapeOverlapError) Error() string {
+// 	return fmt.Sprintf("BlockArt: Shape overlaps with a previously added shape [%s]", string(e))
+// }
 
-// Contains the invalid block hash.
-type InvalidBlockHashError string
+// // Contains the invalid block hash.
+// type InvalidBlockHashError string
 
-func (e InvalidBlockHashError) Error() string {
-	return fmt.Sprintf("BlockArt: Invalid block hash [%s]", string(e))
-}
+// func (e InvalidBlockHashError) Error() string {
+// 	return fmt.Sprintf("BlockArt: Invalid block hash [%s]", string(e))
+// }
 
-// </ERROR DEFINITIONS>
-////////////////////////////////////////////////////////////////////////////////////////////
+// // </ERROR DEFINITIONS>
+// ////////////////////////////////////////////////////////////////////////////////////////////
 
 // Represents a canvas in the system.
 type Canvas interface {
@@ -244,11 +244,9 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 
 		CheckError(err)
 
-		return thisCanvasObj, setting, nil
-	} else {
-		fmt.Println("ArtNode does not have same key as miner")
-		return nil, CanvasSettings{}, DisconnectedError("")
-	}
+	return thisCanvasObj, setting, nil
+	} else { fmt.Println("ArtNode does not have same key as miner")
+		return nil, CanvasSettings{}, shared.DisconnectedError("")  }
 
 }
 
@@ -296,21 +294,21 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 
 	//Check Three Errors related to the Svg String itself
 	if len(shapeSvgString) > 128 {
-		return "", "", 0, ShapeSvgStringTooLongError(shapeSvgString)
+		return "", "", 0, shared.ShapeSvgStringTooLongError(shapeSvgString)
 	}
 
 	parsable, svgOP := t.IsSvgStringParsable_Parse(shapeSvgString)
 	if !parsable {
-		return "", "", 0, InvalidShapeSvgStringError(shapeSvgString)
+		return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString)
 	} else {
 		isSvgValid,_,_ := t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
 		if !isSvgValid {
-			return "", "", 0, InvalidShapeSvgStringError(shapeSvgString + fill + stroke)
+			return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString + fill + stroke)
 		}
 	}
 
 	if !t.IsSvgOutofBounds(svgOP) {
-		return "", "", 0, OutOfBoundsError{}
+		return "", "", 0, shared.OutOfBoundsError{}
 	}
 	//
 	//Once successfully add shape. Finish Post Settings
@@ -345,9 +343,11 @@ func (t CanvasObject) GetChildren(blockHash string) (blockHashes []string, err e
 	blockHashes, err = t.ptr.ArtNode.GetChildrenFromMiner(blockHash)
 	return blockHashes, err
 }
-func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error) {
-	// TODO
-	return 0, nil
+
+func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error){
+	inkRemaining, _ = t.GetInk()
+	err = t.ptr.ArtNode.AmConn.Close();
+	return inkRemaining, err
 
 }
 
