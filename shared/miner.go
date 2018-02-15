@@ -10,9 +10,9 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"strconv"
 	"sync"
 	"time"
-	"strconv"
 )
 
 type AllNeighbour struct {
@@ -31,11 +31,10 @@ type GlobalBlockCreationCounter struct {
 }
 
 var (
-	allNeighbour  = AllNeighbour{all: make(map[string]*MinerStruct)}
-	LeafNodesMap  =  LeafNodes{all: make(map[string]*Block) }
+	allNeighbour = AllNeighbour{all: make(map[string]*MinerStruct)}
+	LeafNodesMap = LeafNodes{all: make(map[string]*Block)}
 	blockCounter = GlobalBlockCreationCounter{counter: 0}
-	)
-
+)
 
 type Miner interface {
 	Register(address string, publicKey ecdsa.PublicKey) (*MinerNetSettings, error)
@@ -61,13 +60,14 @@ type Point struct {
 	X, Y float64
 }
 type LineSectVector struct {
-	Start,End Point
+	Start, End Point
 }
+
 //one move , represent like : m 100 100
 type SingleMov struct {
-	Cmd rune
-	X float64
-	Y float64
+	Cmd    rune
+	X      float64
+	Y      float64
 	ValCnt int
 }
 
@@ -108,7 +108,7 @@ type MinerStruct struct {
 	RecievedArtNodeSig    chan Operation
 	RecievedOpSig         chan Operation
 	OPBuffer              []Operation
-	MinerInk			  uint32
+	MinerInk              uint32
 }
 
 type MinerHeartbeatPayload struct {
@@ -119,8 +119,6 @@ type MinerInfo struct {
 	Address net.Addr
 	Key     ecdsa.PublicKey
 }
-
-
 
 type MinerSettings struct {
 	// Hash of the very first (empty) block in the chain.
@@ -158,7 +156,6 @@ type MinerNetSettings struct {
 func copyBigInt(b *big.Int) int64 {
 	return b.Int64()
 }
-
 
 func (m *MinerStruct) FindtheLeadingBlock() []*Block {
 
@@ -247,7 +244,7 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 		PreviousHash:      "",
 		R:                 &big.Int{},
 		S:                 &big.Int{},
-		CurrentOPs:         make([]Operation,0),
+		CurrentOPs:        make([]Operation, 0),
 		DistanceToGenesis: 0,
 		Nonce:             int32(0),
 		Children:          make([]*Block, 0),
@@ -303,7 +300,7 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 
 			var nonce string
 			isCalculatingNoOp := true
-			listOfOpeartion := make([]Operation,0)
+			listOfOpeartion := make([]Operation, 0)
 			if len(m.OPBuffer) == 0 {
 				//	Mine for no-op
 				fmt.Println("Start doing no-op")
@@ -447,14 +444,14 @@ func (m *MinerStruct) produceBlock(currentHash string, newOPs []Operation, leadi
 	}
 
 	producedBlock := &Block{CurrentHash: currentHash,
-		PreviousHash: leadingBlock.CurrentHash,
-		CurrentOPs:    newOPs,
-		R:            r,
-		S:            s,
+		PreviousHash:      leadingBlock.CurrentHash,
+		CurrentOPs:        newOPs,
+		R:                 r,
+		S:                 s,
 		Children:          make([]*Block, 0),
 		SolverPublicKey:   &m.PairKey.PublicKey,
 		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1,
-		Nonce:              int32(sss)}
+		Nonce:             int32(sss)}
 	m.Flood(producedBlock, &visitedMiners)
 	LeafNodesMap.Lock()
 	delete(LeafNodesMap.all, leadingBlock.CurrentHash)
@@ -498,7 +495,6 @@ func (m *MinerStruct) CheckForNeighbour() {
 	localMax := -1
 	var neighbourWithLongestChain string
 	blockChain := BlockPayloadStruct{}
-	nodesMap := make(map[string]*Block)
 	for _, netIP := range listofNeighbourIP {
 
 		fmt.Println("neighbour ip address", netIP.String())
@@ -538,13 +534,7 @@ func (m *MinerStruct) CheckForNeighbour() {
 	m.BlockChain = ParseBlockChain(blockChain)
 	log.Println("received block chain")
 	log.Println(m.BlockChain)
-	// TODO request for LeafNodesMap, bugs happen because this miner's leafnodemap is not updated
-	longClient.Call("MinerRPCServer.SendLeafNodesMap", "give me your leaf", &nodesMap)
-	log.Println("received leaf nodes map")
-	for _, node := range nodesMap {
-		log.Println(&node)
-	}
-	// The bug is caused by m.Blockchain and m.LeftNodesMap pointing to different address
+
 	LeafNodesMap.Lock()
 	LeafNodesMap.all[deepestBlock(m.BlockChain).CurrentHash] = deepestBlock(m.BlockChain)
 	LeafNodesMap.Unlock()
@@ -555,5 +545,5 @@ func (m *MinerStruct) GetBlkChildren(bh string) ([]string, error) {
 	//
 	var s []string
 	var e error
-	return s,e
+	return s, e
 }
