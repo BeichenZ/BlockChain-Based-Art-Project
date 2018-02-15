@@ -42,7 +42,6 @@ func (b *Block) checkMD5() bool {
 	if computeNonceSecretHash(b.GetString(), strconv.FormatInt(int64(b.Nonce), 10)) == b.CurrentHash {
 		return true
 	}
-
 	return false
 }
 
@@ -56,7 +55,6 @@ func (b *Block) checkIssuerSigForOperation() bool {
 	}
 
 	for _, operation := range b.CurrentOPs {
-		fmt.Println("AAAAAAABBBBBBB")
 		fmt.Println(operation.Command)
 		if !operation.CheckIssuerSig() {
 			return false

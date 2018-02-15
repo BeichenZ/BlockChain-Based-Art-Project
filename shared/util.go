@@ -80,9 +80,10 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, newOPs []Op
 			fmt.Println("A miner sent me an operation from its art node")
 			fmt.Println("M-UPDATED OPERATION LIST FROM MINERS ")
 			if isDoingWorkForNoOp {
-				nonce = leadingBlock.CurrentHash + opFromMineNode.Command + pubKeyToString(m.PairKey.PublicKey)
+				nonce = leadingBlock.CurrentHash + opFromMineNode.ShapeSvgString + strconv.Itoa(opFromMineNode.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
 				newOPs = []Operation{opFromMineNode}
 				isDoingWorkForNoOp = false
+				fmt.Println(nonce)
 				fmt.Println("M-Was calculating No-op, now calculating Operation ", opFromMineNode.Command)
 			} else {
 				m.OPBuffer = append(m.OPBuffer, opFromMineNode)
@@ -91,8 +92,9 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, newOPs []Op
 		case opFromArtnode := <-m.RecievedArtNodeSig:
 			if isDoingWorkForNoOp {
 				isDoingWorkForNoOp = false
-				nonce = leadingBlock.CurrentHash + opFromArtnode.Command + pubKeyToString(m.PairKey.PublicKey)
+				nonce = leadingBlock.CurrentHash + opFromArtnode.ShapeSvgString + strconv.Itoa(opFromArtnode.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
 				newOPs = []Operation{opFromArtnode}
+				fmt.Println(nonce)
 				fmt.Println("A-Was calculating No-op, now calculating Operation ", opFromArtnode.Command)
 			} else {
 				m.OPBuffer = append(m.OPBuffer, opFromArtnode)
@@ -106,6 +108,7 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, newOPs []Op
 			hash := computeNonceSecretHash(nonce, guessString)
 			if hash[32-numberOfZeroes:] == zeroes {
 				log.Println("Found the hash, it is: ", hash)
+				log.Println(" NOUNCE IS " + nonce)
 				m.FoundHash = true
 				return m.produceBlock(hash, newOPs, leadingBlock, guessString)
 			}

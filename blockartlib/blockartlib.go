@@ -278,7 +278,8 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	randNum := r1.Intn(100)
 	fmt.Println("AddShape(): The command is draw thing " + string(randNum) )
 	newOP := shared.Operation{
-		Command:"draw things" + string(randNum),
+		ShapeSvgString:"draw things" + string(randNum),
+		AmountOfInk:0,
 		ValidFBlkNum: validateNum,
 	}
 	validOp:=t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean

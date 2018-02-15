@@ -276,10 +276,11 @@ func (m MinerStruct) HeartBeat() error {
 func AllOperationsCommands(buffer []Operation) string {
 	retstring := ""
 	for _, op := range buffer {
-		retstring += op.Command
+		retstring += op.ShapeSvgString + strconv.Itoa(op.AmountOfInk)
 	}
 	return retstring
 }
+
 func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 	// currentBlock := m.BlockChain[len(m.BlockChain)-1]
 	// listOfOperation := currentBlock.GetStringOperations()
@@ -306,9 +307,11 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 				//	Mine for no-op
 				fmt.Println("Start doing no-op")
 
-				initialOP = Operation{Command: "no-op"}
+				initialOP = Operation{ShapeSvgString: "no-op", AmountOfInk:0}
 				difficulutyLevel = int(m.Settings.PoWDifficultyNoOpBlock)
-				nonce = leadingBlock.CurrentHash + initialOP.Command + pubKeyToString(m.PairKey.PublicKey)
+
+				nonce = leadingBlock.CurrentHash + initialOP.ShapeSvgString + strconv.Itoa(initialOP.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
+				fmt.Println(nonce)
 
 				// Sign the Operation
 				r, s, err := ecdsa.Sign(rand.Reader, &m.PairKey, []byte(initialOP.Command))
@@ -324,8 +327,7 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			} else {
 				difficulutyLevel = int(m.Settings.PoWDifficultyOpBlock)
 				nonce = leadingBlock.CurrentHash + AllOperationsCommands(m.OPBuffer) + pubKeyToString(m.PairKey.PublicKey)
-				log.Println("Loggin out what's in the buffer")
-				fmt.Println(leadingBlock.CurrentHash + AllOperationsCommands(m.OPBuffer) + pubKeyToString(m.PairKey.PublicKey))
+				fmt.Println(nonce)
 				listOfOpeartion = m.OPBuffer
 				m.OPBuffer = make([]Operation, 0)
 				isCalculatingNoOp = false
@@ -439,7 +441,7 @@ func (m *MinerStruct) produceBlock(currentHash string, newOPs []Operation, leadi
 		os.Exit(500)
 	}
 	fmt.Println("Creating a new block with the new hash")
-
+	fmt.Println(currentHash)
 	sss, err := strconv.Atoi(nonce)
 
 	if err != nil {
@@ -455,6 +457,12 @@ func (m *MinerStruct) produceBlock(currentHash string, newOPs []Operation, leadi
 		SolverPublicKey:   &m.PairKey.PublicKey,
 		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1,
 		Nonce:             int32(sss)}
+
+	fmt.Println("ITS SHIT IS " + producedBlock.GetString())
+	fmt.Println("ITS NONCE IS IS " + nonce)
+
+
+
 	m.Flood(producedBlock, &visitedMiners)
 	LeafNodesMap.Lock()
 	delete(LeafNodesMap.all, leadingBlock.CurrentHash)
