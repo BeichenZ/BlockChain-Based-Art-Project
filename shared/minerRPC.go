@@ -17,32 +17,32 @@ func (e BadBlockError) Error() string {
 	return fmt.Sprintf("BAD BLOCK")
 }
 
-func (m *MinerRPCServer) SendChain(s string, blockChain *Block) error {
+func (m *MinerRPCServer) SendChain(s string, blockChain *BlockPayloadStruct) error {
 	log.Println(s)
-	thisMinerBlockChain := CopyBlockChain(m.Miner.BlockChain)
-	*blockChain = *thisMinerBlockChain
+	thisMinerBlockChain := CopyBlockChainPayload(m.Miner.BlockChain)
+	*blockChain = thisMinerBlockChain
 	log.Println(thisMinerBlockChain)
 	return nil
 }
 
-func (m *MinerRPCServer) SendLeafNodesMap(s string, leafNodes *map[string]*Block) error {
-	newMap := make(map[string]*Block)
-	for k, v := range m.Miner.LeafNodesMap {
-		newMap[k] = CopyBlockChain(v)
-	}
-	*leafNodes = newMap
-	return nil
-}
+// func (m *MinerRPCServer) SendLeafNodesMap(s string, leafNodes *map[string]*Block) error {
+// 	newMap := make(map[string]*Block)
+// 	for k, v := range m.Miner.LeafNodesMap {
+// 		newMap[k] = CopyBlockChain(v)
+// 	}
+// 	*leafNodes = newMap
+// 	return nil
+// }
 
 func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 	log.Println("stopped")
 	if !m.Miner.FoundHash {
 		log.Print("Someone send me a block, its hash is: ", block.CurrentHash)
-		// if block.Validate() {
-		m.Miner.MiningStopSig <- block
-		// } else {
-		// return BadBlockError("BAD BLOCK")
-		// }
+		if block.Validate() {
+			m.Miner.MiningStopSig <- block
+		} else {
+			return BadBlockError("BAD BLOCK")
+		}
 	} else {
 		log.Print("I have found the hash, but so did at least one other miner")
 	}

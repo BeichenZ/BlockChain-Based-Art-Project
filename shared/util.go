@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"math/big"
 	"strconv"
 	"time"
 )
@@ -113,6 +114,63 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, delay int, 
 
 func pubKeyToString(key ecdsa.PublicKey) string {
 	return string(elliptic.Marshal(key.Curve, key.X, key.Y))
+}
+
+func ParseBlockChain(thisBlock BlockPayloadStruct) *Block {
+	fmt.Println("I'm receiving the blockchain")
+	x, y := elliptic.Unmarshal(elliptic.P384(), []byte(thisBlock.SolverPublicKey))
+	if thisBlock.PreviousHash == "" {
+		x = &big.Int{}
+		y = &big.Int{}
+	}
+	fmt.Println(thisBlock.SolverPublicKey)
+	fmt.Println(x)
+	fmt.Println(y)
+	producedBlock := &Block{
+		CurrentHash:       thisBlock.CurrentHash,
+		PreviousHash:      thisBlock.PreviousHash,
+		R:                 &thisBlock.R,
+		S:                 &thisBlock.S,
+		CurrentOP:         thisBlock.CurrentOP,
+		DistanceToGenesis: thisBlock.DistanceToGenesis,
+		Nonce:             thisBlock.Nonce,
+		SolverPublicKey: &ecdsa.PublicKey{
+			Curve: elliptic.P384(),
+			X:     x,
+			Y:     y,
+		},
+	}
+	var producedBlockChilden []*Block
+	for _, child := range thisBlock.Children {
+		producedBlockChilden = append(producedBlockChilden, ParseBlockChain(child))
+	}
+	producedBlock.Children = producedBlockChilden
+	// fmt.Println("finshed copying the chain, the current hash is: ", producedBlock.CurrentHash)
+	return producedBlock
+}
+
+func CopyBlockChainPayload(thisBlock *Block) BlockPayloadStruct {
+	fmt.Println("start copying the chain")
+	fmt.Println(thisBlock.CurrentHash)
+	fmt.Printf("%+v", thisBlock.SolverPublicKey)
+	producedBlockPayload := BlockPayloadStruct{
+		CurrentHash:       thisBlock.CurrentHash,
+		PreviousHash:      thisBlock.PreviousHash,
+		R:                 *thisBlock.R,
+		S:                 *thisBlock.S,
+		CurrentOP:         thisBlock.CurrentOP,
+		DistanceToGenesis: thisBlock.DistanceToGenesis,
+		Nonce:             thisBlock.Nonce,
+		SolverPublicKey:   pubKeyToString(*thisBlock.SolverPublicKey),
+	}
+	fmt.Println("I got here")
+	var producedBlockChilden []BlockPayloadStruct
+	for _, child := range thisBlock.Children {
+		producedBlockChilden = append(producedBlockChilden, CopyBlockChainPayload(child))
+	}
+	producedBlockPayload.Children = producedBlockChilden
+	// fmt.Println("finshed copying the chain, the current hash is: ", producedBlock.CurrentHash)
+	return producedBlockPayload
 }
 
 func deepestBlock(m *Block) *Block {

@@ -2,6 +2,7 @@ package shared
 
 import (
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"fmt"
 	"log"
@@ -57,6 +58,19 @@ type SingleOp struct {
 	IsClosedShape bool
 	MovList       []SingleMov
 }
+
+type BlockPayloadStruct struct {
+	CurrentHash       string
+	PreviousHash      string
+	R                 big.Int
+	S                 big.Int
+	CurrentOP         Operation
+	Children          []BlockPayloadStruct
+	DistanceToGenesis int
+	Nonce             int32
+	SolverPublicKey   string //Make this field a string so no more seg fault
+}
+
 type MinerStruct struct {
 	ServerAddr            string
 	MinerAddr             string
@@ -125,7 +139,7 @@ func copyBigInt(b *big.Int) int64 {
 }
 
 func CopyBlockChain(thisBlock *Block) *Block {
-	fmt.Println("start copying the chain")
+	// fmt.Println("start copying the chain")
 
 	producedBlock := &Block{
 		CurrentHash:       thisBlock.CurrentHash,
@@ -142,7 +156,7 @@ func CopyBlockChain(thisBlock *Block) *Block {
 		producedBlockChilden = append(producedBlockChilden, CopyBlockChain(child))
 	}
 	producedBlock.Children = producedBlockChilden
-	fmt.Println("finshed copying the chain, the current hash is: ", producedBlock.CurrentHash)
+	// fmt.Println("finshed copying the chain, the current hash is: ", producedBlock.CurrentHash)
 	return producedBlock
 }
 
@@ -213,8 +227,31 @@ func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (Miner
 	if err != nil {
 		return *minerSettings, err
 	}
-
-	genesisBlock := Block{CurrentHash: minerSettings.GenesisBlockHash, Children: make([]*Block, 0)}
+	// CurrentHash  string
+	// PreviousHash string
+	// // UserSignature     UserSignatureSturct
+	// R                 *big.Int
+	// S                 *big.Int
+	// CurrentOP         Operation
+	// Children          []*Block
+	// DistanceToGenesis int
+	// Nonce             int32
+	// SolverPublicKey   *ecdsa.PublicKey
+	genesisBlock := Block{
+		CurrentHash:       minerSettings.GenesisBlockHash,
+		PreviousHash:      "",
+		R:                 &big.Int{},
+		S:                 &big.Int{},
+		CurrentOP:         Operation{},
+		DistanceToGenesis: 0,
+		Nonce:             int32(0),
+		Children:          make([]*Block, 0),
+		SolverPublicKey: &ecdsa.PublicKey{
+			Curve: elliptic.P384(),
+			X:     &big.Int{},
+			Y:     &big.Int{},
+		},
+	}
 	m.BlockChain = &genesisBlock
 	m.LeafNodesMap[genesisBlock.CurrentHash] = &genesisBlock
 	return *minerSettings, err
@@ -394,6 +431,7 @@ func (m *MinerStruct) produceBlock(currentHash string, newOP Operation, leadingB
 		// 	s: s,
 		// },
 		Children:          make([]*Block, 0),
+		SolverPublicKey:   &m.PairKey.PublicKey,
 		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1}
 	m.Flood(producedBlock, &visitedMiners)
 
@@ -422,7 +460,6 @@ func (m *MinerStruct) minerSendHeartBeat(minerNeighbourAddr string) error {
 		}
 		time.Sleep(time.Millisecond * time.Duration(400))
 	}
-
 }
 
 func (m *MinerStruct) CheckForNeighbour() {
@@ -435,7 +472,7 @@ func (m *MinerStruct) CheckForNeighbour() {
 	}
 	localMax := -1
 	var neighbourWithLongestChain string
-	blockChain := Block{}
+	blockChain := BlockPayloadStruct{}
 	nodesMap := make(map[string]*Block)
 	for _, netIP := range listofNeighbourIP {
 
@@ -473,7 +510,7 @@ func (m *MinerStruct) CheckForNeighbour() {
 		log.Println(err)
 	}
 	longClient.Call("MinerRPCServer.SendChain", "give me your chain", &blockChain)
-	m.BlockChain = &blockChain
+	m.BlockChain = ParseBlockChain(blockChain)
 	log.Println("received block chain")
 	log.Println(m.BlockChain)
 	// TODO request for LeafNodesMap, bugs happen because this miner's leafnodemap is not updated
