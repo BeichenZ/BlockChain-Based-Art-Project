@@ -41,7 +41,10 @@ func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 	if !m.Miner.FoundHash {
 		log.Print("Someone send me a block, its hash is: ", block.CurrentHash)
 		if block.Validate() {
-			m.Miner.MiningStopSig <- block
+
+			go func() {
+				m.Miner.MiningStopSig <- block
+			}()
 		} else {
 			return BadBlockError("BAD BLOCK")
 		}
@@ -162,6 +165,7 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *bool) error {
 		 blockCounter.Lock()
 		 if blockCounter.counter == validNum {
 			*reply = true
+			blockCounter.Unlock()
 			break
 		}
 		 blockCounter.Unlock()

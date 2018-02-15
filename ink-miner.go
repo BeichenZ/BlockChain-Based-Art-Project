@@ -59,7 +59,7 @@ func main() {
 	cs := &shared.CanvasSet{inkMinerStruct}
 	rpc.Register(cs)
 	anr := &shared.ArtNodeOpReg{inkMinerStruct}
-	rpc.Register(anr)
+	go rpc.Register(anr)
 	go rpc.Accept(listenArtConn)
 
 	// While the heart is beating, keep fetching for neighbours
