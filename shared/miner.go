@@ -294,6 +294,7 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 		default:
 			fmt.Println("I'm starting to mine")
 			leadingBlock := m.FindtheLeadingBlock()[0]
+			var difficulutyLevel int
 			//
 			// fmt.Println("Logging out leading block here")
 			// fmt.Println(leadingBlock)
@@ -306,6 +307,7 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 				fmt.Println("Start doing no-op")
 
 				initialOP = Operation{Command: "no-op"}
+				difficulutyLevel = int(m.Settings.PoWDifficultyNoOpBlock)
 				nonce = leadingBlock.CurrentHash + initialOP.Command + pubKeyToString(m.PairKey.PublicKey)
 
 				// Sign the Operation
@@ -320,6 +322,7 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 
 				listOfOpeartion = append(listOfOpeartion, initialOP)
 			} else {
+				difficulutyLevel = int(m.Settings.PoWDifficultyOpBlock)
 				nonce = leadingBlock.CurrentHash + AllOperationsCommands(m.OPBuffer) + pubKeyToString(m.PairKey.PublicKey)
 				log.Println("Loggin out what's in the buffer")
 				fmt.Println(leadingBlock.CurrentHash + AllOperationsCommands(m.OPBuffer) + pubKeyToString(m.PairKey.PublicKey))
@@ -327,7 +330,7 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 				m.OPBuffer = make([]Operation, 0)
 				isCalculatingNoOp = false
 			}
-			newBlock := doProofOfWork(m, nonce, 5, listOfOpeartion, leadingBlock, isCalculatingNoOp)
+			newBlock := doProofOfWork(m, nonce, difficulutyLevel, listOfOpeartion, leadingBlock, isCalculatingNoOp)
 			blockCounter.Lock()
 			blockCounter.counter++
 			blockCounter.Unlock()
@@ -467,6 +470,8 @@ func (m *MinerStruct) produceBlock(currentHash string, newOPs []Operation, leadi
 	} else {
 		m.MinerInk += m.Settings.InkPerOpBlock
 	}
+	fmt.Println("Logging out how much ink the miner has")
+	fmt.Println(m.MinerInk)
 	return producedBlock
 }
 
