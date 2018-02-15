@@ -8,7 +8,7 @@ import (
 
 type Operation struct {
 	Command        string
-	AmountOfInk    int
+	AmountOfInk    uint32
 	Shapetype      string
 	ShapeSvgString string
 	Fill           string
