@@ -226,7 +226,7 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 				fmt.Println(AllOperationsCommands(m.OPBuffer))
 				m.OPBuffer = make([]Operation, 0)
 			}
-				newBlock := doProofOfWork(m, nonce, 8, 100, initialOP, leadingBlock)
+				newBlock := doProofOfWork(m, nonce, 5, 100, initialOP, leadingBlock)
 				leadingBlock.Children = append(leadingBlock.Children, newBlock)
 				// TODO maybe validate block here
 				// printBlock(m.BlockChain)

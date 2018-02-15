@@ -113,14 +113,18 @@ type ArtNodeOpReg struct {
 	go func (){
 		l.Miner.RecievedArtNodeSig <- *op
 	}()
-	loop :=true
+
+	loop :=true	
+	// ** Maybe set timeout if it takes too long
 	// while l.Miner.chain is not validateNum more than before don't return anything, only return when its not
-	// TODO set a timer
-	for loop {
+
+		for loop {
 	for _, b := range l.Miner.LeafNodesMap{
-		if (b.CurrentOP.Opid == op.Opid) && (len(b.Children) >= int(op.ValidFBlkNum)) {  // Given operation is added into the blockchain
-				*reply = true; loop = false 
-			}else { fmt.Println("DoArtNodeOp() validateNum condition NOT satisfied") }
+		if (b.CurrentOP.Opid == op.Opid) && blockFollowers(b, 0, int(op.ValidFBlkNum)) {  // Given operation is added into the blockchain
+				fmt.Println("DoArtNodeOp() validateNum condition satisfied")
+				*reply = true; loop = false
+			}else { //fmt.Println("DoArtNodeOp() validateNum condition NOT satisfied") 
+		}
 		}
 	}
 	fmt.Println("DoArtNodeOp() validateNum condition satisfied")
@@ -144,4 +148,30 @@ func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
+}
+func blockFollowers(curBlock *Block, vd int, validateNum int) bool {
+	// f :=0;
+	// bc:=curBlock.Children
+	// for f < vd {
+	// 	f += blkChild(bc)
+	// 	bc = bc.Children[0].Children
+	// }
+	// return true
+	fmt.Println("blockFollowers() in herrr")
+if len(curBlock.Children) == 0 {
+		return false
+	}
+	if vd == validateNum{
+		fmt.Println("Return trues from validateNum")
+		return true
+	} else {
+		return blockFollowers(curBlock.Children[0], vd + 1, validateNum)
+	}
+	
+
+	return false
+}
+
+func blkChild(ch []*Block) int {
+	return len(ch)
 }
