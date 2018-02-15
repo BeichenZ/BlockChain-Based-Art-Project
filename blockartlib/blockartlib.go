@@ -14,15 +14,17 @@ import (
 	//"strings"
 	"net/rpc"
 	"regexp"
-	shared "../shared"
 	"strconv"
+
+	shared "../shared"
 
 	"log"
 	//"time"
+	"math"
 	"math/rand"
 	"time"
-	"math"
 )
+
 // Represents a type of shape in the BlockArt system.
 type ShapeType int
 
@@ -196,9 +198,9 @@ type Canvas interface {
 
 	//Testing functions, to be deleted
 	/*
-	IsSvgStringValid(svgStr string) (isValid bool,Op shared.SingleOp)
-  IsSvgOutofBounds(svgOP shared.SingleOp) bool
-  */
+			IsSvgStringValid(svgStr string) (isValid bool,Op shared.SingleOp)
+		  IsSvgOutofBounds(svgOP shared.SingleOp) bool
+	*/
 }
 
 // The constructor for a new Canvas object instance. Takes the miner's
@@ -228,33 +230,35 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	CheckError(err)
 	if reply {
 		fmt.Println("ArtNode has same key as miner")
-	var thisCanvasObj CanvasObject
-	 thisCanvasObj.ptr = new(CanvasObjectReal)
-	 thisCanvasObj.ptr.ArtNode.AmConn = art2MinerCon
+		var thisCanvasObj CanvasObject
+		thisCanvasObj.ptr = new(CanvasObjectReal)
+		thisCanvasObj.ptr.ArtNode.AmConn = art2MinerCon
 
-	 // Art node gets canvas settings from Miner node
-	 fmt.Println("ArtNode going to get settings from miner")
-	 // old
-	 initMs, err := thisCanvasObj.ptr.ArtNode.GetCanvasSettings() // get the canvas settings, list of current operations
-	 setting = CanvasSettings(initMs.Cs)
-	 thisCanvasObj.ptr.ListOfOps_str = initMs.ListOfOps_str
-	 thisCanvasObj.ptr.XYLimit = shared.Point{X:float64(setting.CanvasXMax),Y:float64(setting.CanvasYMax)}
+		// Art node gets canvas settings from Miner node
+		fmt.Println("ArtNode going to get settings from miner")
+		// old
+		initMs, err := thisCanvasObj.ptr.ArtNode.GetCanvasSettings() // get the canvas settings, list of current operations
+		setting = CanvasSettings(initMs.Cs)
+		thisCanvasObj.ptr.ListOfOps_str = initMs.ListOfOps_str
+		thisCanvasObj.ptr.XYLimit = shared.Point{X: float64(setting.CanvasXMax), Y: float64(setting.CanvasYMax)}
 
-	 CheckError(err)
+		CheckError(err)
 
-	return thisCanvasObj, setting, nil
-	} else { fmt.Println("ArtNode does not have same key as miner")
-		return nil, CanvasSettings{}, DisconnectedError("")  }
+		return thisCanvasObj, setting, nil
+	} else {
+		fmt.Println("ArtNode does not have same key as miner")
+		return nil, CanvasSettings{}, DisconnectedError("")
+	}
 
 }
 
 //Underlying struct holding the info for canvas
-type CanvasObjectReal struct{
-	ArtNode shared.ArtNodeStruct
-	ListOfOps_str []string
-	ListOfOps_ops []shared.SingleOp
+type CanvasObjectReal struct {
+	ArtNode         shared.ArtNodeStruct
+	ListOfOps_str   []string
+	ListOfOps_ops   []shared.SingleOp
 	LastPenPosition shared.Point
-	XYLimit				shared.Point
+	XYLimit         shared.Point
 
 	// Canvas settings field?
 }
@@ -272,27 +276,40 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	r1 := rand.New(s1)
 
 	randNum := r1.Intn(100)
-	fmt.Println("The command is draw thing " + string(randNum) )
+	fmt.Println("The command is draw thing " + string(randNum))
 	newOP := shared.Operation{
-		Command:"draw things" + string(randNum),
+		Command: "draw things" + string(randNum),
 	}
 	t.ptr.ArtNode.ArtnodeOp(newOP)
 	log.Println("I got here")
 	//Check for ShapeSvgStringTooLongError
+	var IsTransFill bool
+	var IsClosedCurve bool
 	var svgOP shared.SingleOp
+	var vtxArr []shared.Point
+	var edgeArr []shared.LineSectVector
+
+	//Check Three Errors related to the Svg String itself
 	if len(shapeSvgString) > 128 {
 		return "", "", 0, ShapeSvgStringTooLongError(shapeSvgString)
 	}
-	valid,svgOP :=t.IsSvgStringValid(shapeSvgString);
-	if !valid {
+
+	parsable, svgOP := t.IsSvgStringParsable_Parse(shapeSvgString)
+	if !parsable {
 		return "", "", 0, InvalidShapeSvgStringError(shapeSvgString)
-	}
-	if !t.IsSvgOutofBounds(svgOP) {
-		return "", "", 0, OutOfBoundsError{}
+	} else {
+		isSvgValid := IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
+		if !isSvgValid {
+			return "", "", 0, InvalidShapeSvgStringError(shapeSvgString + fill + stroke)
+		}
 	}
 
+	if !t.IsSvgOutofBounds(svgOP) {
+		return "", "", 0, OutOfBoundsError()
+	}
+	//
 	//Once successfully add shape. Finish Post Settings
-		//1.update LastPenPosition
+	//1.update LastPenPosition
 	return "", "", 0, nil
 }
 func (t CanvasObject) GetSvgString(shapeHash string) (svgString string, err error) {
@@ -312,7 +329,7 @@ func (t CanvasObject) DeleteShape(validateNum uint8, shapeHash string) (inkRemai
 func (t CanvasObject) GetShapes(blockHash string) (shapeHashes []string, err error) {
 	var s []string
 	return s, nil
-	}
+}
 func (t CanvasObject) GetGenesisBlock() (blockHash string, err error) {
 	// TODO
 	// Request block chain from miner
@@ -322,83 +339,106 @@ func (t CanvasObject) GetChildren(blockHash string) (blockHashes []string, err e
 	var s []string
 	return s, nil
 }
-func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error){
+func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error) {
 	// TODO
 	return 0, nil
 
 }
-func (t CanvasObject) IsSvgStringValid(svgStr string) (isValid bool,Op shared.SingleOp){
-	//To Be Implemented
+
+//Parse the Svg string if it's parsable
+func (t CanvasObject) IsSvgStringParsable_Parse(svgStr string) (isValid bool, Op shared.SingleOp) {
 	//Legal Example: "m 20 0 L 19 21",all separated by space,always start at m/M
 	strCnt := len(svgStr)
 	var movList []shared.SingleMov
-	parsedOp := shared.SingleOp{MovList:movList}
+	parsedOp := shared.SingleOp{MovList: movList}
 	if strCnt < 3 {
-		return false,parsedOp
+		return false, parsedOp
 	}
-	if svgStr[0] != 'M'{
-		return false,parsedOp
+	if svgStr[0] != 'M' {
+		return false, parsedOp
 	}
 	regex_2 := regexp.MustCompile("([mMvVlLhHZz])[\\s]([-]*[0-9]+)[\\s]([-]*[0-9]+)")
 	regex_1 := regexp.MustCompile("([mMvVlLhHZz])[\\s]([-]*[0-9]+)")
-  var matches []string
+	var matches []string
 	var oneMov shared.SingleMov
 	var thisRune rune
-	fmt.Println("string size is",strCnt)
+	fmt.Println("string size is", strCnt)
 	for i := 0; i < strCnt; i = i {
-		fmt.Println("Current I is",i)
+		fmt.Println("Current I is", i)
 		thisRune = rune(svgStr[i])
 		switch thisRune {
 		case 'm', 'M', 'L', 'l':
 			arr := regex_2.FindStringIndex(svgStr[i:])
 			if arr == nil {
-				return false,parsedOp
+				return false, parsedOp
 			} else {
 				//if legal, Parse it
 				matches = regex_2.FindStringSubmatch(svgStr[i:])
-				intVal1,_ := strconv.Atoi(matches[2])
-				intVal2,_ := strconv.Atoi(matches[3])
-				oneMov = shared.SingleMov{Cmd:rune(thisRune),X:float64(intVal1),Y:float64(intVal2),ValCnt:2}
-				parsedOp.MovList = append(parsedOp.MovList,oneMov)
+				intVal1, _ := strconv.Atoi(matches[2])
+				intVal2, _ := strconv.Atoi(matches[3])
+				oneMov = shared.SingleMov{Cmd: rune(thisRune), X: float64(intVal1), Y: float64(intVal2), ValCnt: 2}
+				parsedOp.MovList = append(parsedOp.MovList, oneMov)
 				//Update Index
-				fmt.Println("ML update next index is",arr[0],arr[1])
-				i = i+arr[1]+1
+				fmt.Println("ML update next index is", arr[0], arr[1])
+				i = i + arr[1] + 1
 			}
 		case 'v', 'V', 'H', 'h':
 			arr := regex_1.FindStringIndex(svgStr[i:])
-			fmt.Println("VH update next index is",arr[0],arr[1])
+			fmt.Println("VH update next index is", arr[0], arr[1])
 			if arr == nil {
-				return false,parsedOp
+				return false, parsedOp
 			} else {
 				matches = regex_1.FindStringSubmatch(svgStr[i:])
-				intVal1,_ := strconv.Atoi(matches[2])
-				oneMov = shared.SingleMov{Cmd:rune(thisRune),X:float64(intVal1),Y:0,ValCnt:1}
-				parsedOp.MovList = append(parsedOp.MovList,oneMov)
-				i = i+arr[1]+1
+				intVal1, _ := strconv.Atoi(matches[2])
+				oneMov = shared.SingleMov{Cmd: rune(thisRune), X: float64(intVal1), Y: 0, ValCnt: 1}
+				parsedOp.MovList = append(parsedOp.MovList, oneMov)
+				i = i + arr[1] + 1
 			}
-		case 'Z','z':
-			oneMov := shared.SingleMov{Cmd:rune(thisRune),ValCnt:0}
-			parsedOp.MovList = append(parsedOp.MovList,oneMov)
+		case 'Z', 'z':
+			oneMov := shared.SingleMov{Cmd: rune(thisRune), ValCnt: 0}
+			parsedOp.MovList = append(parsedOp.MovList, oneMov)
 			i = i + 2
 		default:
-			return false,parsedOp
+			return false, parsedOp
 		}
 	}
-	return true,parsedOp//pass all tests
+	return true, parsedOp //pass all tests
+}
+
+//varify If string is closed, return vtxArray and EdgeArray
+func (t CanvasObject) IsParsableSvgValid_GetVtxEdge(svgStr string, fill string, stroke string, Op shared.SingleOp) (isClosed bool, vtxArray []shared.Point, edgeArray []shared.LineSectVector) {
+	var vtxArr []shared.Point
+	var edgeArr []shared.LineSectVector
+	//No Fully Transparent Shape
+	if fill == "transparent" && stroke == "transparent" {
+		return false, vtxArr, edgeArr
+	}
+	// For Non-Transparent Fill, Must be closed
+	if isClosed, vtxArr, edgeArr := t.IsClosedShapeAndGetVtx(Op); !isClosed && fill != "transparent" {
+		fmt.Println("Non-closed curve shape", svgStr, "but with fill:", fill)
+		return false, vtxArr, edgeArr
+	}
+	// For Non-Transparent Fill,Must Not Be Self-Intersecting
+	if isSelfInterSected := t.IsSelfIntersect(edgeArr); fill != "transparent" && isSelfInterSected {
+		fmt.Println("Self intersected shape", svgStr, "but with fill:", fill)
+		return false, vtxArr, edgeArr
+	}
+	// Pass all tests:
+	return true, vtxArr, edgeArr
 }
 func (t CanvasObject) IsSvgOutofBounds(svgOP shared.SingleOp) bool {
 	xVal := t.ptr.LastPenPosition.X
 	yVal := t.ptr.LastPenPosition.Y
-	for _,element := range svgOP.MovList {
+	for _, element := range svgOP.MovList {
 		switch element.Cmd {
-		case 'M','L','H','V':
-			if element.X > t.ptr.XYLimit.X || element.X < 0 || element.Y > t.ptr.XYLimit.Y || element.Y < 0{
+		case 'M', 'L', 'H', 'V':
+			if element.X > t.ptr.XYLimit.X || element.X < 0 || element.Y > t.ptr.XYLimit.Y || element.Y < 0 {
 				return true
 			} else {
-					xVal = xVal + element.X
-					yVal = yVal + element.Y
+				xVal = xVal + element.X
+				yVal = yVal + element.Y
 			}
-		case 'm','l','v','h':
+		case 'm', 'l', 'v', 'h':
 			if element.X+xVal > t.ptr.XYLimit.X || element.X+xVal < 0 || element.Y+yVal > t.ptr.XYLimit.Y || element.Y+yVal < 0 {
 				return true
 			} else {
@@ -410,88 +450,94 @@ func (t CanvasObject) IsSvgOutofBounds(svgOP shared.SingleOp) bool {
 	}
 	return false
 }
-func (t CanvasObject) ParseOpsStrings(){
+func (t CanvasObject) ParseOpsStrings() {
 	opsArrSize := len(t.ptr.ListOfOps_ops)
-	for i,element := range t.ptr.ListOfOps_str {
-		if valid,oneOp := t.IsSvgStringValid(element);valid{
-			if i <= (opsArrSize-1){
+	for i, element := range t.ptr.ListOfOps_str {
+		if valid, oneOp := t.IsSvgStringValid(element); valid {
+			if i <= (opsArrSize - 1) {
 				t.ptr.ListOfOps_ops[i] = oneOp
 			} else {
-				t.ptr.ListOfOps_ops=append(t.ptr.ListOfOps_ops,oneOp)
+				t.ptr.ListOfOps_ops = append(t.ptr.ListOfOps_ops, oneOp)
 			}
 		}
 	}
 }
-func (t CanvasObject) IsClosedShapeAndGetVtx(op shared.SingleOp) (IsClosed bool,vtxArray []shared.Point,edgeArray []shared.LineSectVector) {
+func (t CanvasObject) IsClosedShapeAndGetVtx(op shared.SingleOp) (IsClosed bool, vtxArray []shared.Point, edgeArray []shared.LineSectVector) {
 	var vtxArr []shared.Point
-	var edgeArr   []shared.LineSectVector
-	var curVtx    shared.Point
-	var preVtx 		shared.Point
-	var nextVtx   shared.Point
+	var edgeArr []shared.LineSectVector
+	var curVtx shared.Point
+	var preVtx shared.Point
+	var nextVtx shared.Point
 	var originalStart shared.Point
 	var lastSubPathStart shared.Point
 	//traverse all operation, identify list of edge and points
 	//TODO : Corner Case when an open shape has the same ending point
 	movCount := len(op.MovList)
-	if movCount < 1 {return false,vtxArr,edgeArr}//Panic Check
+	if movCount < 1 {
+		return false, vtxArr, edgeArr
+	} //Panic Check
 	originalStart.X = op.MovList[0].X // Assume the first mov is always 'M' which is validated by IsValidSvgString
 	originalStart.Y = op.MovList[0].Y
-	for _,element := range op.MovList {
+	for _, element := range op.MovList {
 		switch element.Cmd {
-		case 'M','V','H','L':
+		case 'M', 'V', 'H', 'L':
 			preVtx = curVtx
 			curVtx.X = element.X
 			curVtx.Y = element.Y
-			if element.Cmd != 'M'{
-				edgeArr = append(edgeArr,shared.LineSectVector{preVtx,curVtx})//add new line segment
-			}else {
+			if element.Cmd != 'M' {
+				edgeArr = append(edgeArr, shared.LineSectVector{preVtx, curVtx}) //add new line segment
+			} else {
 				lastSubPathStart = curVtx // prepare for potential Z/z command
 			}
-			vtxArr = append(vtxArr,curVtx) // add new vertex
-		case 'm','v','h','l':
+			vtxArr = append(vtxArr, curVtx) // add new vertex
+		case 'm', 'v', 'h', 'l':
 			preVtx = curVtx
 			curVtx.X += element.X
 			curVtx.Y += element.Y
 			if element.Cmd != 'm' {
-				edgeArr = append(edgeArr,shared.LineSectVector{preVtx,curVtx})
+				edgeArr = append(edgeArr, shared.LineSectVector{preVtx, curVtx})
 			} else {
 				lastSubPathStart = curVtx
 			}
-			vtxArr = append(vtxArr,curVtx)
-		case 'Z','z':
+			vtxArr = append(vtxArr, curVtx)
+		case 'Z', 'z':
 			preVtx = curVtx
 			curVtx = lastSubPathStart
-			edgeArr = append(edgeArr,shared.LineSectVector{preVtx,curVtx})
+			edgeArr = append(edgeArr, shared.LineSectVector{preVtx, curVtx})
 		}
 	}
 	//List through the edge array and identify if everything is connected.Reuse variables
-  if len(edgeArr) < 1 {return false, vtxArr,edgeArr}
+	if len(edgeArr) < 1 {
+		return false, vtxArr, edgeArr
+	}
 	preVtx = edgeArr[0].Start
-	for _,element := range edgeArr { // Check For discontinuity
+	for _, element := range edgeArr { // Check For discontinuity
 		curVtx = element.Start
 		nextVtx = element.End
-	  if curVtx != preVtx{ return false,vtxArr,edgeArr} else {
-			vtxArr = append(vtxArr,curVtx)
-			vtxArr = append(vtxArr,nextVtx)
+		if curVtx != preVtx {
+			return false, vtxArr, edgeArr
+		} else {
+			vtxArr = append(vtxArr, curVtx)
+			vtxArr = append(vtxArr, nextVtx)
 			preVtx = nextVtx
 		}
 	}
 	//If entire edge is continous, Check if it returns to the same points
 	if nextVtx != originalStart {
-		return false,vtxArr,edgeArr
-		} else {
-		uniqueVtxCount := len(vtxArr)-1
-		return true,vtxArr[:uniqueVtxCount],edgeArr // the last "nextVtx" will be an overlapping of the staring point
+		return false, vtxArr, edgeArr
+	} else {
+		uniqueVtxCount := len(vtxArr) - 1
+		return true, vtxArr[:uniqueVtxCount], edgeArr // the last "nextVtx" will be an overlapping of the staring point
 	}
 }
-func (t CanvasObject) CalculateShapeArea(IsClosed bool, vtxArr []shared.Point,edgeArr []shared.LineSectVector) float64 {
+func (t CanvasObject) CalculateShapeArea(IsClosed bool, vtxArr []shared.Point, edgeArr []shared.LineSectVector) float64 {
 	//Given the parsed results from IsClosedShapeAndGetVtx
 	var area float64
-	area 	= float64(0)
+	area = float64(0)
 	if !IsClosed {
 		//Non-Closed Shape's Area is the summation of the
-		for _,element := range edgeArr {
-			 area += Distance_TwoPoint(element.Start,element.End)
+		for _, element := range edgeArr {
+			area += Distance_TwoPoint(element.Start, element.End)
 		}
 	} else {
 		//TODO: Check if it is  self intersecting and calculate area accordingly
@@ -499,28 +545,100 @@ func (t CanvasObject) CalculateShapeArea(IsClosed bool, vtxArr []shared.Point,ed
 	}
 	return area
 }
+
 //Input should be already checked as Closed shape
-func (t CanvasObject) IsSelfIntersect_GetSingleShapes(vtxArr []shared.Point) (IsSelfIntersect bool){
-	//TODO: Check for self intersection and parse for individual shapes
+func (t CanvasObject) IsSelfIntersect(vtxArr []shared.Point,edgeArr []shared.LineSectVector) (IsSelfIntersect bool) {
+	//O(n^2),Iteratively check any two line segment in the shape
+	edgeCount := len(edgeArr)
+	//Check for intersection in the middle of the line
+	for i, _ := range edgeArr {
+		for j := i + 1; j <= edgeCount; j++ {
+			//For the i at last index, i will compare with the first element
+			if j == edgeCount{
+				if twoLineSegmentIntersected(edgeArr[i],edgeArr[0]) {return true}
+			}else{
+				if twoLineSegmentIntersected(edgeArr[i], edgeArr[j]) {return true}
+			}
+		}
+	}
+	//Check For one vertax more than three line type of intersection
+	vtxCount := len(vtxArr)
+	vtxEdgeCountArr := make([]int,vtxCount)
+	for i,_ := range vtxArr {
+		for j := i+1;j < vtxCount ; j++ {
+			if vtxArr[i] == vtxArr[j] {
+				vtxEdgeCountArr[i] += 1
+				if vtxEdgeCountArr[i] > 1 {return true}
+			}
+		}
+	}
 	return false
 }
+
 //Geometric Function Functions
-func Distance_TwoPoint(x,y shared.Point) float64 {
-	return math.Sqrt(math.Pow(x.X-y.X,2)+math.Pow(x.Y-y.Y,2))
+func twoLineSegmentIntersected(lineSeg1 shared.LineSectVector, lineSeg2 shared.LineSectVector) bool {
+	//Compare two line segment and check if they intersect at the
+	x1s := lineSeg1.Start.X
+	y1s := lineSeg1.Start.Y
+	x1e := lineSeg1.End.X
+	y1e := lineSeg1.End.Y
+	x2s := lineSeg2.Start.X
+	y2s := lineSeg2.Start.Y
+	x2e := lineSeg2.End.X
+	y2e := lineSeg2.End.Y
+	a1 := (y1e - y1s) / (x1e - x1s)
+	a2 := (y2e - y2s) / (x2e - x2s)
+	b1 := (y1s*x1e - y1e*x1s) / (x1e - x1s)
+	b2 := (y2s*x2e - y2e*x2s) / (x2e - x2s)
+	if (a1 - a2) == 0 {
+		return false
+	}
+	x_sln := (b2 - b1) / (a1 - a2)
+	flpc := float64(0.1) // floating point compensation value
+	//Check if x_sln is at around any vertex
+	//0.1 is used for dealing with floating point inaccuracy
+	if (minf(x1s, x1e)+flpc < x_sln) && (x_sln < maxf(x1s, x1e)-flpc) && (minf(x2s, x2e)+flpc < x_sln) && (x_sln < maxf(x2s, x2e)-flpc) {
+		return true
+	} else {
+		return false
+	}
+
 }
+func minf(x, y float64) float64 {
+	if x > y {
+		return y
+	} else {
+		return x
+	}
+}
+func maxf(x, y float64) float64 {
+	if x > y {
+		return x
+	} else {
+		return y
+	}
+}
+func Distance_TwoPoint(x, y shared.Point) float64 {
+	return math.Sqrt(math.Pow(x.X-y.X, 2) + math.Pow(x.Y-y.Y, 2))
+}
+
 //Only Handle Non-Intersecting Polygon. Self-Intersected shape should be sub divided into before calling
 func Area_SingleClosedPolygon(vtxArr []shared.Point) float64 {
 	//Algorithm Reference:https://www.mathopenref.com/coordpolygonarea.html
-  vtxCount := len(vtxArr)
-	if vtxCount <= 1 { return 0}
+	vtxCount := len(vtxArr)
+	if vtxCount <= 1 {
+		return 0
+	}
 	firstVtx := vtxArr[0]
 	var nextVtx shared.Point
 	area := float64(0)
-	for index,element := range vtxArr {
-		if index >= vtxCount-1 { nextVtx = firstVtx } else {
+	for index, element := range vtxArr {
+		if index >= vtxCount-1 {
+			nextVtx = firstVtx
+		} else {
 			nextVtx = vtxArr[index+1]
 		}
-		area += 0.5*(element.X*nextVtx.Y-element.Y*nextVtx.X)
+		area += 0.5 * (element.X*nextVtx.Y - element.Y*nextVtx.X)
 	}
 	return math.Abs(area)
 }
