@@ -66,7 +66,7 @@ func main() {
 
 	// After going over the minimum neighbours value, start doing no-op
 
-	OP := shared.Operation{Command: "no-op"}
+	OP := shared.Operation{ShapeSvgString: "no-op"}
 	for {
 		inkMinerStruct.CheckForNeighbour()
 		inkMinerStruct.StartMining(OP)
