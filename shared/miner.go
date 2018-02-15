@@ -551,9 +551,20 @@ func (m *MinerStruct) CheckForNeighbour() {
 
 }
 
-func (m *MinerStruct) GetBlkChildren(bh string) ([]string, error) {
-	//
-	var s []string
-	var e error
-	return s, e
+func (m *MinerStruct) GetBlkChildren(curBlk *Block, bh string) ([]string, error) {
+	var bChildHash []string
+	if (curBlk.CurrentHash==bh){
+		bChildHash = make([]string, len(curBlk.Children))
+		for i,bc := range curBlk.Children{
+			bChildHash[i]=bc.CurrentHash
+		}
+		return bChildHash, nil
+	} else {
+		for _,bcc := range curBlk.Children{
+		m.GetBlkChildren(bcc, bh)	
+		} 
+		
+	}
+
+	return bChildHash, nil
 }
