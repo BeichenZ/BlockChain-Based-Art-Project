@@ -18,7 +18,7 @@ import (
 
 	shared "../shared"
 
-	"log"
+	//"log"
 	//"time"
 	"math"
 	"math/rand"
@@ -285,11 +285,13 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 
 	fmt.Println("AddShape() ", validOp)
 	//Check for ShapeSvgStringTooLongError
-	var IsTransFill bool
-	var IsClosedCurve bool
+	//var IsTransFill bool
+	//var IsClosedCurve bool
 	var svgOP shared.SingleOp
-	var vtxArr []shared.Point
-	var edgeArr []shared.LineSectVector
+	//var vtxArr []shared.Point
+	//var edgeArr []shared.LineSectVector
+
+
 
 	//Check Three Errors related to the Svg String itself
 	if len(shapeSvgString) > 128 {
@@ -300,14 +302,14 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	if !parsable {
 		return "", "", 0, InvalidShapeSvgStringError(shapeSvgString)
 	} else {
-		isSvgValid := IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
+		isSvgValid,_,_ := t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
 		if !isSvgValid {
 			return "", "", 0, InvalidShapeSvgStringError(shapeSvgString + fill + stroke)
 		}
 	}
 
 	if !t.IsSvgOutofBounds(svgOP) {
-		return "", "", 0, OutOfBoundsError()
+		return "", "", 0, OutOfBoundsError{}
 	}
 	//
 	//Once successfully add shape. Finish Post Settings
@@ -422,7 +424,7 @@ func (t CanvasObject) IsParsableSvgValid_GetVtxEdge(svgStr string, fill string, 
 		return false, vtxArr, edgeArr
 	}
 	// For Non-Transparent Fill,Must Not Be Self-Intersecting
-	if isSelfInterSected := t.IsSelfIntersect(edgeArr); fill != "transparent" && isSelfInterSected {
+	if isSelfInterSected := t.IsSelfIntersect(vtxArr,edgeArr); fill != "transparent" && isSelfInterSected {
 		fmt.Println("Self intersected shape", svgStr, "but with fill:", fill)
 		return false, vtxArr, edgeArr
 	}
@@ -453,6 +455,7 @@ func (t CanvasObject) IsSvgOutofBounds(svgOP shared.SingleOp) bool {
 	}
 	return false
 }
+/*
 func (t CanvasObject) ParseOpsStrings() {
 	opsArrSize := len(t.ptr.ListOfOps_ops)
 	for i, element := range t.ptr.ListOfOps_str {
@@ -465,6 +468,7 @@ func (t CanvasObject) ParseOpsStrings() {
 		}
 	}
 }
+*/
 func (t CanvasObject) IsClosedShapeAndGetVtx(op shared.SingleOp) (IsClosed bool, vtxArray []shared.Point, edgeArray []shared.LineSectVector) {
 	var vtxArr []shared.Point
 	var edgeArr []shared.LineSectVector
