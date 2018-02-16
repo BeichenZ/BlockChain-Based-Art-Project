@@ -203,14 +203,13 @@ type Canvas interface {
 	*/
 }
 //For Bonus mark:
-func GetListOfOps()(OpsArray []shared.FullSvgInfo)
-{
-	var resultArr []FullSvgInfo
-	resultArr := append(resultArr,shared.FullSvgInfo{
+func GetListOfOps() []shared.FullSvgInfo{
+	var resultArr []shared.FullSvgInfo
+	resultArr = append(resultArr,shared.FullSvgInfo{
 		Path:"M 10 10 h 10 v 10 h -10 v -10",
 		Fill:"red",
 		Stroke:"black"})//square
-	resultArr := append(resultArr,shared.FullSvgInfo{
+	resultArr = append(resultArr,shared.FullSvgInfo{
 		Path:"m -10 10 l 5 -5",
 		Fill:"transparent",
 		Stroke:"red"})//Kinked line
