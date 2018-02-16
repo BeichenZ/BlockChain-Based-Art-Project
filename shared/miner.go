@@ -276,7 +276,8 @@ func (m MinerStruct) HeartBeat() error {
 func AllOperationsCommands(buffer []Operation) string {
 	retstring := ""
 	for _, op := range buffer {
-		retstring += op.ShapeSvgString + strconv.Itoa(op.AmountOfInk)
+
+		retstring += op.ShapeSvgString +  fmt.Sprint(op.AmountOfInk)
 	}
 	return retstring
 }
@@ -310,7 +311,7 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 				initialOP = Operation{ShapeSvgString: "no-op", AmountOfInk:0}
 				difficulutyLevel = int(m.Settings.PoWDifficultyNoOpBlock)
 
-				nonce = leadingBlock.CurrentHash + initialOP.ShapeSvgString + strconv.Itoa(initialOP.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
+				nonce = leadingBlock.CurrentHash + initialOP.ShapeSvgString + fmt.Sprint(initialOP.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
 				fmt.Println(nonce)
 
 				// Sign the Operation
