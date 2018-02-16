@@ -52,14 +52,14 @@ func main() {
     fmt.Println("art-app.main(): going to get ink from miner", ink, "   ", err)
     gb, err := canvas.GetGenesisBlock()
     fmt.Println("art-app.main(): going to get genesis block from miner", gb, "   ", err)
-    
+
 	// Add a line.
-	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
+	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 0 0 l 10 10", "transparent", "red")
 	if checkError(err) != nil {
 		return
 	}
 
-	return 
+	return
 
 	// Add another line.
 //	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 5 0", "transparent", "blue")
