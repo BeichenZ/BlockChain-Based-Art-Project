@@ -15,7 +15,7 @@ class BlockartSVG extends Component {
   }
 
   periodicFetchSVG = () => {
-    fetch("http://localhost:5000/echo", {
+    fetch("http://localhost:5000/getshapes", {
       method: 'GET'
     })
     .then(res => res.json())
@@ -26,18 +26,34 @@ class BlockartSVG extends Component {
     .catch(error => console.error('Error:', error))
   }
 
+  addShapes = () => {
+    fetch("http://localhost:5000/addshape", {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        shape: 'circle',
+      })
+    })
+  }
+
   renderSVG = () => {
     const svgs = this.state.paths.map((svg) => {
       return (
         <SVG d={svg.Path} fill={svg.Fill} stroke={svg.Stroke}/>
+
       )
     });
     return svgs
   }
 
+
   render() {
     return (
       <div>
+        <button onClick={this.addShapes.bind(this)}></button>
         {this.renderSVG()}
       </div>
 
