@@ -32,10 +32,11 @@ func (a *ArtNodeStruct) GetCanvasSettings () (InitialCanvasSetting, error) {
 // returns a number which indicates which indicates the status of the operation
 		// for now boolean
 func (a *ArtNodeStruct) ArtnodeOp (op Operation) (validOp bool,err error) {
-	var reply AddShapeReply
+	var reply int
 	locaerr := a.AmConn.Call("ArtNodeOpReg.DoArtNodeOp", op, &reply)
 	CheckError(locaerr)
-	return reply.Success,reply.Err
+	//TODO:Parse the return int to error
+	return false,InvalidShapeSvgStringError("haha")
 }
 
 func (a *ArtNodeStruct) GetInkBalFromMiner() (uint32, error) {

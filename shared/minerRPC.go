@@ -119,21 +119,24 @@ type ArtNodeOpReg struct {
 	Miner MinerStruct
 }
 
-func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *AddShapeReply) error {
+func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
+  //reply decode: 0->Success,1->insufficientInk, 2->OverlappedShape
 	// Check InsufficientInkError
 	if (l.Miner.MinerInk < (*op).AmountOfInk) {
-		reply.Err = InsufficientInkError((*op).AmountOfInk)
+		fmt.Println("Insufficient Ink Detected for shape:",(*op).Command, "With requested ink:",(*op).AmountOfInk)
+		*reply = 1
 		return nil
 	}
 	// Check ShapeOverlapError
 	if isOverLap := IsShapeOverLapWithOthers(op) ; isOverLap {
-		reply.Err = ShapeOverlapError(op.Command)
+		fmt.Println("OverLapped Shape for shape string:",(*op).Command)
+		*reply = 2
 		return nil
 	}
 	fmt.Println(op.Command)
 
 	// Sign the Operation
-	r, s, err := ecdsa.Sign(rand.Reader, &l.Miner.PairKey, []byte(op.Command))
+	r, s, err := ecdsa.Sign(rand.Reader, &l.Miner.PairKey, []byte((*op).Command))
 
 	if err != nil {
 		fmt.Println(err)
@@ -162,7 +165,7 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *AddShapeReply) error {
 		//fmt.Println("DoArtNodeOp: IN loop")
 		blockCounter.Lock()
 		if blockCounter.counter == validNum {
-			(*reply).Success = true
+			*reply = 0
 			blockCounter.Unlock()
 			break
 		}
