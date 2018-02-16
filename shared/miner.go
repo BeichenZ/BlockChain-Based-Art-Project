@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"strings"
 )
 
 type AllNeighbour struct {
@@ -582,4 +583,22 @@ func (m *MinerStruct) GetBlkChildren(curBlk *Block, bh string) ([]string, error)
 	}
 
 	return bChildHash, nil
+}
+
+func (m *MinerStruct) GetSVGShapeString(curBlk *Block, shapeHash string)  string {
+
+	for _, operation := range curBlk.CurrentOPs {
+
+		operationHash := pubKeyToString(operation.Issuer.PublicKey)
+
+		if strings.Compare(operationHash, shapeHash) == 0{
+			return operation.ShapeSvgString
+		}
+	}
+
+	for _, block := range curBlk.Children {
+		return m.GetSVGShapeString(block, shapeHash)
+
+	}
+	return ""
 }

@@ -126,7 +126,7 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *AddShapeReply) error {
 		return nil
 	}
 	// Check ShapeOverlapError
-	if isOverLap := l.IsShapeOverLapWithOthers(op) ; isOverLap {
+	if isOverLap := IsShapeOverLapWithOthers(op) ; isOverLap {
 		reply.Err = ShapeOverlapError(op.Command)
 		return nil
 	}
@@ -142,6 +142,8 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *AddShapeReply) error {
 	op.Issuer = &l.Miner.PairKey
 	op.IssuerR = r
 	op.IssuerS = s
+	fmt.Println("THIS IS THE SHIT++++++++")
+	fmt.Println(pubKeyToString(op.Issuer.PublicKey))
 	go func() {
 		l.Miner.RecievedArtNodeSig <- *op
 	}()
@@ -170,7 +172,7 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *AddShapeReply) error {
 	return nil
 }
 
-func (l *ArtNodeOpReg)IsShapeOverLapWithOthers(op *Operation) bool {
+func IsShapeOverLapWithOthers(op *Operation) bool {
 	//For operation from same miner , do not check
 	//For operation from different miner, check for overlapping
 	return false
@@ -192,12 +194,18 @@ func (l *ArtNodeOpReg) ArtnodeBlkChildRequest(bHash string, blkCh *[]string) (er
 	return err
 }
 
+func (l *ArtNodeOpReg) ArtnodeSvgStringRequest(shapeHash string, svgString *string) (err error) {
+	*svgString = l.Miner.GetSVGShapeString(l.Miner.BlockChain, shapeHash)
+	return err
+}
+
 func (l *KeyCheck) ArtNodeKeyCheck(privKey *string, reply *bool) error {
 	*reply = true
 	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")
 
 	return nil
 }
+
 func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *InitialCanvasSetting) error {
 	fmt.Println("request for CanvasSettings")
 	ics.Cs = CanvasSettings(l.Miner.Settings.CanvasSettings)

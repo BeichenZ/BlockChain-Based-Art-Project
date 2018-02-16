@@ -55,3 +55,9 @@ func (a *ArtNodeStruct) GetChildrenFromMiner(bHash string) ([]string, error)  {
 	err:= a.AmConn.Call("ArtNodeOpReg.ArtnodeBlkChildRequest", bHash, &mch)
 	return mch, err
 }
+func (a *ArtNodeStruct) GetSvgStringUsingOperationSignature(shapeHash string) (string, error) {
+	var svgstring string
+
+	err := a.AmConn.Call("ArtNodeOpReg.ArtnodeSvgStringRequest", shapeHash, &svgstring)
+	return svgstring, err
+}
