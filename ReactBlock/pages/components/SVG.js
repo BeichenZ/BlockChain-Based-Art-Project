@@ -7,7 +7,7 @@ class SVG extends Component {
 
   render() {
     return (
-      <svg width="1000" height="1000">
+      <svg>
         <path d={this.props.d} fill={this.props.fill} stroke={this.props.stroke} stroke-width="3"/>
       </svg>
     )

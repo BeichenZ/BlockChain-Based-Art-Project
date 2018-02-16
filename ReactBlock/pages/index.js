@@ -1,5 +1,8 @@
 import React, { Component } from 'react';
 import SVG from './components/SVG'
+import Head from 'next/head';
+
+
 
 class BlockartSVG extends Component {
   constructor(props) {
@@ -40,10 +43,11 @@ class BlockartSVG extends Component {
   }
 
   renderSVG = () => {
-    const svgs = this.state.paths.map((svg) => {
+    const svgs = this.state.paths.map((svg, index) => {
       return (
-        <SVG d={svg.Path} fill={svg.Fill} stroke={svg.Stroke}/>
-
+        <span>
+          <SVG id={index} d={svg.Path} fill={svg.Fill} stroke={svg.Stroke}/>
+        </span>
       )
     });
     return svgs
@@ -53,9 +57,21 @@ class BlockartSVG extends Component {
   render() {
     return (
       <div>
-        <button onClick={this.addShapes.bind(this)}></button>
-        {this.renderSVG()}
-      </div>
+       <Head>
+         <title>My styled page</title>
+         <link href="./css/flex.css" rel="stylesheet" />
+       </Head>
+
+         <p>
+           CPSC 416
+         </p>
+         <div>
+           <button onClick={this.addShapes.bind(this)}></button>
+           <div>
+             {this.renderSVG()}
+           </div>
+         </div>
+     </div>
 
     )
   }

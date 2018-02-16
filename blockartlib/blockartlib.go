@@ -202,21 +202,21 @@ type Canvas interface {
 		  IsSvgOutofBounds(svgOP shared.SingleOp) bool
 	*/
 }
+
 //For Bonus mark:
-func GetListOfOps() []shared.FullSvgInfo{
+func GetListOfOps() []shared.FullSvgInfo {
 	var resultArr []shared.FullSvgInfo
-	resultArr = append(resultArr,shared.FullSvgInfo{
-		Path:"M 10 10 h 10 v 10 h -10 v -10",
-		Fill:"red",
-		Stroke:"black"})//square
-	resultArr = append(resultArr,shared.FullSvgInfo{
-		Path:"m -10 10 l 5 -5",
-		Fill:"transparent",
-		Stroke:"red"})//Kinked line
+	resultArr = append(resultArr, shared.FullSvgInfo{
+		Path:   "M 10 10 h 10 v 10 h -10 v -10",
+		Fill:   "red",
+		Stroke: "black"}) //square
+	resultArr = append(resultArr, shared.FullSvgInfo{
+		Path:   "M 100 100 l 400 400",
+		Fill:   "transparent",
+		Stroke: "red"}) //Kinked line,
 
 	return resultArr
 }
-
 
 // The constructor for a new Canvas object instance. Takes the miner's
 // IP:port address string and a public-private key pair (ecdsa private
@@ -259,9 +259,11 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 
 		CheckError(err)
 
-	return thisCanvasObj, setting, nil
-	} else { fmt.Println("ArtNode does not have same key as miner")
-		return nil, CanvasSettings{}, shared.DisconnectedError("")  }
+		return thisCanvasObj, setting, nil
+	} else {
+		fmt.Println("ArtNode does not have same key as miner")
+		return nil, CanvasSettings{}, shared.DisconnectedError("")
+	}
 
 }
 
@@ -290,32 +292,41 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	var edgeArr []shared.LineSectVector
 
 	//Check for InValidSvg, OutofBound, SvgString too long errors
-	if len(shapeSvgString) > 128 { return "", "", 0, shared.ShapeSvgStringTooLongError(shapeSvgString)}
-	parsable,svgOP := t.IsSvgStringParsable_Parse(shapeSvgString)
-	if !parsable {return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString)} else {
-		isSvgValid,isClosedCurve,vtxArr,edgeArr = t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
-		if !isSvgValid {return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString + fill + stroke)}
+	if len(shapeSvgString) > 128 {
+		return "", "", 0, shared.ShapeSvgStringTooLongError(shapeSvgString)
 	}
-	if t.IsSvgOutofBounds(svgOP) {return "", "", 0, shared.OutOfBoundsError{}}
+	parsable, svgOP := t.IsSvgStringParsable_Parse(shapeSvgString)
+	if !parsable {
+		return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString)
+	} else {
+		isSvgValid, isClosedCurve, vtxArr, edgeArr = t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
+		if !isSvgValid {
+			return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString + fill + stroke)
+		}
+	}
+	if t.IsSvgOutofBounds(svgOP) {
+		return "", "", 0, shared.OutOfBoundsError{}
+	}
 
 	//Create New OPERATION
 	//TODO:Fill up the new struct
-	inkCost := uint32(t.CalculateShapeArea(isClosedCurve,vtxArr,edgeArr,fill))
-  inkCost++ //For rounding up the cost
-	fmt.Println("AddShape(),The command is ",shapeSvgString)
+	inkCost := uint32(t.CalculateShapeArea(isClosedCurve, vtxArr, edgeArr, fill))
+	inkCost++ //For rounding up the cost
+	fmt.Println("AddShape(),The command is ", shapeSvgString)
 	newOP := shared.Operation{
-		Command:shapeSvgString,
-		AmountOfInk:inkCost,
+		Command:     shapeSvgString,
+		AmountOfInk: inkCost,
 		//ShapeType:,
-    ShapeSvgString:shapeSvgString,
-		Fill:fill,
-		Stroke:stroke,
-		ValidFBlkNum:validateNum,
+		ShapeSvgString: shapeSvgString,
+		Fill:           fill,
+		Stroke:         stroke,
+		ValidFBlkNum:   validateNum,
 	}
-	_,err=t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
-	if err != nil {return "","",0,err}
+	_, err = t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
+	if err != nil {
+		return "", "", 0, err
+	}
 	//TODO:Once RPC call finished successfully.Store it in canvas
-
 
 	return "", "", 0, nil
 }
@@ -325,7 +336,7 @@ func (t CanvasObject) GetSvgString(shapeHash string) (svgString string, err erro
 
 }
 func (t CanvasObject) GetInk() (inkRemaining uint32, err error) {
-	ink, err := t.ptr.ArtNode.GetInkBalFromMiner();
+	ink, err := t.ptr.ArtNode.GetInkBalFromMiner()
 	fmt.Println("GetInk() Ink of miner", ink)
 	// get longest branch from miner compute ink based on how many signitures are from the miner
 	return ink, err
@@ -339,7 +350,7 @@ func (t CanvasObject) GetShapes(blockHash string) (shapeHashes []string, err err
 	return s, nil
 }
 func (t CanvasObject) GetGenesisBlock() (blockHash string, err error) {
-	gb, err := t.ptr.ArtNode.GetGenesisBlockFromMiner();
+	gb, err := t.ptr.ArtNode.GetGenesisBlockFromMiner()
 	fmt.Println("GetGenesisBlock() Genesis blk hash", gb)
 	return gb, err
 }
@@ -348,9 +359,9 @@ func (t CanvasObject) GetChildren(blockHash string) (blockHashes []string, err e
 	return blockHashes, err
 }
 
-func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error){
+func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error) {
 	inkRemaining, _ = t.GetInk()
-	err = t.ptr.ArtNode.AmConn.Close();
+	err = t.ptr.ArtNode.AmConn.Close()
 	return inkRemaining, err
 
 }
@@ -416,26 +427,26 @@ func (t CanvasObject) IsSvgStringParsable_Parse(svgStr string) (isValid bool, Op
 }
 
 //varify If string is closed, return vtxArray and EdgeArray
-func (t CanvasObject) IsParsableSvgValid_GetVtxEdge(svgStr string, fill string, stroke string, Op shared.SingleOp) (isValid bool,isClosed bool, vtxArray []shared.Point, edgeArray []shared.LineSectVector) {
+func (t CanvasObject) IsParsableSvgValid_GetVtxEdge(svgStr string, fill string, stroke string, Op shared.SingleOp) (isValid bool, isClosed bool, vtxArray []shared.Point, edgeArray []shared.LineSectVector) {
 	var vtxArr []shared.Point
 	var edgeArr []shared.LineSectVector
 	var isthisClosed bool
 	// For Non-Transparent Fill, Must be closed
 	if isthisClosed, vtxArr, edgeArr := t.IsClosedShapeAndGetVtx(Op); !isClosed && fill != "transparent" {
 		fmt.Println("Non-closed curve shape", svgStr, "but with fill:", fill)
-		return false,isthisClosed, vtxArr, edgeArr
+		return false, isthisClosed, vtxArr, edgeArr
 	}
 	//No Fully Transparent Shape
 	if fill == "transparent" && stroke == "transparent" {
-		return false, isthisClosed,vtxArr, edgeArr
+		return false, isthisClosed, vtxArr, edgeArr
 	}
 	// For Non-Transparent Fill,Must Not Be Self-Intersecting
-	if isSelfInterSected := t.IsSelfIntersect(vtxArr,edgeArr); fill != "transparent" && isSelfInterSected {
+	if isSelfInterSected := t.IsSelfIntersect(vtxArr, edgeArr); fill != "transparent" && isSelfInterSected {
 		fmt.Println("Self intersected shape", svgStr, "but with fill:", fill)
-		return false, isthisClosed,vtxArr, edgeArr
+		return false, isthisClosed, vtxArr, edgeArr
 	}
 	// Pass all tests:
-	return true, isthisClosed,vtxArr, edgeArr
+	return true, isthisClosed, vtxArr, edgeArr
 }
 func (t CanvasObject) IsSvgOutofBounds(svgOP shared.SingleOp) bool {
 	xVal := t.ptr.LastPenPosition.X
@@ -461,6 +472,7 @@ func (t CanvasObject) IsSvgOutofBounds(svgOP shared.SingleOp) bool {
 	}
 	return false
 }
+
 /*
 func (t CanvasObject) ParseOpsStrings() {
 	opsArrSize := len(t.ptr.ListOfOps_ops)
@@ -543,44 +555,50 @@ func (t CanvasObject) IsClosedShapeAndGetVtx(op shared.SingleOp) (IsClosed bool,
 		return true, vtxArr[:uniqueVtxCount], edgeArr // the last "nextVtx" will be an overlapping of the staring point
 	}
 }
-func (t CanvasObject) CalculateShapeArea(IsClosed bool, vtxArr []shared.Point, edgeArr []shared.LineSectVector,fill string) float64 {
+func (t CanvasObject) CalculateShapeArea(IsClosed bool, vtxArr []shared.Point, edgeArr []shared.LineSectVector, fill string) float64 {
 	//Given the parsed results from IsClosedShapeAndGetVtx
 	var area float64
 	area = float64(0)
-	if !IsClosed || fill == "transparent"{
+	if !IsClosed || fill == "transparent" {
 		//Non-Closed Shape's Area is the summation of the
 		for _, element := range edgeArr {
 			area += Distance_TwoPoint(element.Start, element.End)
 		}
 	} else { //non-self-intersecting closed polygon,Checked by other functions inside AddShape
-			area = Area_SingleClosedPolygon(vtxArr)
+		area = Area_SingleClosedPolygon(vtxArr)
 	}
 	return area
 }
 
 //Input should be already checked as Closed shape
-func (t CanvasObject) IsSelfIntersect(vtxArr []shared.Point,edgeArr []shared.LineSectVector) (IsSelfIntersect bool) {
+func (t CanvasObject) IsSelfIntersect(vtxArr []shared.Point, edgeArr []shared.LineSectVector) (IsSelfIntersect bool) {
 	//O(n^2),Iteratively check any two line segment in the shape
 	edgeCount := len(edgeArr)
 	//Check for intersection in the middle of the line
 	for i, _ := range edgeArr {
 		for j := i + 1; j <= edgeCount; j++ {
 			//For the i at last index, i will compare with the first element
-			if j == edgeCount{
-				if twoLineSegmentIntersected(edgeArr[i],edgeArr[0]) {return true}
-			}else{
-				if twoLineSegmentIntersected(edgeArr[i], edgeArr[j]) {return true}
+			if j == edgeCount {
+				if twoLineSegmentIntersected(edgeArr[i], edgeArr[0]) {
+					return true
+				}
+			} else {
+				if twoLineSegmentIntersected(edgeArr[i], edgeArr[j]) {
+					return true
+				}
 			}
 		}
 	}
 	//Check For one vertax more than three line type of intersection
 	vtxCount := len(vtxArr)
-	vtxEdgeCountArr := make([]int,vtxCount)
-	for i,_ := range vtxArr {
-		for j := i+1;j < vtxCount ; j++ {
+	vtxEdgeCountArr := make([]int, vtxCount)
+	for i, _ := range vtxArr {
+		for j := i + 1; j < vtxCount; j++ {
 			if vtxArr[i] == vtxArr[j] {
 				vtxEdgeCountArr[i] += 1
-				if vtxEdgeCountArr[i] > 1 {return true}
+				if vtxEdgeCountArr[i] > 1 {
+					return true
+				}
 			}
 		}
 	}
