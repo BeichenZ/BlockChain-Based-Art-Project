@@ -13,6 +13,10 @@ import (
 	"time"
 )
 
+type BlockDepthpair struct {
+	block, depth interface{}
+}
+
 func monitor(minerNeighbourAddr string, miner MinerStruct, heartBeatInterval time.Duration) {
 	for {
 		fmt.Println("Duration is ", heartBeatInterval)
@@ -47,7 +51,6 @@ func filter(m *MinerStruct, visited *[]*MinerStruct) bool {
 	}
 	return true
 }
-
 
 func computeNonceSecretHash(nonce string, secret string) string {
 	h := md5.New()
@@ -163,7 +166,7 @@ func CopyBlockChainPayload(thisBlock *Block) BlockPayloadStruct {
 		PreviousHash:      thisBlock.PreviousHash,
 		R:                 *thisBlock.R,
 		S:                 *thisBlock.S,
-		CurrentOPs:         thisBlock.CurrentOPs,
+		CurrentOPs:        thisBlock.CurrentOPs,
 		DistanceToGenesis: thisBlock.DistanceToGenesis,
 		Nonce:             thisBlock.Nonce,
 		SolverPublicKey:   pubKeyToString(*thisBlock.SolverPublicKey),
@@ -185,6 +188,46 @@ func deepestBlock(m *Block) *Block {
 	return deepestBlock(m.Children[0])
 }
 
+/*
+int depthOfTree(struct Node *ptr)
+{
+    // Base case
+    if (!ptr)
+        return 0;
+    // Check for all children and find
+    // the maximum depth
+    int maxdepth = 0;
+    for (vector<Node*>::iterator it = ptr->child.begin();
+                              it != ptr->child.end(); it++)
+        maxdepth = max(maxdepth, depthOfTree(*it));
+    return maxdepth + 1 ;
+}
+*/
+
+func findDeepestBlocks(b *Block, depth int) (*Block, int) {
+	if len(b.Children) == 0 {
+		return b, depth
+	} else {
+		childrenDepth := make([]BlockDepthpair, 0)
+		// Find depth of all children
+		for _, child := range b.Children {
+			block, depth := findDeepestBlocks(child, depth+1)
+			childrenDepth = append(childrenDepth, BlockDepthpair{block, depth})
+		}
+		localMax := 0
+		localMaxBlock := &Block{}
+
+		// Pick the deepest blck from children
+		for _, tuple := range childrenDepth {
+			if tuple.depth.(int) > localMax {
+				localMax = tuple.depth.(int)
+				localMaxBlock = tuple.block.(*Block)
+			}
+		}
+		return localMaxBlock, localMax
+	}
+}
+
 func printBlock(m *Block) {
 	// fmt.Println("inside printblock")
 	// fmt.Println(m.Children)
@@ -192,4 +235,44 @@ func printBlock(m *Block) {
 	for _, c := range m.Children {
 		printBlock(c)
 	}
+}
+
+
+func getBlockDistanceFromGensis ( blk *Block, blkHash string) int  {
+
+	if blk == nil {
+		return -1
+	}
+
+	if blk.CurrentHash == blkHash {
+		return 0
+	}
+
+	if len(blk.Children) == 0 {
+		return -1
+	}
+
+	distArray := make([]int, len(blk.Children))
+	for i,subB := range blk.Children {
+		distArray[i] = getBlockDistanceFromGensis(subB, blkHash)
+	}
+
+	return 1 + maxArray(distArray)
+}
+
+func maxArray(array []int) int {
+
+	if len(array) == 0 {
+		return 0
+	}
+
+	maxNum := array[0]
+
+	for _, num := range array {
+
+		if (num > maxNum) {
+			maxNum = num
+		}
+	}
+	return maxNum
 }

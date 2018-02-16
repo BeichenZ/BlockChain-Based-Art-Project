@@ -469,7 +469,7 @@ func (m *MinerStruct) produceBlock(currentHash string, newOPs []Operation, leadi
 	if err != nil {
 		fmt.Println(err)
 	}
-
+	newDistance := getBlockDistanceFromGensis(m.BlockChain, leadingBlock.CurrentHash)
 	producedBlock := &Block{CurrentHash: currentHash,
 		PreviousHash:      leadingBlock.CurrentHash,
 		CurrentOPs:        newOPs,
@@ -477,7 +477,7 @@ func (m *MinerStruct) produceBlock(currentHash string, newOPs []Operation, leadi
 		S:                 s,
 		Children:          make([]*Block, 0),
 		SolverPublicKey:   &m.PairKey.PublicKey,
-		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1,
+		DistanceToGenesis: newDistance + 1,
 		Nonce:             int32(sss)}
 
 	fmt.Println("ITS NONCE IS IS " + nonce)
