@@ -320,8 +320,8 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	return "", "", 0, nil
 }
 func (t CanvasObject) GetSvgString(shapeHash string) (svgString string, err error) {
-	// TODO
-	return "", nil
+	svgString, err = t.ptr.ArtNode.GetSvgStringUsingOperationSignature(shapeHash)
+	return svgString, err
 
 }
 func (t CanvasObject) GetInk() (inkRemaining uint32, err error) {
