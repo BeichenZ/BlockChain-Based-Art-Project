@@ -181,22 +181,6 @@ func (m *MinerStruct) FindtheLeadingBlock() []*Block {
 	return thing
 }
 
-func (m *MinerStruct) FindLongestChainLength() int {
-
-	localMax := -1
-	LeafNodesMap.Lock()
-	for _, v := range LeafNodesMap.all {
-		if v.DistanceToGenesis > localMax {
-			fmt.Println("Finding the leading block: The hash is" + v.CurrentHash)
-			localMax = v.DistanceToGenesis
-
-		}
-	}
-	LeafNodesMap.Unlock()
-
-	return localMax
-}
-
 func (m *MinerStruct) Register(address string, publicKey ecdsa.PublicKey) (MinerNetSettings, error) {
 	// fmt.Println("public key", publicKey)
 	///

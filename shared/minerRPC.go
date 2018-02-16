@@ -91,7 +91,8 @@ func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, thisMinerC
 			// MinerConnection: &MinerNeighbourPayload.client,
 			RecentHeartbeat: time.Now().UnixNano(),
 		}
-		length := m.Miner.FindLongestChainLength()
+		_, length := findDeepestBlocks(m.Miner.BlockChain, 0)
+		//length := m.Miner.FindLongestChainLength()
 		*thisMinerChainLength = length
 		log.Println("Registration time is: ", time.Now().UnixNano())
 		log.Println("Successfully recorded this neighbouring miner", (*MinerNeighbourPayload))
