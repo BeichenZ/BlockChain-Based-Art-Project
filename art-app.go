@@ -54,7 +54,7 @@ func main() {
     fmt.Println("art-app.main(): going to get genesis block from miner", gb, "   ", err)
     
 	// Add a line.
-	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 0 0 L 0 5", "transparent", "red")
+	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 0 0 l 0 5", "transparent", "red")
 	if checkError(err) != nil {
 		return
 	}

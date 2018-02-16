@@ -283,6 +283,17 @@ func AllOperationsCommands(buffer []Operation) string {
 	return retstring
 }
 
+func AddNewBlock(blk *Block, newBlock *Block) {
+	if strings.Compare(blk.CurrentHash, newBlock.PreviousHash) == 0 {
+		blk.Children = append(blk.Children, newBlock)
+		return
+	} else {
+		for  _, b := range blk.Children {
+			AddNewBlock(b, newBlock)
+		}
+	}
+}
+
 func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 	// currentBlock := m.BlockChain[len(m.BlockChain)-1]
 	// listOfOperation := currentBlock.GetStringOperations()
@@ -338,7 +349,9 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			blockCounter.Lock()
 			blockCounter.counter++
 			blockCounter.Unlock()
-			leadingBlock.Children = append(leadingBlock.Children, newBlock)
+			AddNewBlock(m.BlockChain, newBlock)
+
+			printBlock(m.BlockChain)
 			// TODO:: 
 			// Add current blocks' operation to this miners ListOfOps_str
 			// TODO maybe validate block here
@@ -462,7 +475,6 @@ func (m *MinerStruct) produceBlock(currentHash string, newOPs []Operation, leadi
 		DistanceToGenesis: leadingBlock.DistanceToGenesis + 1,
 		Nonce:             int32(sss)}
 
-	fmt.Println("ITS SHIT IS " + producedBlock.GetString())
 	fmt.Println("ITS NONCE IS IS " + nonce)
 
 
