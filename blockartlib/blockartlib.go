@@ -21,8 +21,8 @@ import (
 	//"log"
 	//"time"
 	"math"
-	"math/rand"
-	"time"
+	//"math/rand"
+	//"time"
 )
 
 // Represents a type of shape in the BlockArt system.
@@ -269,33 +269,35 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	//Check for ShapeSvgStringTooLongError
 	//var IsTransFill bool
 	var isClosedCurve bool
+	var isSvgValid bool
 	var svgOP shared.SingleOp
 	var vtxArr []shared.Point
 	var edgeArr []shared.LineSectVector
 
 	//Check for InValidSvg, OutofBound, SvgString too long errors
-	if len(shapeSvgString) > 128 { return "", "", 0, ShapeSvgStringTooLongError(shapeSvgString)}
+	if len(shapeSvgString) > 128 { return "", "", 0, shared.ShapeSvgStringTooLongError(shapeSvgString)}
 	parsable,svgOP := t.IsSvgStringParsable_Parse(shapeSvgString)
-	if !parsable {return "", "", 0, InvalidShapeSvgStringError(shapeSvgString)} else {
-		isSvgValid,isClosedCurve,vtxArr,edgeArr := t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
-		if !isSvgValid {return "", "", 0, InvalidShapeSvgStringError(shapeSvgString + fill + stroke)}
+	if !parsable {return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString)} else {
+		isSvgValid,isClosedCurve,vtxArr,edgeArr = t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
+		if !isSvgValid {return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString + fill + stroke)}
 	}
-	if !t.IsSvgOutofBounds(svgOP) {return "", "", 0, OutOfBoundsError{}}
+	if !t.IsSvgOutofBounds(svgOP) {return "", "", 0, shared.OutOfBoundsError{}}
 
 	//Create New OPERATION
 	//TODO:Fill up the new struct
-	inkCost := uint32(CalculateShapeArea（isClosedCurve,vtxArr,edgeArr）+1)//For rounding up the cost
+	inkCost := uint32(t.CalculateShapeArea(isClosedCurve,vtxArr,edgeArr,fill))
+  inkCost++ //For rounding up the cost
 	fmt.Println("AddShape(),The command is ",shapeSvgString)
 	newOP := shared.Operation{
 		Command:shapeSvgString,
-		AmountofInk:inkCost,
+		AmountOfInk:inkCost,
 		//ShapeType:,
     ShapeSvgString:shapeSvgString,
 		Fill:fill,
 		Stroke:stroke,
-		ValidFBlkNum:validateNum
+		ValidFBlkNum:validateNum,
 	}
-	addSuccess,err:=t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
+	_,err=t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
 	if err != nil {return "","",0,err}
 	//TODO:Once RPC call finished successfully.Store it in canvas
 
