@@ -202,6 +202,22 @@ type Canvas interface {
 		  IsSvgOutofBounds(svgOP shared.SingleOp) bool
 	*/
 }
+//For Bonus mark:
+func GetListOfOps()(OpsArray []shared.FullSvgInfo)
+{
+	var resultArr []FullSvgInfo
+	resultArr := append(resultArr,shared.FullSvgInfo{
+		Path:"M 10 10 h 10 v 10 h -10 v -10",
+		Fill:"red",
+		Stroke:"black"})//square
+	resultArr := append(resultArr,shared.FullSvgInfo{
+		Path:"m -10 10 l 5 -5",
+		Fill:"transparent",
+		Stroke:"red"})//Kinked line
+
+	return resultArr
+}
+
 
 // The constructor for a new Canvas object instance. Takes the miner's
 // IP:port address string and a public-private key pair (ecdsa private

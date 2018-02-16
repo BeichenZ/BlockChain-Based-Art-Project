@@ -15,7 +15,11 @@ import (
 	"time"
 	"strings"
 )
-
+type FullSvgInfo struct {
+	Path string
+	Fill string
+	Stroke string
+}
 type AllNeighbour struct {
 	sync.RWMutex
 	all map[string]*MinerStruct
@@ -339,7 +343,7 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			blockCounter.counter++
 			blockCounter.Unlock()
 			leadingBlock.Children = append(leadingBlock.Children, newBlock)
-			// TODO:: 
+			// TODO::
 			// Add current blocks' operation to this miners ListOfOps_str
 			// TODO maybe validate block here
 			fmt.Println("\n")
@@ -577,9 +581,9 @@ func (m *MinerStruct) GetBlkChildren(curBlk *Block, bh string) ([]string, error)
 		return bChildHash, nil
 	} else {
 		for _,bcc := range curBlk.Children{
-		m.GetBlkChildren(bcc, bh)	
-		} 
-		
+		m.GetBlkChildren(bcc, bh)
+		}
+
 	}
 
 	return bChildHash, nil
