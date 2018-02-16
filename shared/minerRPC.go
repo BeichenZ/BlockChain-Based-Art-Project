@@ -178,6 +178,11 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 func IsShapeOverLapWithOthers(op *Operation) bool {
 	//For operation from same miner , do not check
 	//For operation from different miner, check for overlapping
+	svgString := (*op).Command
+	svgFill := (*op).Fill
+	svgStroke := (*op).Stroke
+	
+
 	return false
 }
 
