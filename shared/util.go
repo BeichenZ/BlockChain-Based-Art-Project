@@ -193,3 +193,43 @@ func printBlock(m *Block) {
 		printBlock(c)
 	}
 }
+
+
+func getBlockDistanceFromGensis ( blk *Block, blkHash string) int  {
+
+	if blk == nil {
+		return -1
+	}
+
+	if blk.CurrentHash == blkHash {
+		return 0
+	}
+
+	if len(blk.Children) == 0 {
+		return -1
+	}
+
+	distArray := make([]int, len(blk.Children))
+	for i,subB := range blk.Children {
+		distArray[i] = getBlockDistanceFromGensis(subB, blkHash)
+	}
+
+	return 1 + maxArray(distArray)
+}
+
+func maxArray(array []int) int {
+
+	if len(array) == 0 {
+		return 0
+	}
+
+	maxNum := array[0]
+
+	for _, num := range array {
+
+		if (num > maxNum) {
+			maxNum = num
+		}
+	}
+	return maxNum
+}
