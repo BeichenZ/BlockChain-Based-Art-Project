@@ -284,19 +284,19 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 
 	//Create New OPERATION
 	//TODO:Fill up the new struct
-	area := uint32(CalculateShapeArea（isClosedCurve,vtxArr,edgeArr）)
+	inkCost := uint32(CalculateShapeArea（isClosedCurve,vtxArr,edgeArr）+1)//For rounding up the cost
 	fmt.Println("AddShape(),The command is ",shapeSvgString)
 	newOP := shared.Operation{
 		Command:shapeSvgString,
-		AmountofInk:area,
+		AmountofInk:inkCost,
 		//ShapeType:,
     ShapeSvgString:shapeSvgString,
 		Fill:fill,
 		Stroke:stroke,
 		ValidFBlkNum:validateNum
 	}
-	validOp:=t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
-
+	addSuccess,err:=t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
+	if err != nil {return "","",0,err}
 	//TODO:Once RPC call finished successfully.Store it in canvas
 
 

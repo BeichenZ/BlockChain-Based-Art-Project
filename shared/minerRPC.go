@@ -119,11 +119,17 @@ type ArtNodeOpReg struct {
 	Miner MinerStruct
 }
 
-func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *bool) error {
-
-	// check errors
-	// Insuffcient errors
-	// shape overlap
+func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *AddShapeReply) error {
+	// Check InsufficientInkError
+	if (l.Miner.MinerInk < (*op).AmountOfInk) {
+		reply.Err = InsufficientInkError((*op).AmountOfInk)
+		return nil
+	}
+	// Check ShapeOverlapError
+	if isOverLap := l.IsShapeOverLapWithOthers(op) ; isOverLap {
+		reply.Err = ShapeOverlapError(op.Command)
+		return nil
+	}
 	fmt.Println(op.Command)
 
 	// Sign the Operation
@@ -154,7 +160,7 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *bool) error {
 		//fmt.Println("DoArtNodeOp: IN loop")
 		blockCounter.Lock()
 		if blockCounter.counter == validNum {
-			*reply = true
+			(*reply).Success = true
 			blockCounter.Unlock()
 			break
 		}
@@ -162,6 +168,12 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *bool) error {
 	}
 	fmt.Println("DoArtNodeOp() validateNum condition satisfied")
 	return nil
+}
+
+func (l *ArtNodeOpReg)IsShapeOverLapWithOthers(op *Operation) bool {
+	//For operation from same miner , do not check
+	//For operation from different miner, check for overlapping
+	return false
 }
 
 func (l *ArtNodeOpReg) ArtnodeInkRequest(s string, remainInk *uint32) error {

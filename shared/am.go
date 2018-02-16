@@ -18,7 +18,10 @@ type InitialCanvasSetting struct{
 	Cs CanvasSettings
 	ListOfOps_str []string
 }
-
+type AddShapeReply struct {
+	Success bool
+	Err error
+}
 func (a *ArtNodeStruct) GetCanvasSettings () (InitialCanvasSetting, error) {
 	initCS := &InitialCanvasSetting{}
 	err := a.AmConn.Call("CanvasSet.GetCanvasSettingsFromMiner", "hey", initCS)
@@ -28,23 +31,23 @@ func (a *ArtNodeStruct) GetCanvasSettings () (InitialCanvasSetting, error) {
 // Artnode issues an operation
 // returns a number which indicates which indicates the status of the operation
 		// for now boolean
-func (a *ArtNodeStruct) ArtnodeOp (op Operation) (validOp bool) {
-	validOp = false
-	err := a.AmConn.Call("ArtNodeOpReg.DoArtNodeOp", op, &validOp)
-	CheckError(err)
-	return validOp
+func (a *ArtNodeStruct) ArtnodeOp (op Operation) (validOp bool,err error) {
+	var reply AddShapeReply
+	locaerr := a.AmConn.Call("ArtNodeOpReg.DoArtNodeOp", op, &reply)
+	CheckError(locaerr)
+	return reply.Success,reply.Err
 }
 
 func (a *ArtNodeStruct) GetInkBalFromMiner() (uint32, error) {
 	var i uint32
 	err := a.AmConn.Call("ArtNodeOpReg.ArtnodeInkRequest", "ink pls", &i)
 	fmt.Println("GetInkBalFromMiner() ", i)
-	return i, err	
+	return i, err
 }
 func (a *ArtNodeStruct) GetGenesisBlockFromMiner() (string, error) {
 	var gb string
 	err := a.AmConn.Call("ArtNodeOpReg.ArtnodeGenBlkRequest", "Genisis blk", &gb)
-	return gb, err	
+	return gb, err
 }
 func (a *ArtNodeStruct) GetChildrenFromMiner(bHash string) ([]string, error)  {
 	var mch []string
