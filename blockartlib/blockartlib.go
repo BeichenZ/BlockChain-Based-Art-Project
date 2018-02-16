@@ -281,7 +281,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 		isSvgValid,isClosedCurve,vtxArr,edgeArr = t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
 		if !isSvgValid {return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString + fill + stroke)}
 	}
-	if !t.IsSvgOutofBounds(svgOP) {return "", "", 0, shared.OutOfBoundsError{}}
+	if t.IsSvgOutofBounds(svgOP) {return "", "", 0, shared.OutOfBoundsError{}}
 
 	//Create New OPERATION
 	//TODO:Fill up the new struct
