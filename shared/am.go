@@ -3,7 +3,7 @@
 package shared
 
 import (
-<<<<<<< HEAD
+
 "net/rpc"
 "crypto/ecdsa"
 "fmt"
@@ -16,18 +16,7 @@ type ArtNodeStruct struct {
 	PairKey    ecdsa.PrivateKey
 	AmConn     *rpc.Client
 	AListenAddr net.Addr
-=======
-	"crypto/ecdsa"
-	"fmt"
-	"net/rpc"
-	//"time"
-)
 
-type ArtNodeStruct struct {
-	ArtNodeId int
-	PairKey   ecdsa.PrivateKey
-	AmConn    *rpc.Client
->>>>>>> a5e9bfd904491455d9e5f966e08f40a76990d223
 }
 
 type InitialCanvasSetting struct {
@@ -38,12 +27,8 @@ type AddShapeReply struct {
 	Success bool
 	Err     error
 }
-<<<<<<< HEAD
 func (a *ArtNodeStruct) GetCanvasSettings (anAddr net.Addr) (InitialCanvasSetting, error) {
-=======
 
-func (a *ArtNodeStruct) GetCanvasSettings() (InitialCanvasSetting, error) {
->>>>>>> a5e9bfd904491455d9e5f966e08f40a76990d223
 	initCS := &InitialCanvasSetting{}
 	err := a.AmConn.Call("CanvasSet.GetCanvasSettingsFromMiner", anAddr, initCS)
 	CheckError(err)
