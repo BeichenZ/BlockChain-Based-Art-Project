@@ -4,10 +4,12 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/big"
 	"net"
+	"net/http"
 	"net/rpc"
 	"os"
 	"strconv"
@@ -599,4 +601,44 @@ func (m *MinerStruct) GetOpToDelete(curBlk *Block, shapeHash string) Operation {
 func (m *MinerStruct) GetInkBalance() uint32 {
 	return 0
 
+}
+
+func (m *MinerStruct) GetListOfOps(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("walalalalalalalalalalalalalalalalala")
+	// longestChain := getLongestPath(m.BlockChain)
+	// resultArr := make([]FullSvgInfo, 0)
+	// for _, block := range longestChain {
+	// 	for _, op := range block.CurrentOPs {
+	// 		resultArr = append(resultArr, FullSvgInfo{
+	// 			Path:   op.ShapeSvgString,
+	// 			Fill:   op.Fill,
+	// 			Stroke: op.Stroke,
+	// 		})
+	// 	}
+	// }
+	var resultArr []FullSvgInfo
+	resultArr = append(resultArr, FullSvgInfo{
+		Path:   "M 10 10 h 10 v 10 h -10 v -10",
+		Fill:   "red",
+		Stroke: "black"}) //square
+	resultArr = append(resultArr, FullSvgInfo{
+		Path:   "M 100 100 l 400 400",
+		Fill:   "transparent",
+		Stroke: "red"}) //Kinked line,
+	s, err := json.Marshal(resultArr)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(s)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set(
+		"Access-Control-Allow-Headers",
+		"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
+	)
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.WriteHeader(http.StatusOK)
+	//Write json response back to response
+	w.Write(s)
 }
