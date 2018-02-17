@@ -8,7 +8,7 @@ import (
 //Compare if all points of one shape is inside another shape
 //Assumption: Input shape's edge are non-intersecting which checked by func IsTwoEdgeArrInterSect()
 //Assumption: Two fill cannot be both transparent
-func IsOneShapeCompleteInsideAnother(newvtxArr []Point, newedgeArr []LineSectVector, newsvgFill string, newsvgArea uint32, tarvtxArr []Point, taredgeArr []LineSectVector, tarFill string, tarArea uint32) bool {
+func IsOneShapeCompleteInsideAnother(newvtxArr []Point, newedgeArr []LineSectVector, newsvgFill string, newsvgArea uint32, tarvtxArr []Point, taredgeArr []LineSectVector, tarFill string, tarArea uint32, canvasMaxX uint32) bool {
 	//Step1:Determine Which shape is the supposely Outside / Bigger one
 	//var bigvtxArr *[]Point
 	var bigedgeArr *[]LineSectVector
@@ -43,8 +43,7 @@ func IsOneShapeCompleteInsideAnother(newvtxArr []Point, newedgeArr []LineSectVec
 	//Step-2: Use Ray Casting Algorithm to Determine if small one is completely inside Big one
 	IntersectionCountArr := make([]int, len(*smallvtxArr))
 	for indexS, vtxS := range *smallvtxArr {
-		//TODO:Need to Set the end point properly
-		rightRay := LineSectVector{Start: vtxS, End: Point{100000, vtxS.Y}} //build Ray from Vertex to the very right of the canvas
+		rightRay := LineSectVector{Start: vtxS, End: Point{float64(canvasMaxX), vtxS.Y}} //build Ray from Vertex to the very right of the canvas
 		for _, edgeBig := range *bigedgeArr {
 			if TwoLineSegmentIntersected(rightRay, edgeBig) {
 				IntersectionCountArr[indexS]++

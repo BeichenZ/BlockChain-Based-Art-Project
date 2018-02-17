@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/rpc"
+	"reflect"
 	"time"
 )
 
@@ -231,6 +232,7 @@ func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 	//Store number of such pair happens, No one should appear even numbers
 
 	minerCopy := *(l.Miner)
+	canvasMaxX := minerCopy.Settings.canvasSettings.CanvasXMax
 	longestChainArr_Invt := getLongestPath(minerCopy.BlockChain)
 
 	//Loop through Each Block.
@@ -275,7 +277,7 @@ func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 			} else {
 				//Case2: One of them is filled. Check Edge Intersect first, if not then if all point in side
 				if isTwoOverLap = IsTwoEdgeArrInterSect(newedgeArr, taredgeArr); !isTwoOverLap {
-					isTwoOverLap = IsOneShapeCompleteInsideAnother(newvtxArr, newedgeArr, newsvgFill, newsvgArea, tarvtxArr, taredgeArr, tarFill, tarArea)
+					isTwoOverLap = IsOneShapeCompleteInsideAnother(newvtxArr, newedgeArr, newsvgFill, newsvgArea, tarvtxArr, taredgeArr, tarFill, tarArea, canvasMaxX)
 				}
 			}
 			//Register the results
