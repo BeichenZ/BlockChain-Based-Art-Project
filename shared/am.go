@@ -24,9 +24,10 @@ type AddShapeReply struct {
 	Err     error
 }
 
-func (a *ArtNodeStruct) GetCanvasSettings() (InitialCanvasSetting, error) {
+func (a *ArtNodeStruct) GetCanvasSettings(anIP string) (InitialCanvasSetting, error) {
 	initCS := &InitialCanvasSetting{}
-	err := a.AmConn.Call("CanvasSet.GetCanvasSettingsFromMiner", "hey", initCS)
+	fmt.Println("GetCanvasSettings() got here")
+	err := a.AmConn.Call("CanvasSet.GetCanvasSettingsFromMiner", anIP, initCS)
 	CheckError(err)
 	return *initCS, err
 }

@@ -280,6 +280,7 @@ func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *InitialCanvasSetti
 	fmt.Println("request for CanvasSettings")
 	ics.Cs = CanvasSettings(l.Miner.Settings.CanvasSettings)
 	ics.ListOfOps_str = l.Miner.ListOfOps_str
+	l.Miner.setUpConnWithArtNode(s)
 	fmt.Println("GetCanvasSettingsFromMiner() ", *ics)
 	return nil
 }
