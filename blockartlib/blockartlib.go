@@ -8,19 +8,13 @@ library (blockartlib) to be used in project 1 of UBC CS 416 2017W2.
 package blockartlib
 
 import (
-	//"bytes"
 	"crypto/ecdsa"
 	"fmt"
-	//"strings"
 	"net/rpc"
-
+	"net"
 	shared "../shared"
-
-	//"log"
-	//"time"
 	"math"
-	//"math/rand"
-	//"time"
+	"runtime"
 )
 
 // Represents a type of shape in the BlockArt system.
@@ -66,83 +60,6 @@ type MinerNetSettings struct {
 	// Canvas settings
 	canvasSettings CanvasSettings
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////
-// // <ERROR DEFINITIONS>
-
-// // These type definitions allow the application to explicitly check
-// // for the kind of error that occurred. Each API call below lists the
-// // errors that it is allowed to raise.
-// //
-// // Also see:
-// // https://blog.golang.org/error-handling-and-go
-// // https://blog.golang.org/errors-are-values
-
-// // Contains address IP:port that art node cannot connect to.
-// type DisconnectedError string
-
-// func (e DisconnectedError) Error() string {
-// 	return fmt.Sprintf("BlockArt: cannot connect to [%s]", string(e))
-// }
-
-// // Contains amount of ink remaining.
-// type InsufficientInkError uint32
-
-// func (e InsufficientInkError) Error() string {
-// 	return fmt.Sprintf("BlockArt: Not enough ink to addShape [%d]", uint32(e))
-// }
-
-// // Contains the offending svg string.
-// type InvalidShapeSvgStringError string
-
-// func (e InvalidShapeSvgStringError) Error() string {
-// 	return fmt.Sprintf("BlockArt: Bad shape svg string [%s]", string(e))
-// }
-
-// // Contains the offending svg string.
-// type ShapeSvgStringTooLongError string
-
-// func (e ShapeSvgStringTooLongError) Error() string {
-// 	return fmt.Sprintf("BlockArt: Shape svg string too long [%s]", string(e))
-// }
-
-// // Contains the bad shape hash string.
-// type InvalidShapeHashError string
-
-// func (e InvalidShapeHashError) Error() string {
-// 	return fmt.Sprintf("BlockArt: Invalid shape hash [%s]", string(e))
-// }
-
-// // Contains the bad shape hash string.
-// type ShapeOwnerError string
-
-// func (e ShapeOwnerError) Error() string {
-// 	return fmt.Sprintf("BlockArt: Shape owned by someone else [%s]", string(e))
-// }
-
-// // Empty
-// type OutOfBoundsError struct{}
-
-// func (e OutOfBoundsError) Error() string {
-// 	return fmt.Sprintf("BlockArt: Shape is outside the bounds of the canvas")
-// }
-
-// // Contains the hash of the shape that this shape overlaps with.
-// type ShapeOverlapError string
-
-// func (e ShapeOverlapError) Error() string {
-// 	return fmt.Sprintf("BlockArt: Shape overlaps with a previously added shape [%s]", string(e))
-// }
-
-// // Contains the invalid block hash.
-// type InvalidBlockHashError string
-
-// func (e InvalidBlockHashError) Error() string {
-// 	return fmt.Sprintf("BlockArt: Invalid block hash [%s]", string(e))
-// }
-
-// // </ERROR DEFINITIONS>
-// ////////////////////////////////////////////////////////////////////////////////////////////
 
 // Represents a canvas in the system.
 type Canvas interface {
@@ -235,6 +152,21 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	CheckError(err)
 	fmt.Println("Connected  to Miner")
 
+	// Art Node Sets up Listening Port for Miner
+	artListenConn, err := net.Listen("tcp", "127.0.0.1:")
+	CheckError(err)
+	fmt.Println("Artnode going to be a listener")
+	artNodeIp:=artListenConn.Addr()
+	var thisCanvasObj CanvasObject
+	thisCanvasObj.ptr = new(CanvasObjectReal)
+	thisCanvasObj.ptr.ArtNodeipStr=artNodeIp.String()
+	fmt.Println("Artnode going to be a listener 2")
+	rpc.Register(&thisCanvasObj)
+	go rpc.Accept(artListenConn)
+	runtime.Gosched()
+	fmt.Println("Artnode going to be a listener 3")
+
+
 	// see if the Miner key matches the one you have
 	var reply bool
 	Key := "test"
@@ -243,14 +175,14 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	CheckError(err)
 	if reply {
 		fmt.Println("ArtNode has same key as miner")
-		var thisCanvasObj CanvasObject
-		thisCanvasObj.ptr = new(CanvasObjectReal)
+		
+		
 		thisCanvasObj.ptr.ArtNode.AmConn = art2MinerCon
 
 		// Art node gets canvas settings from Miner node
 		fmt.Println("ArtNode going to get settings from miner")
 		// old
-		initMs, err := thisCanvasObj.ptr.ArtNode.GetCanvasSettings() // get the canvas settings, list of current operations
+		initMs, err := thisCanvasObj.ptr.ArtNode.GetCanvasSettings(artNodeIp.String()) // get the canvas settings, list of current operations(in initMS TODO), send listening ipAddress
 		setting = CanvasSettings(initMs.Cs)
 		thisCanvasObj.ptr.ListOfOps_str = initMs.ListOfOps_str
 		thisCanvasObj.ptr.XYLimit = shared.Point{X: float64(setting.CanvasXMax), Y: float64(setting.CanvasYMax)}
@@ -272,6 +204,7 @@ type CanvasObjectReal struct {
 	ListOfOps_ops   []shared.SingleOp
 	LastPenPosition shared.Point
 	XYLimit         shared.Point
+	ArtNodeipStr	string
 
 	// Canvas settings field?
 }
@@ -550,6 +483,11 @@ func Area_SingleClosedPolygon(vtxArr []shared.Point) float64 {
 		area += 0.5 * (element.X*nextVtx.Y - element.Y*nextVtx.X)
 	}
 	return math.Abs(area)
+}
+
+func (t CanvasObject) GetLongestChainFromMiner(chain string, ack *bool) error {
+	fmt.Println(chain)
+	return nil
 }
 
 // Additional Helper Functions

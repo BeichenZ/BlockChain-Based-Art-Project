@@ -61,6 +61,8 @@ type Miner interface {
 	StopMining(miner MinerStruct, r *MinerStruct) error
 
 	GetBlkChildren(bh string) ([]string, error)
+
+	setUpConnWithArtNode(aip string) error
 }
 
 //Struct for descripting Geometry
@@ -640,4 +642,12 @@ func (m *MinerStruct) GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	//Write json response back to response
 	w.Write(s)
+}
+
+func (m *MinerStruct) setUpConnWithArtNode(aip string) error {
+	// add ip to map
+	fmt.Println("setUpConnWithArtNode() Going to Dial up my art node")
+	_, err := rpc.Dial("tcp", aip)
+	CheckError(err)	
+	return err
 }
