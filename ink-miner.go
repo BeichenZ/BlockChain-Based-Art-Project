@@ -21,22 +21,22 @@ var thisInkMiner *shared.MinerStruct
 
 func main() {
 	// Register necessary struct for server communications
-	servAddr := "127.0.0.1:12345"
 	gob.Register(&elliptic.CurveParams{})
 	gob.Register(&net.TCPAddr{})
 
 	// Construct minerAddr from flag provided in the terminal
 	minerPort := flag.String("p", "", "RPC server ip:port")
+	servAddr := flag.String("sa", "", "Server ip address")
 	flag.Parse()
 	minerAddr := "127.0.0.1:" + *minerPort
 
 	// initialize miner given the server address and its own miner address
-	inkMinerStruct := initializeMiner(servAddr, minerAddr)
+	inkMinerStruct := initializeMiner(*servAddr, minerAddr)
 	//globalInkMinerPairKey = inkMinerStruct.PairKey
 	fmt.Println("Miner Key: ", inkMinerStruct.PairKey.X)
 	thisInkMiner = &inkMinerStruct
 	// RPC - Register this miner to the server
-	minerSettings, error := inkMinerStruct.Register(servAddr, inkMinerStruct.PairKey.PublicKey)
+	minerSettings, error := inkMinerStruct.Register(*servAddr, inkMinerStruct.PairKey.PublicKey)
 	if error != nil {
 		fmt.Println(error.Error())
 		os.Exit(0)
