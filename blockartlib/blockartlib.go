@@ -24,9 +24,8 @@ type ShapeType int
 const (
 	// Path shape.
 	PATH ShapeType = iota
-
 	// Circle shape (extra credit).
-	// CIRCLE
+	CIRCLE ShapeType
 )
 
 // Settings for a canvas in BlockArt.
@@ -225,22 +224,42 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	var vtxArr []shared.Point
 	var edgeArr []shared.LineSectVector
 
-	//Check for InValidSvg, OutofBound, SvgString too long errors
-	if len(shapeSvgString) > 128 {
-		return "", "", 0, shared.ShapeSvgStringTooLongError(shapeSvgString)
-	}
-	parsable, svgOP := shared.IsSvgStringParsable_Parse(shapeSvgString)
-	if !parsable {
-		return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString)
-	} else {
-		isSvgValid, isClosedCurve, vtxArr, edgeArr = t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
-		if !isSvgValid {
-			return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString + fill + stroke)
+		if len(shapeSvgString) > 128 {
+			return "", "", 0, shared.ShapeSvgStringTooLongError(shapeSvgString)
 		}
+	//Check for InValidSvg, OutofBound, SvgString too long errors
+	switch shapeType {
+	case PATH:		
+		parsable, svgOP := shared.IsSvgStringParsable_Parse(shapeSvgString)
+		if !parsable {
+			return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString)
+		} else {
+			isSvgValid, isClosedCurve, vtxArr, edgeArr = t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
+			if !isSvgValid {
+				return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString + fill + stroke)
+			}
+		}
+		if t.IsSvgOutofBounds(svgOP) {
+			return "", "", 0, shared.OutOfBoundsError{}
+		}
+	case CIRCLE:
+		parsable, svgOP := shared.IsSvgStringParsable_Parse_Cir(shapeSvgString)
+		if !parsable {
+			return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString)
+		} else {
+			isSvgValid, isClosedCurve, vtxArr, edgeArr = t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
+			if !isSvgValid {
+				return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString + fill + stroke)
+			}
+		}
+		if t.IsSvgOutofBounds(svgOP) {
+			return "", "", 0, shared.OutOfBoundsError{}
+		}
+
+	default: return "", "", 0, err
+
 	}
-	if t.IsSvgOutofBounds(svgOP) {
-		return "", "", 0, shared.OutOfBoundsError{}
-	}
+	
 	//Create New OPERATION
 	inkCost := uint32(t.CalculateShapeArea(isClosedCurve, vtxArr, edgeArr, fill))
 	inkCost++ //For rounding up the cost
@@ -248,7 +267,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	newOP := shared.Operation{
 		Command:     shapeSvgString,
 		AmountOfInk: inkCost,
-		//ShapeType:,
+		ShapeType:    shapeType,
 		ShapeSvgString: shapeSvgString,
 		Fill:           fill,
 		Stroke:         stroke,
