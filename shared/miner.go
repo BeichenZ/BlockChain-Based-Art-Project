@@ -606,26 +606,27 @@ func (m *MinerStruct) GetInkBalance() uint32 {
 }
 
 func (m *MinerStruct) GetListOfOps(w http.ResponseWriter, r *http.Request) {
-	// longestChain := getLongestPath(m.BlockChain)
-	// resultArr := make([]FullSvgInfo, 0)
-	// for _, block := range longestChain {
-	// 	for _, op := range block.CurrentOPs {
-	// 		resultArr = append(resultArr, FullSvgInfo{
-	// 			Path:   op.ShapeSvgString,
-	// 			Fill:   op.Fill,
-	// 			Stroke: op.Stroke,
-	// 		})
-	// 	}
-	// }
-	var resultArr []FullSvgInfo
-	resultArr = append(resultArr, FullSvgInfo{
-		Path:   "M 10 10 h 10 v 10 h -10 v -10",
-		Fill:   "red",
-		Stroke: "black"}) //square
-	resultArr = append(resultArr, FullSvgInfo{
-		Path:   "M 100 100 l 400 400",
-		Fill:   "transparent",
-		Stroke: "red"}) //Kinked line,
+	longestChain := getLongestPath(m.BlockChain)
+	resultArr := make([]FullSvgInfo, 0)
+	for _, block := range longestChain {
+		for _, op := range block.CurrentOPs {
+			resultArr = append(resultArr, FullSvgInfo{
+				Path:   op.ShapeSvgString,
+				Fill:   op.Fill,
+				Stroke: op.Stroke,
+			})
+		}
+	}
+	fmt.Println("hit endpoint")
+	// var resultArr []FullSvgInfo
+	// resultArr = append(resultArr, FullSvgInfo{
+	// 	Path:   "M 10 10 h 10 v 10 h -10 v -10",
+	// 	Fill:   "red",
+	// 	Stroke: "black"}) //square
+	// resultArr = append(resultArr, FullSvgInfo{
+	// 	Path:   "M 100 100 l 400 400",
+	// 	Fill:   "transparent",
+	// 	Stroke: "red"}) //Kinked line,
 	s, err := json.Marshal(resultArr)
 	if err != nil {
 		panic(err)
