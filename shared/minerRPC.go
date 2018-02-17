@@ -212,44 +212,85 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 	//For operation from same miner , do not check
 	//For operation from different miner, check for overlapping
-	/*
-		svgString := (*op).ShapeSvgString
-		newsvgFill := (*op).Fill
-		svgStroke := (*op).Stroke
-		_, newSvgOp := IsSvgStringParsable_Parse(svgString)
-		newSvgOp_IsClosed, newvtxArr, newedgeArr := IsClosedShapeAndGetVtx(newSvgOp)
-		var tarSvgOp SingleOp
-		var tarSvgOp_IsClosed bool
-		var tarvtxArr []Point
-		var taredgeArr []LineSectVector
-		isTwoOverLap := false
-		//Below Two varialbe is to prevent the siutation of add->delete->false conflict situation
-		var Block_OP_IndexArr []Block_OP_Index //Record all the conflicting shape and check if they have been deleted
-		var BlockOpIndexPair_AppearCount []int //Store number of such pair happens, No one should appear even numbers
+	svgString := (*op).ShapeSvgString
+	newsvgFill := (*op).Fill
+	//svgStroke := (*op).Stroke
+	newsvgArea := (*op).AmountOfInk
+	svgPrivateKey_ptr := (*op).Issuer
+	_, newSvgOp := IsSvgStringParsable_Parse(svgString)
+	_, newvtxArr, newedgeArr := IsClosedShapeAndGetVtx(newSvgOp)
+	var tarSvgOp SingleOp
+	//var tarSvgOp_IsClosed bool
+	var tarvtxArr []Point
+	var taredgeArr []LineSectVector
+	isTwoOverLap := false
+	//Below Two varialbe is to prevent the siutation of add->delete->false conflict situation
+	var Block_OP_IndexArr []Block_OP_Index //Record all the conflicting shape and check if they have been deleted
+	//Store number of such pair happens, No one should appear even numbers
 
-		minerCopy := *(l.Miner)
-		longestChainArr_Invt := getLongestPath(minerCopy.BlockChain)
-		//Loop through Each Block.
-		for indexB, tarBlock := range longestChainArr_Invt {
-			//Loop through Block.Operation
-			for indexO, tarOp := range tarBlock.CurrentOPs {
-				isTwoOverLap := false //Initialize to be false for each check
-				_, tarSvgOp = IsSvgStringParsable_Parse(tarOp.ShapeSvgString)
-				tartSvgOp_IsClosed, tarvtxArr, taredgeArr := IsClosedShapeAndGetVtx(tarSvgOp)
-				//Discuss By Case,If No OverLap,
-				//Case: Both the shape are transparent (line only) shape
-				if newsvgFill == "transparent" && tarOp.Fill == "transparent" {
-					isOverLap= IsTwoLineShapeOverLap(newvtxArr,newedgeArr,tarvtxArr,taredgeArr)
-				} else if  (newsvgFill == "transparent" && tar
-				//Case:One Line type, One Fill Type
-				//Case:Two Fill Type
+	minerCopy := *(l.Miner)
+	longestChainArr_Invt := getLongestPath(minerCopy.BlockChain)
+
+	//Loop through Each Block.
+	for indexB, tarBlock := range longestChainArr_Invt {
+		//Loop through Block.Operation
+	OperationLoop:
+		for indexO, tarOp := range tarBlock.CurrentOPs {
+
+			//HandleDelete Operation.Not counted
+			if tarOp.Draw == false {
+				deletedIndex := Block_OP_Index{indexB, indexO}
+				for index, element := range Block_OP_IndexArr {
+					if element == deletedIndex {
+						if index == len(Block_OP_IndexArr)-1 {
+							Block_OP_IndexArr = Block_OP_IndexArr[:index]
+							break
+						} else {
+							Block_OP_IndexArr = append(Block_OP_IndexArr[:index], Block_OP_IndexArr[index+1:]...)
+							break
+						}
+					}
+				}
+				continue OperationLoop //since it's a delete action, no need to check any further
 			}
 
-		}
+			//Handle Two ops are from same public key.Dont check if it's same
+			if reflect.DeepEqual(*(tarOp.Issuer), *svgPrivateKey_ptr) {
+				continue OperationLoop
+			}
+			//TODO:Handle differently for Circle and Straignt-Line Shape
+			//Initialize Data of Target Shape
+			isTwoOverLap = false //Initialize to be false for each check
+			tarArea := tarOp.AmountOfInk
+			tarFill := tarOp.Fill
+			_, tarSvgOp = IsSvgStringParsable_Parse(tarOp.ShapeSvgString)
+			_, tarvtxArr, taredgeArr = IsClosedShapeAndGetVtx(tarSvgOp)
 
-		//Check if the any of the conflicting shape has actually be deleted
-	*/
-	return true
+			//Handle TWO Different Cases.Assumption all string at this stage are all valid
+			//Case1: Both are line only shape(transparent fill).
+			if newsvgFill == "transparent" && tarOp.Fill == "transparent" {
+				isTwoOverLap = IsTwoEdgeArrInterSect(newedgeArr, taredgeArr) // Line Shape only need to check intersect
+			} else {
+				//Case2: One of them is filled. Check Edge Intersect first, if not then if all point in side
+				if isTwoOverLap = IsTwoEdgeArrInterSect(newedgeArr, taredgeArr); !isTwoOverLap {
+					isTwoOverLap = IsOneShapeCompleteInsideAnother(newvtxArr, newedgeArr, newsvgFill, newsvgArea, tarvtxArr, taredgeArr, tarFill, tarArea)
+				}
+			}
+			//Register the results
+			if isTwoOverLap {
+				Block_OP_IndexArr = append(Block_OP_IndexArr, Block_OP_Index{indexB, indexO})
+			}
+		}
+	}
+
+	//Check if the any of the conflicting shape has actually be deleted
+	if len(Block_OP_IndexArr) == 0 {
+		return true
+	} else {
+		//Only preint out the very first conflicted array
+		fmt.Println("One of OverLapped String Pair is", svgString, "and", longestChainArr_Invt[Block_OP_IndexArr[0].IndexB].CurrentOPs[Block_OP_IndexArr[0].IndexO].ShapeSvgString)
+		return false
+	}
 }
 
 func (l *ArtNodeOpReg) ArtnodeInkRequest(s string, remainInk *uint32) error {

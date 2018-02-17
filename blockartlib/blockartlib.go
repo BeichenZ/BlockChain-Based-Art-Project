@@ -444,11 +444,11 @@ func (t CanvasObject) IsSelfIntersect(vtxArr []shared.Point, edgeArr []shared.Li
 		for j := i + 1; j <= edgeCount; j++ {
 			//For the i at last index, i will compare with the first element
 			if j == edgeCount {
-				if twoLineSegmentIntersected(edgeArr[i], edgeArr[0]) {
+				if shared.TwoLineSegmentIntersected(edgeArr[i], edgeArr[0]) {
 					return true
 				}
 			} else {
-				if twoLineSegmentIntersected(edgeArr[i], edgeArr[j]) {
+				if shared.TwoLineSegmentIntersected(edgeArr[i], edgeArr[j]) {
 					return true
 				}
 			}
@@ -470,49 +470,6 @@ func (t CanvasObject) IsSelfIntersect(vtxArr []shared.Point, edgeArr []shared.Li
 	return false
 }
 
-//Geometric Function Functions
-func twoLineSegmentIntersected(lineSeg1 shared.LineSectVector, lineSeg2 shared.LineSectVector) bool {
-	//Compare two line segment and check if they intersect at the
-	x1s := lineSeg1.Start.X
-	y1s := lineSeg1.Start.Y
-	x1e := lineSeg1.End.X
-	y1e := lineSeg1.End.Y
-	x2s := lineSeg2.Start.X
-	y2s := lineSeg2.Start.Y
-	x2e := lineSeg2.End.X
-	y2e := lineSeg2.End.Y
-	a1 := (y1e - y1s) / (x1e - x1s)
-	a2 := (y2e - y2s) / (x2e - x2s)
-	b1 := (y1s*x1e - y1e*x1s) / (x1e - x1s)
-	b2 := (y2s*x2e - y2e*x2s) / (x2e - x2s)
-	if (a1 - a2) == 0 {
-		return false
-	}
-	x_sln := (b2 - b1) / (a1 - a2)
-	flpc := float64(0.1) // floating point compensation value
-	//Check if x_sln is at around any vertex
-	//0.1 is used for dealing with floating point inaccuracy
-	if (minf(x1s, x1e)+flpc < x_sln) && (x_sln < maxf(x1s, x1e)-flpc) && (minf(x2s, x2e)+flpc < x_sln) && (x_sln < maxf(x2s, x2e)-flpc) {
-		return true
-	} else {
-		return false
-	}
-
-}
-func minf(x, y float64) float64 {
-	if x > y {
-		return y
-	} else {
-		return x
-	}
-}
-func maxf(x, y float64) float64 {
-	if x > y {
-		return x
-	} else {
-		return y
-	}
-}
 func Distance_TwoPoint(x, y shared.Point) float64 {
 	return math.Sqrt(math.Pow(x.X-y.X, 2) + math.Pow(x.Y-y.Y, 2))
 }
