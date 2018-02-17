@@ -32,9 +32,6 @@ type Block struct {
 
 // Return a string repersentation of PreviousHash, op, op-signature, pub-key,
 func (b Block) GetString() string {
-	fmt.Println("Getting the string")
-	fmt.Printf("%+v", b.SolverPublicKey)
-	fmt.Println(pubKeyToString(*b.SolverPublicKey))
 	return b.PreviousHash + AllOperationsCommands(b.CurrentOPs) + pubKeyToString(*b.SolverPublicKey)
 }
 

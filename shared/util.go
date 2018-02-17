@@ -19,13 +19,8 @@ type BlockDepthpair struct {
 
 func monitor(minerNeighbourAddr string, miner MinerStruct, heartBeatInterval time.Duration) {
 	for {
-		fmt.Println("Duration is ", heartBeatInterval)
-
 		allNeighbour.Lock()
 
-		log.Println("MONITOR Time is: ", time.Now().UnixNano())
-
-		log.Println("MONITOR AT %v", (time.Now().UnixNano() - allNeighbour.all[minerNeighbourAddr].RecentHeartbeat))
 		if time.Now().UnixNano()-allNeighbour.all[minerNeighbourAddr].RecentHeartbeat > int64(heartBeatInterval) {
 			log.Printf("%s timed out, walalalalala\n", allNeighbour.all[minerNeighbourAddr].MinerAddr)
 			delete(allNeighbour.all, minerNeighbourAddr)
@@ -74,13 +69,8 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, newOPs []Op
 		select {
 		case recievedBlock := <-m.MiningStopSig:
 			fmt.Println("Received block from another miner")
-			LeafNodesMap.Lock()
-			delete(LeafNodesMap.all, leadingBlock.CurrentHash)
-			LeafNodesMap.all[recievedBlock.CurrentHash] = recievedBlock
-			LeafNodesMap.Unlock()
 			return recievedBlock
 		case opFromMineNode := <-m.RecievedOpSig:
-			fmt.Println("A miner sent me an operation from its art node")
 			fmt.Println("M-UPDATED OPERATION LIST FROM MINERS ")
 			if isDoingWorkForNoOp {
 				nonce = leadingBlock.CurrentHash + opFromMineNode.ShapeSvgString +opFromMineNode.Fill + opFromMineNode.Stroke + fmt.Sprint(opFromMineNode.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
@@ -125,7 +115,6 @@ func pubKeyToString(key ecdsa.PublicKey) string {
 }
 
 func ParseBlockChain(thisBlock BlockPayloadStruct) *Block {
-	fmt.Println("I'm receiving the blockchain")
 	x, y := elliptic.Unmarshal(elliptic.P384(), []byte(thisBlock.SolverPublicKey))
 	if thisBlock.PreviousHash == "" {
 		x = &big.Int{}
@@ -158,9 +147,6 @@ func ParseBlockChain(thisBlock BlockPayloadStruct) *Block {
 }
 
 func CopyBlockChainPayload(thisBlock *Block) BlockPayloadStruct {
-	fmt.Println("start copying the chain")
-	fmt.Println(thisBlock.CurrentHash)
-	fmt.Printf("%+v", thisBlock.SolverPublicKey)
 	producedBlockPayload := BlockPayloadStruct{
 		CurrentHash:       thisBlock.CurrentHash,
 		PreviousHash:      thisBlock.PreviousHash,
@@ -171,7 +157,6 @@ func CopyBlockChainPayload(thisBlock *Block) BlockPayloadStruct {
 		Nonce:             thisBlock.Nonce,
 		SolverPublicKey:   pubKeyToString(*thisBlock.SolverPublicKey),
 	}
-	fmt.Println("I got here")
 	var producedBlockChilden []BlockPayloadStruct
 	for _, child := range thisBlock.Children {
 		producedBlockChilden = append(producedBlockChilden, CopyBlockChainPayload(child))
@@ -180,29 +165,6 @@ func CopyBlockChainPayload(thisBlock *Block) BlockPayloadStruct {
 	// fmt.Println("finshed copying the chain, the current hash is: ", producedBlock.CurrentHash)
 	return producedBlockPayload
 }
-
-func deepestBlock(m *Block) *Block {
-	if len(m.Children) == 0 {
-		return m
-	}
-	return deepestBlock(m.Children[0])
-}
-
-/*
-int depthOfTree(struct Node *ptr)
-{
-    // Base case
-    if (!ptr)
-        return 0;
-    // Check for all children and find
-    // the maximum depth
-    int maxdepth = 0;
-    for (vector<Node*>::iterator it = ptr->child.begin();
-                              it != ptr->child.end(); it++)
-        maxdepth = max(maxdepth, depthOfTree(*it));
-    return maxdepth + 1 ;
-}
-*/
 
 func findDeepestBlocks(b *Block, depth int) (*Block, int) {
 	if len(b.Children) == 0 {
@@ -231,10 +193,17 @@ func findDeepestBlocks(b *Block, depth int) (*Block, int) {
 func printBlock(m *Block) {
 	// fmt.Println("inside printblock")
 	// fmt.Println(m.Children)
-	fmt.Printf("%v -> ", len(m.Children))
+	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
+	if m.PreviousHash == "" {
+		strconv.Itoa(len(m.Children))
+		fmt.Println("Genesis BLOCK:    " + m.CurrentHash[0:5] + " has this " + strconv.Itoa(len(m.Children))  + " children")
+	} else {
+		fmt.Println(m.CurrentHash[0:5] + " has this " + strconv.Itoa(len(m.Children))  + " children and its parent is " + m.PreviousHash[0:5])
+	}
 	for _, c := range m.Children {
 		printBlock(c)
 	}
+
 }
 
 

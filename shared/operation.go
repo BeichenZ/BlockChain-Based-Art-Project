@@ -47,23 +47,10 @@ func (o *Operation) Validate() bool {
 
 func (o *Operation) CheckIssuerSig() bool {
 	fmt.Println("CHECKING")
-	fmt.Println( "ISSUER ", o.Issuer )
-	fmt.Println( "ISSUERR ", o.IssuerR )
-	fmt.Println( "ISSUES ", o.IssuerS )
 	if (o.Issuer == nil) || ((o.IssuerR == nil) || (o.IssuerS == nil)){
 		fmt.Println("------------------------------------------------They are all empty")
 
 		return false
 	}
-
-	if ecdsa.Verify(&o.Issuer.PublicKey, []byte(o.Command), o.IssuerR, o.IssuerS){
-		fmt.Println("----------------------------CORRECT OPERATION ISSUER SIGN")
-	} else {
-		fmt.Println("----------------------------INCORRECT OPERATION ISSUER SIGN")
-
-	}
-
-
-
 	return ecdsa.Verify(&o.Issuer.PublicKey, []byte(o.Command), o.IssuerR, o.IssuerS)
 }
