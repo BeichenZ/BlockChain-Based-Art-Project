@@ -323,10 +323,10 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 
 			AddNewBlock(m.BlockChain, newBlock)
 
-			printBlock(m.BlockChain)
+			// printBlock(m.BlockChain)
 
 			fmt.Println("===================================LONGESTCHAIN===========================================")
-			printBlockChain(getLongestPath(m.BlockChain))
+			// printBlockChain(getLongestPath(m.BlockChain))
 			// TODO::
 			// Add current blocks' operation to this miners ListOfOps_str
 			// TODO maybe validate block here
@@ -535,7 +535,7 @@ func (m *MinerStruct) CheckForNeighbour() {
 	longClient.Call("MinerRPCServer.SendChain", "give me your chain", &blockChain)
 	m.BlockChain = ParseBlockChain(blockChain)
 	log.Println("received block chain+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++=")
-	printBlock(m.BlockChain)
+	// printBlock(m.BlockChain)
 }
 
 func (m *MinerStruct) GetBlkChildren(curBlk *Block, bh string) ([]string, error) {
@@ -648,6 +648,6 @@ func (m *MinerStruct) setUpConnWithArtNode(aip string) error {
 	// add ip to map
 	fmt.Println("setUpConnWithArtNode() Going to Dial up my art node")
 	_, err := rpc.Dial("tcp", aip)
-	CheckError(err)	
+	CheckError(err)
 	return err
 }
