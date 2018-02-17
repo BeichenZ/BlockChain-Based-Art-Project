@@ -74,6 +74,17 @@ func (m *MinerRPCServer) ActivateHeartBeat(SenderAddr string, alive *bool) error
 	return nil
 }
 
+func (m *MinerRPCServer) ArtNodeRegister(ArtNodeAddr string, reply *bool) error {
+	if _, exist := allArtNodes.all[ArtNodeAddr]; exist {
+		fmt.Println("Artnode already here")
+	} else {
+		allArtNodes.Lock()
+		allArtNodes.all[ArtNodeAddr] = 1
+		allArtNodes.Unlock()
+	}
+	return nil
+}
+
 func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, thisMinerChainLength *int) error {
 	fmt.Println("------------------------------------I got here--------------------------------------")
 	fmt.Println(MinerNeighbourPayload)
@@ -216,7 +227,7 @@ func (l *ArtNodeOpReg) ArtnodeSvgStringRequest(shapeHash string, svgString *stri
 	return err
 }
 func (l *ArtNodeOpReg) ArtnodeGetOpWithHashRequest(shapeHash string, opToDel *Operation) error {
-	*opToDel = l.Miner.GetOpToDelete(l.Miner.BlockChain,shapeHash)
+	*opToDel = l.Miner.GetOpToDelete(l.Miner.BlockChain, shapeHash)
 	return nil
 }
 
