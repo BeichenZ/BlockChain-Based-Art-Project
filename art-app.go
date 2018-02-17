@@ -34,6 +34,7 @@ func main() {
 
 	// 	// Open a canvas.
 	canvas, settings, err := blockartlib.OpenCanvas(*minerAddrP, privKey)
+
 	if checkError(err) != nil {
 		fmt.Println(err.Error())
 		return

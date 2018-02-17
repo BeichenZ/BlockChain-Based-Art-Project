@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"net"
 	//"net/http"
-	"net/http"
+
 	"net/rpc"
 	"os"
 
@@ -68,11 +68,7 @@ func main() {
 	// While the heart is beating, keep fetching for neighbours
 
 	// After going over the minimum neighbours value, start doing no-op
-	mux := http.NewServeMux()
-	mux.HandleFunc("/getshapes", inkMinerStruct.GetListOfOps)
-	// mux.HandleFunc("/addshape", inkMinerStruct.addshape)
 
-	go http.ListenAndServe(":"+*minerPort, mux)
 	OP := shared.Operation{ShapeSvgString: "no-op"}
 	for {
 		inkMinerStruct.CheckForNeighbour()

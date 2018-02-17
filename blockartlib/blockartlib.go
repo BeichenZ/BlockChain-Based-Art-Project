@@ -9,9 +9,11 @@ package blockartlib
 
 import (
 	"crypto/ecdsa"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net"
+	"net/http"
 	"net/rpc"
 	"runtime"
 
@@ -124,7 +126,34 @@ type Canvas interface {
 }
 
 //For Bonus mark:
-func GetListOfOps() []shared.FullSvgInfo {
+// func GetListOfOps() []shared.FullSvgInfo {
+// 	var resultArr []shared.FullSvgInfo
+// 	resultArr = append(resultArr, shared.FullSvgInfo{
+// 		Path:   "M 10 10 h 10 v 10 h -10 v -10",
+// 		Fill:   "red",
+// 		Stroke: "black"}) //square
+// 	resultArr = append(resultArr, shared.FullSvgInfo{
+// 		Path:   "M 100 100 l 400 400",
+// 		Fill:   "transparent",
+// 		Stroke: "red"}) //Kinked line,
+//
+// 	return resultArr
+// }
+
+func GetListOfOps(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("hit the end point")
+	// longestChain := getLongestPath(m.BlockChain)
+	// resultArr := make([]FullSvgInfo, 0)
+	// for _, block := range longestChain {
+	// 	for _, op := range block.CurrentOPs {
+	// 		resultArr = append(resultArr, FullSvgInfo{
+	// 			Path:   op.ShapeSvgString,
+	// 			Fill:   op.Fill,
+	// 			Stroke: op.Stroke,
+	// 		})
+	// 	}
+	// }
+	// fmt.Println("hit endpoint")
 	var resultArr []shared.FullSvgInfo
 	resultArr = append(resultArr, shared.FullSvgInfo{
 		Path:   "M 10 10 h 10 v 10 h -10 v -10",
@@ -134,8 +163,22 @@ func GetListOfOps() []shared.FullSvgInfo {
 		Path:   "M 100 100 l 400 400",
 		Fill:   "transparent",
 		Stroke: "red"}) //Kinked line,
-
-	return resultArr
+	s, err := json.Marshal(resultArr)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(s)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set(
+		"Access-Control-Allow-Headers",
+		"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
+	)
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.WriteHeader(http.StatusOK)
+	//Write json response back to response
+	w.Write(s)
 }
 
 // The constructor for a new Canvas object instance. Takes the miner's
@@ -162,6 +205,13 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	CheckError(err)
 	fmt.Println("Artnode going to be a listener")
 	artNodeIp := artListenConn.Addr()
+	fmt.Println("this is the artnode IP:")
+	fmt.Println(artNodeIp.String())
+	mux := http.NewServeMux()
+	mux.HandleFunc("/getshapes", GetListOfOps)
+	// mux.HandleFunc("/addshape", inkMinerStruct.addshape)
+
+	go http.ListenAndServe(artNodeIp.String(), mux)
 	var thisCanvasObj CanvasObject
 	thisCanvasObj.ptr = new(CanvasObjectReal)
 	thisCanvasObj.ptr.ArtNodeipStr = artNodeIp.String()
