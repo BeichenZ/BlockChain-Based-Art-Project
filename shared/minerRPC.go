@@ -20,10 +20,9 @@ func (e BadBlockError) Error() string {
 }
 
 func (m *MinerRPCServer) SendChain(s string, blockChain *BlockPayloadStruct) error {
-	log.Println(s)
+	log.Println(s + "============================================================")
 	thisMinerBlockChain := CopyBlockChainPayload(m.Miner.BlockChain)
 	*blockChain = thisMinerBlockChain
-	log.Println(thisMinerBlockChain)
 	return nil
 }
 
@@ -41,6 +40,7 @@ func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 		}
 	} else {
 		log.Print("I have found the hash, but so did at least one other miner")
+		AddNewBlock(m.Miner.BlockChain, block)
 	}
 	log.Println("Sent channel info")
 	return nil
@@ -123,12 +123,13 @@ type ArtNodeOpReg struct {
 func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
   //reply decode: 0->Success,1->insufficientInk, 2->OverlappedShape
 	// Check InsufficientInkError
+	fmt.Println("OPeration Receieved FROM Art Node")
 	if (l.Miner.MinerInk < (*op).AmountOfInk) {
 		fmt.Println("Insufficient Ink Detected for shape:",(*op).Command, "With requested ink:",(*op).AmountOfInk)
 		*reply = 1
 		return nil
 	}
-	// Check ShapeOverlapError
+	 //Check ShapeOverlapError
 	if isOverLap := IsShapeOverLapWithOthers(op) ; isOverLap {
 		fmt.Println("OverLapped Shape for shape string:",(*op).Command)
 		*reply = 2
@@ -146,7 +147,6 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 	op.Issuer = &l.Miner.PairKey
 	op.IssuerR = r
 	op.IssuerS = s
-	fmt.Println("THIS IS THE SHIT++++++++")
 	fmt.Println(pubKeyToString(op.Issuer.PublicKey))
 	go func() {
 		l.Miner.RecievedArtNodeSig <- *op
