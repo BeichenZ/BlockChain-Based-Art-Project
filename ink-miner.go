@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+
 	shared "./shared"
 )
 
@@ -58,7 +59,7 @@ func main() {
 	rpc.Register(initArt)
 	cs := &shared.CanvasSet{inkMinerStruct}
 	rpc.Register(cs)
-	anr := &shared.ArtNodeOpReg{inkMinerStruct}
+	anr := &shared.ArtNodeOpReg{&inkMinerStruct}
 	go rpc.Register(anr)
 	go rpc.Accept(listenArtConn)
 
