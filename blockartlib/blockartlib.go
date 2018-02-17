@@ -9,11 +9,9 @@ package blockartlib
 
 import (
 	"crypto/ecdsa"
-	"encoding/json"
 	"fmt"
 	"math"
 	"net"
-	"net/http"
 	"net/rpc"
 	"runtime"
 
@@ -140,47 +138,6 @@ type Canvas interface {
 // 	return resultArr
 // }
 
-func GetListOfOps(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("hit the end point")
-	// longestChain := getLongestPath(m.BlockChain)
-	// resultArr := make([]FullSvgInfo, 0)
-	// for _, block := range longestChain {
-	// 	for _, op := range block.CurrentOPs {
-	// 		resultArr = append(resultArr, FullSvgInfo{
-	// 			Path:   op.ShapeSvgString,
-	// 			Fill:   op.Fill,
-	// 			Stroke: op.Stroke,
-	// 		})
-	// 	}
-	// }
-	// fmt.Println("hit endpoint")
-	var resultArr []shared.FullSvgInfo
-	resultArr = append(resultArr, shared.FullSvgInfo{
-		Path:   "M 10 10 h 10 v 10 h -10 v -10",
-		Fill:   "red",
-		Stroke: "black"}) //square
-	resultArr = append(resultArr, shared.FullSvgInfo{
-		Path:   "M 100 100 l 400 400",
-		Fill:   "transparent",
-		Stroke: "red"}) //Kinked line,
-	s, err := json.Marshal(resultArr)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(s)
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
-	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	w.Header().Set(
-		"Access-Control-Allow-Headers",
-		"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
-	)
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	w.WriteHeader(http.StatusOK)
-	//Write json response back to response
-	w.Write(s)
-}
-
 // The constructor for a new Canvas object instance. Takes the miner's
 // IP:port address string and a public-private key pair (ecdsa private
 // key type contains the public key). Returns a Canvas instance that
@@ -207,14 +164,14 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	artNodeIp := artListenConn.Addr()
 	fmt.Println("this is the artnode IP:")
 	fmt.Println(artNodeIp.String())
-	mux := http.NewServeMux()
-	mux.HandleFunc("/getshapes", GetListOfOps)
-	// mux.HandleFunc("/addshape", inkMinerStruct.addshape)
-
-	go http.ListenAndServe(artNodeIp.String(), mux)
+	// mux := http.NewServeMux()
+	// mux.HandleFunc("/getshapes", GetListOfOps)
+	// // mux.HandleFunc("/addshape", inkMinerStruct.addshape)
+	//
+	// go http.ListenAndServe(artNodeIp.String(), mux)
 	var thisCanvasObj CanvasObject
-	thisCanvasObj.ptr = new(CanvasObjectReal)
-	thisCanvasObj.ptr.ArtNodeipStr = artNodeIp.String()
+	thisCanvasObj.Ptr = new(CanvasObjectReal)
+	thisCanvasObj.Ptr.ArtNodeipStr = artNodeIp.String()
 	fmt.Println("Artnode going to be a listener 2")
 	rpc.Register(&thisCanvasObj)
 	go rpc.Accept(artListenConn)
@@ -230,15 +187,15 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	if reply {
 		fmt.Println("ArtNode has same key as miner")
 
-		thisCanvasObj.ptr.ArtNode.AmConn = art2MinerCon
+		thisCanvasObj.Ptr.ArtNode.AmConn = art2MinerCon
 
 		// Art node gets canvas settings from Miner node
 		fmt.Println("ArtNode going to get settings from miner")
 		// old
-		initMs, err := thisCanvasObj.ptr.ArtNode.GetCanvasSettings(artNodeIp.String()) // get the canvas settings, list of current operations(in initMS TODO), send listening ipAddress
+		initMs, err := thisCanvasObj.Ptr.ArtNode.GetCanvasSettings(artNodeIp.String()) // get the canvas settings, list of current operations(in initMS TODO), send listening ipAddress
 		setting = CanvasSettings(initMs.Cs)
-		thisCanvasObj.ptr.ListOfOps_str = initMs.ListOfOps_str
-		thisCanvasObj.ptr.XYLimit = shared.Point{X: float64(setting.CanvasXMax), Y: float64(setting.CanvasYMax)}
+		thisCanvasObj.Ptr.ListOfOps_str = initMs.ListOfOps_str
+		thisCanvasObj.Ptr.XYLimit = shared.Point{X: float64(setting.CanvasXMax), Y: float64(setting.CanvasYMax)}
 
 		CheckError(err)
 
@@ -263,7 +220,7 @@ type CanvasObjectReal struct {
 }
 
 type CanvasObject struct {
-	ptr *CanvasObjectReal
+	Ptr *CanvasObjectReal
 }
 
 func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
@@ -305,7 +262,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 		ValidFBlkNum:   validateNum,
 		Draw:           true,
 	}
-	addSuccess, err := t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
+	addSuccess, err := t.Ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
 	if addSuccess {
 		//TODO: Shape,Block,InkRemaining
 		return "", "", 0, nil
@@ -314,23 +271,23 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	}
 }
 func (t CanvasObject) GetSvgString(shapeHash string) (svgString string, err error) {
-	svgString, err = t.ptr.ArtNode.GetSvgStringUsingOperationSignature(shapeHash)
+	svgString, err = t.Ptr.ArtNode.GetSvgStringUsingOperationSignature(shapeHash)
 	return svgString, err
 
 }
 func (t CanvasObject) GetInk() (inkRemaining uint32, err error) {
-	ink, err := t.ptr.ArtNode.GetInkBalFromMiner()
+	ink, err := t.Ptr.ArtNode.GetInkBalFromMiner()
 	fmt.Println("GetInk() Ink of miner", ink)
 	// get longest branch from miner compute ink based on how many signitures are from the miner
 	return ink, err
 }
 func (t CanvasObject) DeleteShape(validateNum uint8, shapeHash string) (inkRemaining uint32, err error) {
-	delOp, err := t.ptr.ArtNode.GetOpWithHash(shapeHash) // get operation from the shapeHash
+	delOp, err := t.Ptr.ArtNode.GetOpWithHash(shapeHash) // get operation from the shapeHash
 	CheckError(err)
 	delOp.Draw = false
 	delOp.ValidFBlkNum = validateNum
 	// this node has to sign it --- make sure it is done in the miner
-	_, err = t.ptr.ArtNode.ArtnodeOp(delOp) // fn needs to return boolean
+	_, err = t.Ptr.ArtNode.ArtnodeOp(delOp) // fn needs to return boolean
 	if err != nil {
 		return 0, err
 	}
@@ -342,18 +299,18 @@ func (t CanvasObject) GetShapes(blockHash string) (shapeHashes []string, err err
 	return s, nil
 }
 func (t CanvasObject) GetGenesisBlock() (blockHash string, err error) {
-	gb, err := t.ptr.ArtNode.GetGenesisBlockFromMiner()
+	gb, err := t.Ptr.ArtNode.GetGenesisBlockFromMiner()
 	fmt.Println("GetGenesisBlock() Genesis blk hash", gb)
 	return gb, err
 }
 func (t CanvasObject) GetChildren(blockHash string) (blockHashes []string, err error) {
-	blockHashes, err = t.ptr.ArtNode.GetChildrenFromMiner(blockHash)
+	blockHashes, err = t.Ptr.ArtNode.GetChildrenFromMiner(blockHash)
 	return blockHashes, err
 }
 
 func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error) {
 	inkRemaining, _ = t.GetInk()
-	err = t.ptr.ArtNode.AmConn.Close()
+	err = t.Ptr.ArtNode.AmConn.Close()
 	return inkRemaining, err
 
 }
@@ -381,19 +338,19 @@ func (t CanvasObject) IsParsableSvgValid_GetVtxEdge(svgStr string, fill string, 
 	return true, isthisClosed, vtxArr, edgeArr
 }
 func (t CanvasObject) IsSvgOutofBounds(svgOP shared.SingleOp) bool {
-	xVal := t.ptr.LastPenPosition.X
-	yVal := t.ptr.LastPenPosition.Y
+	xVal := t.Ptr.LastPenPosition.X
+	yVal := t.Ptr.LastPenPosition.Y
 	for _, element := range svgOP.MovList {
 		switch element.Cmd {
 		case 'M', 'L', 'H', 'V':
-			if element.X > t.ptr.XYLimit.X || element.X < 0 || element.Y > t.ptr.XYLimit.Y || element.Y < 0 {
+			if element.X > t.Ptr.XYLimit.X || element.X < 0 || element.Y > t.Ptr.XYLimit.Y || element.Y < 0 {
 				return true
 			} else {
 				xVal = xVal + element.X
 				yVal = yVal + element.Y
 			}
 		case 'm', 'l', 'v', 'h':
-			if element.X+xVal > t.ptr.XYLimit.X || element.X+xVal < 0 || element.Y+yVal > t.ptr.XYLimit.Y || element.Y+yVal < 0 {
+			if element.X+xVal > t.Ptr.XYLimit.X || element.X+xVal < 0 || element.Y+yVal > t.Ptr.XYLimit.Y || element.Y+yVal < 0 {
 				return true
 			} else {
 				xVal = xVal + element.X

@@ -15,14 +15,58 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 
 	"./blockartlib"
+	shared "./shared"
 	//"encoding/gob"
 )
 
+func GetListOfOps(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("hit the end point")
+	// longestChain := getLongestPath(m.BlockChain)
+	// resultArr := make([]FullSvgInfo, 0)
+	// for _, block := range longestChain {
+	// 	for _, op := range block.CurrentOPs {
+	// 		resultArr = append(resultArr, FullSvgInfo{
+	// 			Path:   op.ShapeSvgString,
+	// 			Fill:   op.Fill,
+	// 			Stroke: op.Stroke,
+	// 		})
+	// 	}
+	// }
+	// fmt.Println("hit endpoint")
+	var resultArr []shared.FullSvgInfo
+	resultArr = append(resultArr, shared.FullSvgInfo{
+		Path:   "M 10 10 h 10 v 10 h -10 v -10",
+		Fill:   "red",
+		Stroke: "black"}) //square
+	resultArr = append(resultArr, shared.FullSvgInfo{
+		Path:   "M 100 100 l 400 400",
+		Fill:   "transparent",
+		Stroke: "red"}) //Kinked line,
+	s, err := json.Marshal(resultArr)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(s)
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set(
+		"Access-Control-Allow-Headers",
+		"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
+	)
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.WriteHeader(http.StatusOK)
+	//Write json response back to response
+	w.Write(s)
+}
 func main() {
 	minerAddr := "127.0.0.1:39865" // hardcoded for now
 	privKey := getKeyPair()        // TODO: use crypto/ecdsa to read pub/priv keys from a file argument.
@@ -35,6 +79,22 @@ func main() {
 	// 	// Open a canvas.
 	canvas, settings, err := blockartlib.OpenCanvas(*minerAddrP, privKey)
 
+	pieceOfShit := canvas.(blockartlib.CanvasObject)
+	fmt.Printf("%+v", pieceOfShit.Ptr)
+	fmt.Println("fuck this shit")
+
+	artAddres := pieceOfShit.Ptr.ArtNodeipStr
+	// port := artNodeIp.String()[strings.Index(artNodeIp.String(), ":"):len(artNodeIp.String())]
+	port := artAddres[strings.Index(artAddres, ":"):len(artAddres)]
+	fmt.Println(port)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/getshapes", GetListOfOps)
+	// mux.HandleFunc("/addshape", inkMinerStruct.addshape)
+
+	go http.ListenAndServe(":5000", mux)
+	for {
+
+	}
 	if checkError(err) != nil {
 		fmt.Println(err.Error())
 		return
