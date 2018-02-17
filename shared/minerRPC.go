@@ -123,17 +123,6 @@ type ArtNodeOpReg struct {
 func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 	//reply decode: 0->Success,1->insufficientInk, 2->OverlappedShape
 	// Check InsufficientInkError
-<<<<<<< HEAD
-	fmt.Println("OPeration Receieved FROM Art Node")
-	if (l.Miner.MinerInk < (*op).AmountOfInk) {
-		fmt.Println("Insufficient Ink Detected for shape:",(*op).Command, "With requested ink:",(*op).AmountOfInk)
-		*reply = 1
-		return nil
-	}
-	 //Check ShapeOverlapError
-	if isOverLap := IsShapeOverLapWithOthers(op) ; isOverLap {
-		fmt.Println("OverLapped Shape for shape string:",(*op).Command)
-=======
 	fmt.Printf("%+v", l.Miner)
 	if l.Miner.MinerInk < (*op).AmountOfInk {
 		fmt.Println("The current ink we have is:", l.Miner.MinerInk)
@@ -144,7 +133,6 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 	// Check ShapeOverlapError
 	if isOverLap := IsShapeOverLapWithOthers(op); isOverLap {
 		fmt.Println("OverLapped Shape for shape string:", (*op).Command)
->>>>>>> BlockArtLibDev
 		*reply = 2
 		return nil
 	}
