@@ -5,16 +5,14 @@ package shared
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"net"
 	"net/rpc"
 	//"time"
 )
 
 type ArtNodeStruct struct {
-	ArtNodeId   int
-	PairKey     ecdsa.PrivateKey
-	AmConn      *rpc.Client
-	AListenAddr net.Addr
+	ArtNodeId int
+	PairKey   ecdsa.PrivateKey
+	AmConn    *rpc.Client
 }
 
 type InitialCanvasSetting struct {
@@ -26,10 +24,9 @@ type AddShapeReply struct {
 	Err     error
 }
 
-func (a *ArtNodeStruct) GetCanvasSettings(anAddr net.Addr) (InitialCanvasSetting, error) {
-
+func (a *ArtNodeStruct) GetCanvasSettings() (InitialCanvasSetting, error) {
 	initCS := &InitialCanvasSetting{}
-	err := a.AmConn.Call("CanvasSet.GetCanvasSettingsFromMiner", anAddr, initCS)
+	err := a.AmConn.Call("CanvasSet.GetCanvasSettingsFromMiner", "hey", initCS)
 	CheckError(err)
 	return *initCS, err
 }
@@ -61,7 +58,7 @@ func (a *ArtNodeStruct) ArtnodeOp(op Operation) (validOp bool, err error) {
 
 func (a *ArtNodeStruct) GetInkBalFromMiner() (uint32, error) {
 	var i uint32
-	err := a.AmConn.Call("MinerRPCServer.CalculateInk", "ink pls", &i)
+	err := a.AmConn.Call("ArtNodeOpReg.ArtnodeInkRequest", "ink pls", &i)
 	fmt.Println("GetInkBalFromMiner() ", i)
 	return i, err
 }
