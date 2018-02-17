@@ -13,8 +13,6 @@ import (
 	"fmt"
 	//"strings"
 	"net/rpc"
-	"regexp"
-	"strconv"
 
 	shared "../shared"
 
@@ -295,7 +293,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	if len(shapeSvgString) > 128 {
 		return "", "", 0, shared.ShapeSvgStringTooLongError(shapeSvgString)
 	}
-	parsable, svgOP := IsSvgStringParsable_Parse(shapeSvgString)
+	parsable, svgOP := shared.IsSvgStringParsable_Parse(shapeSvgString)
 	if !parsable {
 		return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString)
 	} else {
@@ -374,73 +372,13 @@ func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error) {
 
 }
 
-//Parse the Svg string if it's parsable
-func IsSvgStringParsable_Parse(svgStr string) (isValid bool, Op shared.SingleOp) {
-	//Legal Example: "m 20 0 L 19 21",all separated by space,always start at m/M
-	strCnt := len(svgStr)
-	var movList []shared.SingleMov
-	parsedOp := shared.SingleOp{MovList: movList}
-	if strCnt < 3 {
-		return false, parsedOp
-	}
-	if svgStr[0] != 'M' {
-		return false, parsedOp
-	}
-	regex_2 := regexp.MustCompile("([mMvVlLhHZz])[\\s]([-]*[0-9]+)[\\s]([-]*[0-9]+)")
-	regex_1 := regexp.MustCompile("([mMvVlLhHZz])[\\s]([-]*[0-9]+)")
-	var matches []string
-	var oneMov shared.SingleMov
-	var thisRune rune
-	fmt.Println("string size is", strCnt)
-	for i := 0; i < strCnt; i = i {
-		fmt.Println("Current I is", i)
-		thisRune = rune(svgStr[i])
-		switch thisRune {
-		case 'm', 'M', 'L', 'l':
-			arr := regex_2.FindStringIndex(svgStr[i:])
-			if arr == nil {
-				return false, parsedOp
-			} else {
-				//if legal, Parse it
-				matches = regex_2.FindStringSubmatch(svgStr[i:])
-				intVal1, _ := strconv.Atoi(matches[2])
-				intVal2, _ := strconv.Atoi(matches[3])
-				oneMov = shared.SingleMov{Cmd: rune(thisRune), X: float64(intVal1), Y: float64(intVal2), ValCnt: 2}
-				parsedOp.MovList = append(parsedOp.MovList, oneMov)
-				//Update Index
-				fmt.Println("ML update next index is", arr[0], arr[1])
-				i = i + arr[1] + 1
-			}
-		case 'v', 'V', 'H', 'h':
-			arr := regex_1.FindStringIndex(svgStr[i:])
-			fmt.Println("VH update next index is", arr[0], arr[1])
-			if arr == nil {
-				return false, parsedOp
-			} else {
-				matches = regex_1.FindStringSubmatch(svgStr[i:])
-				intVal1, _ := strconv.Atoi(matches[2])
-				oneMov = shared.SingleMov{Cmd: rune(thisRune), X: float64(intVal1), Y: 0, ValCnt: 1}
-				parsedOp.MovList = append(parsedOp.MovList, oneMov)
-				i = i + arr[1] + 1
-			}
-		case 'Z', 'z':
-			oneMov := shared.SingleMov{Cmd: rune(thisRune), ValCnt: 0}
-			parsedOp.MovList = append(parsedOp.MovList, oneMov)
-			i = i + 2
-		default:
-			return false, parsedOp
-		}
-	}
-	return true, parsedOp //pass all tests
-}
-
 //varify If string is closed, return vtxArray and EdgeArray
 func (t CanvasObject) IsParsableSvgValid_GetVtxEdge(svgStr string, fill string, stroke string, Op shared.SingleOp) (isValid bool, isClosed bool, vtxArray []shared.Point, edgeArray []shared.LineSectVector) {
 	var vtxArr []shared.Point
 	var edgeArr []shared.LineSectVector
 	var isthisClosed bool
 	// For Non-Transparent Fill, Must be closed
-	if isthisClosed, vtxArr, edgeArr := t.IsClosedShapeAndGetVtx(Op); !isClosed && fill != "transparent" {
+	if isthisClosed, vtxArr, edgeArr := shared.IsClosedShapeAndGetVtx(Op); !isClosed && fill != "transparent" {
 		fmt.Println("Non-closed curve shape", svgStr, "but with fill:", fill)
 		return false, isthisClosed, vtxArr, edgeArr
 	}
@@ -495,74 +433,7 @@ func (t CanvasObject) ParseOpsStrings() {
 	}
 }
 */
-func (t CanvasObject) IsClosedShapeAndGetVtx(op shared.SingleOp) (IsClosed bool, vtxArray []shared.Point, edgeArray []shared.LineSectVector) {
-	var vtxArr []shared.Point
-	var edgeArr []shared.LineSectVector
-	var curVtx shared.Point
-	var preVtx shared.Point
-	var nextVtx shared.Point
-	var originalStart shared.Point
-	var lastSubPathStart shared.Point
-	//traverse all operation, identify list of edge and points
-	//TODO : Corner Case when an open shape has the same ending point
-	movCount := len(op.MovList)
-	if movCount < 1 {
-		return false, vtxArr, edgeArr
-	} //Panic Check
-	originalStart.X = op.MovList[0].X // Assume the first mov is always 'M' which is validated by IsValidSvgString
-	originalStart.Y = op.MovList[0].Y
-	for _, element := range op.MovList {
-		switch element.Cmd {
-		case 'M', 'V', 'H', 'L':
-			preVtx = curVtx
-			curVtx.X = element.X
-			curVtx.Y = element.Y
-			if element.Cmd != 'M' {
-				edgeArr = append(edgeArr, shared.LineSectVector{preVtx, curVtx}) //add new line segment
-			} else {
-				lastSubPathStart = curVtx // prepare for potential Z/z command
-			}
-			vtxArr = append(vtxArr, curVtx) // add new vertex
-		case 'm', 'v', 'h', 'l':
-			preVtx = curVtx
-			curVtx.X += element.X
-			curVtx.Y += element.Y
-			if element.Cmd != 'm' {
-				edgeArr = append(edgeArr, shared.LineSectVector{preVtx, curVtx})
-			} else {
-				lastSubPathStart = curVtx
-			}
-			vtxArr = append(vtxArr, curVtx)
-		case 'Z', 'z':
-			preVtx = curVtx
-			curVtx = lastSubPathStart
-			edgeArr = append(edgeArr, shared.LineSectVector{preVtx, curVtx})
-		}
-	}
-	//List through the edge array and identify if everything is connected.Reuse variables
-	if len(edgeArr) < 1 {
-		return false, vtxArr, edgeArr
-	}
-	preVtx = edgeArr[0].Start
-	for _, element := range edgeArr { // Check For discontinuity
-		curVtx = element.Start
-		nextVtx = element.End
-		if curVtx != preVtx {
-			return false, vtxArr, edgeArr
-		} else {
-			vtxArr = append(vtxArr, curVtx)
-			vtxArr = append(vtxArr, nextVtx)
-			preVtx = nextVtx
-		}
-	}
-	//If entire edge is continous, Check if it returns to the same points
-	if nextVtx != originalStart {
-		return false, vtxArr, edgeArr
-	} else {
-		uniqueVtxCount := len(vtxArr) - 1
-		return true, vtxArr[:uniqueVtxCount], edgeArr // the last "nextVtx" will be an overlapping of the staring point
-	}
-}
+
 func (t CanvasObject) CalculateShapeArea(IsClosed bool, vtxArr []shared.Point, edgeArr []shared.LineSectVector, fill string) float64 {
 	//Given the parsed results from IsClosedShapeAndGetVtx
 	var area float64

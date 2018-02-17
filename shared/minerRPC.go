@@ -208,10 +208,21 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 	//For operation from same miner , do not check
 	//For operation from different miner, check for overlapping
-	//svgString := (*op).Command
-	//svgFill := (*op).Fill
-	//svgStroke := (*op).Stroke
+	/*
+		svgString := (*op).Command
+		svgFill := (*op).Fill
+		svgStroke := (*op).Stroke
+		_, newSvgOp := IsSvgStringParsable_Parse(svgString)
 
+
+		minerCopy := *(l.Miner)
+		longestChainArr_Invt := getLongestPath(minerCopy.BlockChain)
+		blkCount := len(longestChainArr_Invt)
+
+		for index, thisblock := range longestChainArr_Invt {
+
+		}
+	*/
 	return false
 }
 
