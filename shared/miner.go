@@ -39,7 +39,7 @@ type GlobalBlockCreationCounter struct {
 var (
 	allNeighbour = AllNeighbour{all: make(map[string]*MinerStruct)}
 	blockCounter = GlobalBlockCreationCounter{counter: 0}
-	allArtNodes  = AllArtNodes{all: make([]string, 0)}
+	allArtNodes  = AllArtNodes{all: make(map[string]int)}
 )
 
 type Miner interface {

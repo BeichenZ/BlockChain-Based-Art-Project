@@ -124,6 +124,14 @@ func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, thisMinerC
 }
 
 type KeyCheck int
+
+func (l *KeyCheck) ArtNodeKeyCheck(privKey *string, reply *bool) error {
+	*reply = true
+	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")
+
+	return nil
+}
+
 type CanvasSet struct {
 	Miner MinerStruct
 }
