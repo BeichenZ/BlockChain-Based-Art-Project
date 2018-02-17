@@ -13,6 +13,7 @@ import (
 	"fmt"
 	//"strings"
 	"net/rpc"
+	"net"
 	"regexp"
 	"strconv"
 
@@ -232,9 +233,18 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	// TODO
 	fmt.Print("OpenCanvas(): Going to connect to miner")
 
+	// Artnode Sets up as Listener
+	artListenConn, err := net.Listen("tcp", "127.0.0.1:")
+	CheckError(err)
+	// get port that client is listening on
+	commAddrForMiner := artListenConn.Addr() 
+	canvasListen := new(Canvas)
+	rpc.Register(canvasListen)
+	rpc.Accept(artListenConn)
 	// Connect to Miner
 	art2MinerCon, err := rpc.Dial("tcp", minerAddr)
 	CheckError(err)
+
 	fmt.Println("Connected  to Miner")
 
 	// see if the Miner key matches the one you have
@@ -248,11 +258,12 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 		var thisCanvasObj CanvasObject
 		thisCanvasObj.ptr = new(CanvasObjectReal)
 		thisCanvasObj.ptr.ArtNode.AmConn = art2MinerCon
+		thisCanvasObj.ptr.ArtNode.AListenAddr = commAddrForMiner
 
 		// Art node gets canvas settings from Miner node
 		fmt.Println("ArtNode going to get settings from miner")
 		// old
-		initMs, err := thisCanvasObj.ptr.ArtNode.GetCanvasSettings() // get the canvas settings, list of current operations
+		initMs, err := thisCanvasObj.ptr.ArtNode.GetCanvasSettings(commAddrForMiner) // get the canvas settings, list of current operations, send ip to miner 
 		setting = CanvasSettings(initMs.Cs)
 		thisCanvasObj.ptr.ListOfOps_str = initMs.ListOfOps_str
 		thisCanvasObj.ptr.XYLimit = shared.Point{X: float64(setting.CanvasXMax), Y: float64(setting.CanvasYMax)}
@@ -272,6 +283,7 @@ type CanvasObjectReal struct {
 	ArtNode         shared.ArtNodeStruct
 	ListOfOps_str   []string
 	ListOfOps_ops   []shared.SingleOp
+	LongestChain    []shared.Block
 	LastPenPosition shared.Point
 	XYLimit         shared.Point
 
@@ -680,6 +692,11 @@ func Area_SingleClosedPolygon(vtxArr []shared.Point) float64 {
 		area += 0.5 * (element.X*nextVtx.Y - element.Y*nextVtx.X)
 	}
 	return math.Abs(area)
+}
+
+func (t CanvasObject) ReceiveLongestChain(lc []shared.Block, reply *bool) error {
+	t.ptr.LongestChain=lc
+	return nil
 }
 
 // Additional Helper Functions

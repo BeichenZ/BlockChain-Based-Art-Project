@@ -108,6 +108,7 @@ type MinerStruct struct {
 	RecievedOpSig         chan Operation
 	OPBuffer              []Operation
 	MinerInk              uint32
+	ArtNodeIp			  []string
 }
 
 type MinerHeartbeatPayload struct {

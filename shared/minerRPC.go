@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/rpc"
 	"time"
+	"net"
 )
 
 type MinerRPCServer struct {
@@ -206,12 +207,17 @@ func (l *ArtNodeOpReg) ArtnodeGetOpWithHashRequest(shapeHash string, opToDel *Op
 	*opToDel = l.Miner.GetOpToDelete(l.Miner.BlockChain,shapeHash)
 	return nil
 }
-
-func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *InitialCanvasSetting) error {
+// Sends Miner Canvas Settings back to the Art node and 
+func (l *CanvasSet) GetCanvasSettingsFromMiner(artNodeIp net.Addr, ics *InitialCanvasSetting) error {
 	fmt.Println("request for CanvasSettings")
 	ics.Cs = CanvasSettings(l.Miner.Settings.CanvasSettings)
 	ics.ListOfOps_str = l.Miner.ListOfOps_str
+	// Add given ip to map
 	fmt.Println("GetCanvasSettingsFromMiner() ", *ics)
+	// Connect to Artnode
+	_, err := rpc.Dial("tcp", artNodeIp.String())
+	CheckError(err)
+	fmt.Println(" Miner connected to Art node")
 	return nil
 }
 
