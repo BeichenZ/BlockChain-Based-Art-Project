@@ -150,11 +150,13 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 		return nil
 	}
 	// Check ShapeOverlapError
-	if isOverLap := IsShapeOverLapWithOthers(op); isOverLap {
-		fmt.Println("OverLapped Shape for shape string:", (*op).Command)
-		*reply = 2
-		return nil
-	}
+	/*
+		if isOverLap := IsShapeOverLapWithOthers(op,l); isOverLap {
+			fmt.Println("OverLapped Shape for shape string:", (*op).Command)
+			*reply = 2
+			return nil
+		}
+	*/
 	fmt.Println(op.Command)
 
 	// Sign the Operation
@@ -203,14 +205,13 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 	return nil
 }
 
-func IsShapeOverLapWithOthers(op *Operation) bool {
+func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 	//For operation from same miner , do not check
 	//For operation from different miner, check for overlapping
-	/*
-		svgString := (*op).Command
-		svgFill := (*op).Fill
-		svgStroke := (*op).Stroke
-	*/
+	//svgString := (*op).Command
+	//svgFill := (*op).Fill
+	//svgStroke := (*op).Stroke
+
 	return false
 }
 

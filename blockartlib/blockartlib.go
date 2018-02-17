@@ -295,7 +295,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	if len(shapeSvgString) > 128 {
 		return "", "", 0, shared.ShapeSvgStringTooLongError(shapeSvgString)
 	}
-	parsable, svgOP := t.IsSvgStringParsable_Parse(shapeSvgString)
+	parsable, svgOP := IsSvgStringParsable_Parse(shapeSvgString)
 	if !parsable {
 		return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString)
 	} else {
@@ -319,7 +319,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 		Fill:           fill,
 		Stroke:         stroke,
 		ValidFBlkNum:   validateNum,
-		Draw:			true,
+		Draw:           true,
 	}
 	addSuccess, err := t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
 	if addSuccess {
@@ -343,9 +343,9 @@ func (t CanvasObject) GetInk() (inkRemaining uint32, err error) {
 func (t CanvasObject) DeleteShape(validateNum uint8, shapeHash string) (inkRemaining uint32, err error) {
 	delOp, err := t.ptr.ArtNode.GetOpWithHash(shapeHash) // get operation from the shapeHash
 	CheckError(err)
-	delOp.Draw=false
-	delOp.ValidFBlkNum=validateNum
-	// this node has to sign it --- make sure it is done in the miner 
+	delOp.Draw = false
+	delOp.ValidFBlkNum = validateNum
+	// this node has to sign it --- make sure it is done in the miner
 	_, err = t.ptr.ArtNode.ArtnodeOp(delOp) // fn needs to return boolean
 	if err != nil {
 		return 0, err
@@ -375,7 +375,7 @@ func (t CanvasObject) CloseCanvas() (inkRemaining uint32, err error) {
 }
 
 //Parse the Svg string if it's parsable
-func (t CanvasObject) IsSvgStringParsable_Parse(svgStr string) (isValid bool, Op shared.SingleOp) {
+func IsSvgStringParsable_Parse(svgStr string) (isValid bool, Op shared.SingleOp) {
 	//Legal Example: "m 20 0 L 19 21",all separated by space,always start at m/M
 	strCnt := len(svgStr)
 	var movList []shared.SingleMov
