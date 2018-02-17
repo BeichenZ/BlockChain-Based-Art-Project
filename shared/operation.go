@@ -46,10 +46,8 @@ func (o *Operation) Validate() bool {
 }
 
 func (o *Operation) CheckIssuerSig() bool {
-	fmt.Println("CHECKING")
 	if (o.Issuer == nil) || ((o.IssuerR == nil) || (o.IssuerS == nil)){
 		fmt.Println("------------------------------------------------They are all empty")
-
 		return false
 	}
 	return ecdsa.Verify(&o.Issuer.PublicKey, []byte(o.Command), o.IssuerR, o.IssuerS)

@@ -249,7 +249,7 @@ func AllOperationsCommands(buffer []Operation) string {
 	retstring := ""
 	for _, op := range buffer {
 
-		retstring += op.ShapeSvgString + fmt.Sprint(op.AmountOfInk)
+		retstring += op.ShapeSvgString + op.Fill + op.Stroke + fmt.Sprint(op.AmountOfInk)
 	}
 	return retstring
 }
@@ -294,7 +294,7 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 				initialOP = Operation{ShapeSvgString: "no-op", AmountOfInk: 0}
 				difficulutyLevel = int(m.Settings.PoWDifficultyNoOpBlock)
 
-				nonce = leadingBlock.CurrentHash + initialOP.ShapeSvgString + fmt.Sprint(initialOP.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
+				nonce = leadingBlock.CurrentHash + initialOP.ShapeSvgString + initialOP.Fill + initialOP.Stroke + fmt.Sprint(initialOP.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
 				fmt.Println(nonce)
 
 				// Sign the Operation
@@ -323,10 +323,10 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 
 			AddNewBlock(m.BlockChain, newBlock)
 
-			// printBlock(m.BlockChain)
+			printBlock(m.BlockChain)
 
 			fmt.Println("===================================LONGESTCHAIN===========================================")
-			// printBlockChain(getLongestPath(m.BlockChain))
+			printBlockChain(getLongestPath(m.BlockChain))
 			// TODO::
 			// Add current blocks' operation to this miners ListOfOps_str
 			// TODO maybe validate block here
@@ -477,7 +477,6 @@ func (m *MinerStruct) minerSendHeartBeat(minerNeighbourAddr string) error {
 		// fmt.Println(minerToMinerConnection)
 		err := client.Call("MinerRPCServer.ReceiveMinerHeartBeat", m.MinerAddr, &alive)
 		if err == nil {
-			// fmt.Println("////////////////////////////////////////////////////////////////")
 			log.Println(err)
 		} else {
 			return err
@@ -542,9 +541,6 @@ func (m *MinerStruct) GetBlkChildren(curBlk *Block, bh string) ([]string, error)
 	//fmt.Println("miner.go: GetBlkChildren() prinint the miners genesisBlock Children ", m.BlockChain.Children)
 	var bChildHash []string
 	if curBlk.CurrentHash == bh {
-		//fmt.Println("miner.go: GetBlkChildren() found same hash ")
-		//fmt.Println("miner.go: GetBlkChildren() going to print children of the block ")
-		//fmt.Println(curBlk.Children)
 		bChildHash = make([]string, len(curBlk.Children))
 		for i, bc := range curBlk.Children {
 			bChildHash[i] = bc.CurrentHash

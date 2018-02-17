@@ -34,7 +34,7 @@ func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 	if !m.Miner.FoundHash {
 		log.Print("Someone send me a block, its hash is: ", block.CurrentHash)
 		if block.Validate() {
-
+			log.Println("Successfully Validated the block")
 			go func() {
 				m.Miner.MiningStopSig <- block
 			}()
@@ -43,6 +43,7 @@ func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 		}
 	} else {
 		log.Print("I have found the hash, but so did at least one other miner")
+		log.Print("The hash is ", block.CurrentHash)
 		AddNewBlock(m.Miner.BlockChain, block)
 	}
 	log.Println("Sent channel info")
@@ -145,7 +146,7 @@ type ArtNodeOpReg struct {
 func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 	//reply decode: 0->Success,1->insufficientInk, 2->OverlappedShape
 	// Check InsufficientInkError
-	fmt.Printf("%+v", l.Miner)
+	fmt.Println("STARTING MINING+++++++++++++++++")
 	if l.Miner.MinerInk < (*op).AmountOfInk {
 		fmt.Println("The current ink we have is:", l.Miner.MinerInk)
 		fmt.Println("Insufficient Ink Detected for shape:", (*op).Command, "With requested ink:", (*op).AmountOfInk)
@@ -192,7 +193,7 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 		//fmt.Println("DoArtNodeOp: IN loop")
 		//Set-up overall timeout
 		then = time.Now()
-		if then.Sub(waitStartTime).Seconds() > 10 {
+		if then.Sub(waitStartTime).Seconds() > 50 {
 			*reply = 3
 			return DisconnectedError("Wait For ValidateNum Take Too Long")
 		}

@@ -38,12 +38,21 @@ func (b Block) GetString() string {
 func (b *Block) checkMD5() bool {
 	if computeNonceSecretHash(b.GetString(), strconv.FormatInt(int64(b.Nonce), 10)) == b.CurrentHash {
 		return true
+	} else {
+		fmt.Println("MD5 VALIDATION FAILED")
 	}
 	return false
 }
 
 func (b *Block) checkSolversSigForBlock() bool {
-	return ecdsa.Verify(b.SolverPublicKey, []byte(b.CurrentHash), b.R, b.S)
+
+	if ecdsa.Verify(b.SolverPublicKey, []byte(b.CurrentHash), b.R, b.S) {
+		return true
+	} else {
+		fmt.Println("SolversSig VALIDATION FAILED")
+	}
+
+	return false
 }
 
 func (b *Block) checkIssuerSigForOperation() bool {
