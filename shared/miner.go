@@ -331,34 +331,34 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 
 			AddNewBlock(m.BlockChain, newBlock)
 
-			newThing := getLongestPath(m.BlockChain)
-			resultArr := make([]FullSvgInfo, 0)
-			for _, block := range newThing {
-				for _, op := range block.CurrentOPs {
-					resultArr = append(resultArr, FullSvgInfo{
-						Path:   op.ShapeSvgString,
-						Fill:   op.Fill,
-						Stroke: op.Stroke,
-					})
-				}
-			}
+			// newThing := getLongestPath(m.BlockChain)
+			// resultArr := make([]FullSvgInfo, 0)
+			// for _, block := range newThing {
+			// 	for _, op := range block.CurrentOPs {
+			// 		resultArr = append(resultArr, FullSvgInfo{
+			// 			Path:   op.ShapeSvgString,
+			// 			Fill:   op.Fill,
+			// 			Stroke: op.Stroke,
+			// 		})
+			// 	}
+			// }
 			// newStrings = append(newStrings, Block{CurrentHash: "ha"})
 			// newStrings = append(newStrings, Block{CurrentHash: "wa"})
 			// LongestBlockPayload := LongestBlockStruct{Longest: newThing}
 			// newerBlock := Block{CurrentHash: "haha"}
-			fmt.Println("Logging out my artnode here")
-			go func() {
-				for k, _ := range allArtNodes.all {
-					fmt.Println(k)
-					reply := false
-					client, err := rpc.Dial("tcp", k)
-					if err != nil {
-						fmt.Println("Cannot connect to artnode: ", err)
-					}
-					fmt.Println("calling my art node")
-					client.Call("CanvasObject.ReceiveLongestChainFromMiner", resultArr, &reply)
-				}
-			}()
+			// fmt.Println("Logging out my artnode here")
+			// go func() {
+			// 	for k, _ := range allArtNodes.all {
+			// 		fmt.Println(k)
+			// 		reply := false
+			// 		client, err := rpc.Dial("tcp", k)
+			// 		if err != nil {
+			// 			fmt.Println("Cannot connect to artnode: ", err)
+			// 		}
+			// 		fmt.Println("calling my art node")
+			// 		client.Call("CanvasObject.ReceiveLongestChainFromMiner", resultArr, &reply)
+			// 	}
+			// }()
 			// printBlock(m.BlockChain)
 
 			fmt.Println("===================================LONGESTCHAIN===========================================")
