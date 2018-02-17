@@ -313,6 +313,9 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			AddNewBlock(m.BlockChain, newBlock)
 
 			printBlock(m.BlockChain)
+
+			fmt.Println("===================================LONGESTCHAIN===========================================")
+			printBlockChain(getLongestPath(m.BlockChain))
 			// TODO:: 
 			// Add current blocks' operation to this miners ListOfOps_str
 			// TODO maybe validate block here
