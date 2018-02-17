@@ -604,7 +604,6 @@ func (m *MinerStruct) GetInkBalance() uint32 {
 }
 
 func (m *MinerStruct) GetListOfOps(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("walalalalalalalalalalalalalalalalala")
 	// longestChain := getLongestPath(m.BlockChain)
 	// resultArr := make([]FullSvgInfo, 0)
 	// for _, block := range longestChain {
