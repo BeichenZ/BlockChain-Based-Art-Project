@@ -115,7 +115,7 @@ type MinerStruct struct {
 	RecievedOpSig         chan Operation
 	OPBuffer              []Operation
 	MinerInk              uint32
-	ArtNodeIp			  []string
+	ArtNodeIp             []string
 }
 
 type MinerHeartbeatPayload struct {
@@ -600,4 +600,19 @@ func (m *MinerStruct) GetOpToDelete(curBlk *Block, shapeHash string) Operation {
 func (m *MinerStruct) GetInkBalance() uint32 {
 	return 0
 
+}
+
+func (m *MinerStruct) GetListOfOps() []FullSvgInfo {
+	longestChain := getLongestPath(m.BlockChain)
+	resultArr := make([]FullSvgInfo, 0)
+	for _, block := range longestChain {
+		for _, op := range block.CurrentOPs {
+			resultArr = append(resultArr, FullSvgInfo{
+				Path:   op.ShapeSvgString,
+				Fill:   op.Fill,
+				Stroke: op.Stroke,
+			})
+		}
+	}
+	return resultArr
 }

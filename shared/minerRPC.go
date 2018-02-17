@@ -5,9 +5,10 @@ import (
 	"crypto/rand"
 	"fmt"
 	"log"
-	"net/rpc"
-	"time"
 	"net"
+	"net/rpc"
+	"reflect"
+	"time"
 )
 
 type Block_OP_Index struct {
@@ -21,6 +22,28 @@ type BadBlockError string
 
 func (e BadBlockError) Error() string {
 	return fmt.Sprintf("BAD BLOCK")
+}
+
+func (m *MinerRPCServer) CalculateInk(s string, inkAmount *uint32) error {
+	// log.Println(s + "============================================================")
+	var ink uint32
+	thisMinerBlockChain := getLongestPath(m.Miner.BlockChain)
+	for _, b := range thisMinerBlockChain {
+		for _, op := range b.CurrentOPs {
+			if reflect.DeepEqual(*op.Issuer, m.Miner.PairKey) {
+				ink -= op.AmountOfInk
+			}
+			if reflect.DeepEqual(b.SolverPublicKey, m.Miner.PairKey.PublicKey) {
+				if (len(b.CurrentOPs) == 0) && (b.CurrentOPs[0].ShapeSvgString == "no-op") {
+					ink += m.Miner.Settings.InkPerNoOpBlock
+				} else {
+					ink += m.Miner.Settings.InkPerOpBlock
+				}
+			}
+		}
+	}
+	*inkAmount = ink
+	return nil
 }
 
 func (m *MinerRPCServer) SendChain(s string, blockChain *BlockPayloadStruct) error {
@@ -276,7 +299,8 @@ func (l *ArtNodeOpReg) ArtnodeGetOpWithHashRequest(shapeHash string, opToDel *Op
 	*opToDel = l.Miner.GetOpToDelete(l.Miner.BlockChain, shapeHash)
 	return nil
 }
-// Sends Miner Canvas Settings back to the Art node and 
+
+// Sends Miner Canvas Settings back to the Art node and
 func (l *CanvasSet) GetCanvasSettingsFromMiner(artNodeIp net.Addr, ics *InitialCanvasSetting) error {
 	fmt.Println("request for CanvasSettings")
 	ics.Cs = CanvasSettings(l.Miner.Settings.CanvasSettings)
@@ -295,3 +319,15 @@ func CheckError(err error) {
 		fmt.Println("Error: ", err)
 	}
 }
+
+// resultArr := make([]shared.FullSvgInfo, 0)
+// for _, block := range chain {
+// 	for _, op := range block.operations{
+// 		resultArr = appen(resultArr, shared.FullSvgInfo{
+// 			Path: op.ShapeSvgString,
+// 			Fill: op.Fill,
+// 			Stroke:op.Stroke
+// 			})
+// 	}
+// }
+// return resultArr
