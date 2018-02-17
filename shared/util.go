@@ -190,9 +190,34 @@ func findDeepestBlocks(b *Block, depth int) (*Block, int) {
 	}
 }
 
+func getLongestPath(b *Block) ([]Block) {
+	if b == nil {
+		return nil
+	}
+
+	if len(b.Children) == 0 {
+		return []Block{*b}
+	} else {
+		longestBlockChain := make([]Block, 0)
+		deepestBlock,_ :=findDeepestBlocks(b,0)
+
+		longestBlockChain = append(longestBlockChain, *deepestBlock)
+		nthBlock := deepestBlock
+
+		for nthBlock.PreviousHash != "" {
+
+			foundBlock := findBlockUsingHash(nthBlock.PreviousHash, b)
+
+			longestBlockChain = append(longestBlockChain, *foundBlock)
+			nthBlock = foundBlock
+		}
+
+		return longestBlockChain
+	}
+}
+
 func printBlock(m *Block) {
-	// fmt.Println("inside printblock")
-	// fmt.Println(m.Children)
+
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	if m.PreviousHash == "" {
 		strconv.Itoa(len(m.Children))
@@ -203,7 +228,17 @@ func printBlock(m *Block) {
 	for _, c := range m.Children {
 		printBlock(c)
 	}
+}
 
+func printBlockChain(chain []Block) {
+
+	fmt.Printf("DEEPEST NODE ")
+	for _, b := range chain {
+		fmt.Printf( b.CurrentHash[0:5] + " -> ")
+	}
+	fmt.Printf( " GENESIS")
+
+	fmt.Println()
 }
 
 
@@ -244,4 +279,21 @@ func maxArray(array []int) int {
 		}
 	}
 	return maxNum
+}
+
+
+func findBlockUsingHash(hash string, blk *Block ) *Block {
+
+	if blk.CurrentHash == hash {
+		return blk
+	}
+
+	for _, subBlock := range blk.Children {
+		result := findBlockUsingHash(hash, subBlock)
+		if result != nil {
+			return result
+		}
+	}
+
+	return nil
 }

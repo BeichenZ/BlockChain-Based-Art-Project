@@ -320,7 +320,6 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 		return "", "", 0, shared.OutOfBoundsError{}
 	}
 	//Create New OPERATION
-	//TODO:Fill up the new struct
 	inkCost := uint32(t.CalculateShapeArea(isClosedCurve, vtxArr, edgeArr, fill))
 	inkCost++ //For rounding up the cost
 	fmt.Println("AddShape(),The command is ", shapeSvgString)
@@ -334,13 +333,13 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 		ValidFBlkNum:   validateNum,
 		Draw:			true,
 	}
-	_, err = t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
-	if err != nil {
+	addSuccess, err := t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
+	if addSuccess {
+		//TODO: Shape,Block,InkRemaining
+		return "", "", 0, nil
+	} else {
 		return "", "", 0, err
 	}
-	//TODO:Once RPC call finished successfully.Store it in canvas
-
-	return "", "", 0, nil
 }
 func (t CanvasObject) GetSvgString(shapeHash string) (svgString string, err error) {
 	svgString, err = t.ptr.ArtNode.GetSvgStringUsingOperationSignature(shapeHash)

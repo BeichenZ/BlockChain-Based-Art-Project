@@ -11,18 +11,24 @@ import (
 	"net/rpc"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
-	"strings"
 )
+
 type FullSvgInfo struct {
-	Path string
-	Fill string
+	Path   string
+	Fill   string
 	Stroke string
 }
 type AllNeighbour struct {
 	sync.RWMutex
 	all map[string]*MinerStruct
+}
+
+type AllArtNodes struct {
+	sync.RWMutex
+	all map[string]int
 }
 
 type GlobalBlockCreationCounter struct {
@@ -33,6 +39,7 @@ type GlobalBlockCreationCounter struct {
 var (
 	allNeighbour = AllNeighbour{all: make(map[string]*MinerStruct)}
 	blockCounter = GlobalBlockCreationCounter{counter: 0}
+	allArtNodes  = AllArtNodes{all: make(map[string]int)}
 )
 
 type Miner interface {
@@ -239,7 +246,7 @@ func AllOperationsCommands(buffer []Operation) string {
 	retstring := ""
 	for _, op := range buffer {
 
-		retstring += op.ShapeSvgString +  fmt.Sprint(op.AmountOfInk)
+		retstring += op.ShapeSvgString + fmt.Sprint(op.AmountOfInk)
 	}
 	return retstring
 }
@@ -249,7 +256,7 @@ func AddNewBlock(blk *Block, newBlock *Block) {
 		blk.Children = append(blk.Children, newBlock)
 		return
 	} else {
-		for  _, b := range blk.Children {
+		for _, b := range blk.Children {
 			AddNewBlock(b, newBlock)
 		}
 	}
@@ -281,7 +288,7 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 				//	Mine for no-op
 				fmt.Println("Start doing no-op")
 
-				initialOP = Operation{ShapeSvgString: "no-op", AmountOfInk:0}
+				initialOP = Operation{ShapeSvgString: "no-op", AmountOfInk: 0}
 				difficulutyLevel = int(m.Settings.PoWDifficultyNoOpBlock)
 
 				nonce = leadingBlock.CurrentHash + initialOP.ShapeSvgString + fmt.Sprint(initialOP.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
@@ -314,7 +321,10 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			AddNewBlock(m.BlockChain, newBlock)
 
 			printBlock(m.BlockChain)
-			// TODO:: 
+
+			fmt.Println("===================================LONGESTCHAIN===========================================")
+			printBlockChain(getLongestPath(m.BlockChain))
+			// TODO::
 			// Add current blocks' operation to this miners ListOfOps_str
 			// TODO maybe validate block here
 			fmt.Println("\n")
@@ -438,8 +448,6 @@ func (m *MinerStruct) produceBlock(currentHash string, newOPs []Operation, leadi
 
 	fmt.Println("ITS NONCE IS IS " + nonce)
 
-
-
 	m.Flood(producedBlock, &visitedMiners)
 
 	fmt.Println("Need to let the other miners about this block")
@@ -530,18 +538,18 @@ func (m *MinerStruct) CheckForNeighbour() {
 func (m *MinerStruct) GetBlkChildren(curBlk *Block, bh string) ([]string, error) {
 	//fmt.Println("miner.go: GetBlkChildren() prinint the miners genesisBlock Children ", m.BlockChain.Children)
 	var bChildHash []string
-	if (curBlk.CurrentHash==bh){
+	if curBlk.CurrentHash == bh {
 		//fmt.Println("miner.go: GetBlkChildren() found same hash ")
 		//fmt.Println("miner.go: GetBlkChildren() going to print children of the block ")
 		//fmt.Println(curBlk.Children)
 		bChildHash = make([]string, len(curBlk.Children))
-		for i,bc := range curBlk.Children{
-			bChildHash[i]=bc.CurrentHash
+		for i, bc := range curBlk.Children {
+			bChildHash[i] = bc.CurrentHash
 		}
 		return bChildHash, nil
 	} else {
-		for _,bcc := range curBlk.Children{
-		m.GetBlkChildren(bcc, bh)
+		for _, bcc := range curBlk.Children {
+			m.GetBlkChildren(bcc, bh)
 		}
 
 	}
@@ -549,13 +557,13 @@ func (m *MinerStruct) GetBlkChildren(curBlk *Block, bh string) ([]string, error)
 	return bChildHash, nil
 }
 
-func (m *MinerStruct) GetSVGShapeString(curBlk *Block, shapeHash string)  string {
+func (m *MinerStruct) GetSVGShapeString(curBlk *Block, shapeHash string) string {
 
 	for _, operation := range curBlk.CurrentOPs {
 
 		operationHash := pubKeyToString(operation.Issuer.PublicKey)
 
-		if strings.Compare(operationHash, shapeHash) == 0{
+		if strings.Compare(operationHash, shapeHash) == 0 {
 			return operation.ShapeSvgString
 		}
 	}
@@ -570,11 +578,11 @@ func (m *MinerStruct) GetSVGShapeString(curBlk *Block, shapeHash string)  string
 func (m *MinerStruct) GetOpToDelete(curBlk *Block, shapeHash string) Operation {
 	var opToDelete Operation
 
-		for _, operation := range curBlk.CurrentOPs {
+	for _, operation := range curBlk.CurrentOPs {
 
 		operationHash := pubKeyToString(operation.Issuer.PublicKey)
 
-		if strings.Compare(operationHash, shapeHash) == 0{
+		if strings.Compare(operationHash, shapeHash) == 0 {
 			opToDelete = operation
 			return opToDelete
 		}
@@ -587,10 +595,9 @@ func (m *MinerStruct) GetOpToDelete(curBlk *Block, shapeHash string) Operation {
 
 	return opToDelete
 
-	
 }
 
 func (m *MinerStruct) GetInkBalance() uint32 {
 	return 0
-	
+
 }

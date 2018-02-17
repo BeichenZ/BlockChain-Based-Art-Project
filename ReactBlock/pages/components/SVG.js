@@ -14,4 +14,4 @@ class SVG extends Component {
   }
 }
 
-export default SVG
+export default SVG;
