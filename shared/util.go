@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"math/big"
+	"regexp"
 	"strconv"
 	"time"
 )
@@ -73,7 +74,7 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, newOPs []Op
 		case opFromMineNode := <-m.RecievedOpSig:
 			fmt.Println("M-UPDATED OPERATION LIST FROM MINERS ")
 			if isDoingWorkForNoOp {
-				nonce = leadingBlock.CurrentHash + opFromMineNode.ShapeSvgString +opFromMineNode.Fill + opFromMineNode.Stroke + fmt.Sprint(opFromMineNode.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
+				nonce = leadingBlock.CurrentHash + opFromMineNode.ShapeSvgString + opFromMineNode.Fill + opFromMineNode.Stroke + fmt.Sprint(opFromMineNode.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
 				newOPs = []Operation{opFromMineNode}
 				isDoingWorkForNoOp = false
 				fmt.Println(nonce)
@@ -190,7 +191,7 @@ func findDeepestBlocks(b *Block, depth int) (*Block, int) {
 	}
 }
 
-func getLongestPath(b *Block) ([]Block) {
+func getLongestPath(b *Block) []Block {
 	if b == nil {
 		return nil
 	}
@@ -199,7 +200,7 @@ func getLongestPath(b *Block) ([]Block) {
 		return []Block{*b}
 	} else {
 		longestBlockChain := make([]Block, 0)
-		deepestBlock,_ :=findDeepestBlocks(b,0)
+		deepestBlock, _ := findDeepestBlocks(b, 0)
 
 		longestBlockChain = append(longestBlockChain, *deepestBlock)
 		nthBlock := deepestBlock
@@ -221,9 +222,9 @@ func printBlock(m *Block) {
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	if m.PreviousHash == "" {
 		strconv.Itoa(len(m.Children))
-		fmt.Println("Genesis BLOCK:    " + m.CurrentHash[0:5] + " has this " + strconv.Itoa(len(m.Children))  + " children")
+		fmt.Println("Genesis BLOCK:    " + m.CurrentHash[0:5] + " has this " + strconv.Itoa(len(m.Children)) + " children")
 	} else {
-		fmt.Println(m.CurrentHash[0:5] + " has this " + strconv.Itoa(len(m.Children))  + " children and its parent is " + m.PreviousHash[0:5])
+		fmt.Println(m.CurrentHash[0:5] + " has this " + strconv.Itoa(len(m.Children)) + " children and its parent is " + m.PreviousHash[0:5])
 	}
 	for _, c := range m.Children {
 		printBlock(c)
@@ -234,15 +235,14 @@ func printBlockChain(chain []Block) {
 
 	fmt.Printf("DEEPEST NODE ")
 	for _, b := range chain {
-		fmt.Printf( b.CurrentHash[0:5] + " -> ")
+		fmt.Printf(b.CurrentHash[0:5] + " -> ")
 	}
-	fmt.Printf( " GENESIS")
+	fmt.Printf(" GENESIS")
 
 	fmt.Println()
 }
 
-
-func getBlockDistanceFromGensis ( blk *Block, blkHash string) int  {
+func getBlockDistanceFromGensis(blk *Block, blkHash string) int {
 
 	if blk == nil {
 		return -1
@@ -257,7 +257,7 @@ func getBlockDistanceFromGensis ( blk *Block, blkHash string) int  {
 	}
 
 	distArray := make([]int, len(blk.Children))
-	for i,subB := range blk.Children {
+	for i, subB := range blk.Children {
 		distArray[i] = getBlockDistanceFromGensis(subB, blkHash)
 	}
 
@@ -274,15 +274,14 @@ func maxArray(array []int) int {
 
 	for _, num := range array {
 
-		if (num > maxNum) {
+		if num > maxNum {
 			maxNum = num
 		}
 	}
 	return maxNum
 }
 
-
-func findBlockUsingHash(hash string, blk *Block ) *Block {
+func findBlockUsingHash(hash string, blk *Block) *Block {
 
 	if blk.CurrentHash == hash {
 		return blk
@@ -296,4 +295,133 @@ func findBlockUsingHash(hash string, blk *Block ) *Block {
 	}
 
 	return nil
+}
+
+//Parse the Svg string if it's parsable
+func IsSvgStringParsable_Parse(svgStr string) (isValid bool, Op SingleOp) {
+	//Legal Example: "m 20 0 L 19 21",all separated by space,always start at m/M
+	strCnt := len(svgStr)
+	var movList []SingleMov
+	parsedOp := SingleOp{MovList: movList}
+	if strCnt < 3 {
+		return false, parsedOp
+	}
+	if svgStr[0] != 'M' {
+		return false, parsedOp
+	}
+	regex_2 := regexp.MustCompile("([mMvVlLhHZz])[\\s]([-]*[0-9]+)[\\s]([-]*[0-9]+)")
+	regex_1 := regexp.MustCompile("([mMvVlLhHZz])[\\s]([-]*[0-9]+)")
+	var matches []string
+	var oneMov SingleMov
+	var thisRune rune
+	fmt.Println("string size is", strCnt)
+	for i := 0; i < strCnt; i = i {
+		fmt.Println("Current I is", i)
+		thisRune = rune(svgStr[i])
+		switch thisRune {
+		case 'm', 'M', 'L', 'l':
+			arr := regex_2.FindStringIndex(svgStr[i:])
+			if arr == nil {
+				return false, parsedOp
+			} else {
+				//if legal, Parse it
+				matches = regex_2.FindStringSubmatch(svgStr[i:])
+				intVal1, _ := strconv.Atoi(matches[2])
+				intVal2, _ := strconv.Atoi(matches[3])
+				oneMov = SingleMov{Cmd: rune(thisRune), X: float64(intVal1), Y: float64(intVal2), ValCnt: 2}
+				parsedOp.MovList = append(parsedOp.MovList, oneMov)
+				//Update Index
+				fmt.Println("ML update next index is", arr[0], arr[1])
+				i = i + arr[1] + 1
+			}
+		case 'v', 'V', 'H', 'h':
+			arr := regex_1.FindStringIndex(svgStr[i:])
+			fmt.Println("VH update next index is", arr[0], arr[1])
+			if arr == nil {
+				return false, parsedOp
+			} else {
+				matches = regex_1.FindStringSubmatch(svgStr[i:])
+				intVal1, _ := strconv.Atoi(matches[2])
+				oneMov = SingleMov{Cmd: rune(thisRune), X: float64(intVal1), Y: 0, ValCnt: 1}
+				parsedOp.MovList = append(parsedOp.MovList, oneMov)
+				i = i + arr[1] + 1
+			}
+		case 'Z', 'z':
+			oneMov := SingleMov{Cmd: rune(thisRune), ValCnt: 0}
+			parsedOp.MovList = append(parsedOp.MovList, oneMov)
+			i = i + 2
+		default:
+			return false, parsedOp
+		}
+	}
+	return true, parsedOp //pass all tests
+}
+
+func IsClosedShapeAndGetVtx(op SingleOp) (IsClosed bool, vtxArray []Point, edgeArray []LineSectVector) {
+	var vtxArr []Point
+	var edgeArr []LineSectVector
+	var curVtx Point
+	var preVtx Point
+	var nextVtx Point
+	var originalStart Point
+	var lastSubPathStart Point
+	//traverse all operation, identify list of edge and points
+	//TODO : Corner Case when an open shape has the same ending point
+	movCount := len(op.MovList)
+	if movCount < 1 {
+		return false, vtxArr, edgeArr
+	} //Panic Check
+	originalStart.X = op.MovList[0].X // Assume the first mov is always 'M' which is validated by IsValidSvgString
+	originalStart.Y = op.MovList[0].Y
+	for _, element := range op.MovList {
+		switch element.Cmd {
+		case 'M', 'V', 'H', 'L':
+			preVtx = curVtx
+			curVtx.X = element.X
+			curVtx.Y = element.Y
+			if element.Cmd != 'M' {
+				edgeArr = append(edgeArr, LineSectVector{preVtx, curVtx}) //add new line segment
+			} else {
+				lastSubPathStart = curVtx // prepare for potential Z/z command
+			}
+			vtxArr = append(vtxArr, curVtx) // add new vertex
+		case 'm', 'v', 'h', 'l':
+			preVtx = curVtx
+			curVtx.X += element.X
+			curVtx.Y += element.Y
+			if element.Cmd != 'm' {
+				edgeArr = append(edgeArr, LineSectVector{preVtx, curVtx})
+			} else {
+				lastSubPathStart = curVtx
+			}
+			vtxArr = append(vtxArr, curVtx)
+		case 'Z', 'z':
+			preVtx = curVtx
+			curVtx = lastSubPathStart
+			edgeArr = append(edgeArr, LineSectVector{preVtx, curVtx})
+		}
+	}
+	//List through the edge array and identify if everything is connected.Reuse variables
+	if len(edgeArr) < 1 {
+		return false, vtxArr, edgeArr
+	}
+	preVtx = edgeArr[0].Start
+	for _, element := range edgeArr { // Check For discontinuity
+		curVtx = element.Start
+		nextVtx = element.End
+		if curVtx != preVtx {
+			return false, vtxArr, edgeArr
+		} else {
+			vtxArr = append(vtxArr, curVtx)
+			vtxArr = append(vtxArr, nextVtx)
+			preVtx = nextVtx
+		}
+	}
+	//If entire edge is continous, Check if it returns to the same points
+	if nextVtx != originalStart {
+		return false, vtxArr, edgeArr
+	} else {
+		uniqueVtxCount := len(vtxArr) - 1
+		return true, vtxArr[:uniqueVtxCount], edgeArr // the last "nextVtx" will be an overlapping of the staring point
+	}
 }

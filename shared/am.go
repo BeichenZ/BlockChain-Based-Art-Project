@@ -52,7 +52,7 @@ func (a *ArtNodeStruct) ArtnodeOp(op Operation) (validOp bool, err error) {
 	case 1:
 		return false, InsufficientInkError(uint32(op.AmountOfInk))
 	case 2:
-		return false, ShapeOverlapError(op.Command)
+		return false, ShapeOverlapError(op.ShapeSvgString)
 	case 3:
 		return false, TimedOutTooLongError("DoArtNodeOp")
 	default:
@@ -83,15 +83,15 @@ func (a *ArtNodeStruct) GetSvgStringUsingOperationSignature(shapeHash string) (s
 	err := a.AmConn.Call("ArtNodeOpReg.ArtnodeSvgStringRequest", shapeHash, &svgstring)
 	return svgstring, err
 }
-func (a *ArtNodeStruct) GetOpWithHash(shapeHash string) (Operation, error){
+func (a *ArtNodeStruct) GetOpWithHash(shapeHash string) (Operation, error) {
 
 	var delOp Operation
-	err:=a.AmConn.Call("ArtNodeOpReg.ArtnodeGetOpWithHashRequest", shapeHash, &delOp)
-	if (len(delOp.Command) == 0 ){
-		err=ShapeOwnerError("")
+	err := a.AmConn.Call("ArtNodeOpReg.ArtnodeGetOpWithHashRequest", shapeHash, &delOp)
+	if len(delOp.Command) == 0 {
+		err = ShapeOwnerError("")
 	}
-	if (err !=nil){
-		err=DisconnectedError("")
+	if err != nil {
+		err = DisconnectedError("")
 	}
 	return delOp, err
 }
