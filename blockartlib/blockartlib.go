@@ -240,7 +240,7 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	commAddrForMiner := artListenConn.Addr() 
 	canvasListen := new(Canvas)
 	rpc.Register(canvasListen)
-	rpc.Accept(artListenConn)
+	go rpc.Accept(artListenConn)
 	// Connect to Miner
 	art2MinerCon, err := rpc.Dial("tcp", minerAddr)
 	CheckError(err)
