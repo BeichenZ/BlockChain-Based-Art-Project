@@ -478,7 +478,7 @@ func IsSvgStringParsable_Parse_Cir(svgStr string) (isValid bool, Op CircleMov) {
 			//fmt.Println("r expression ", regex_3)
 			arr := regex_3.FindStringIndex(svgStr[i:])
 			if arr == nil {
-				return
+				return false, mov
 			} else {
 				matches = regex_3.FindStringSubmatch(svgStr[i:])
 				rVal, _ := strconv.Atoi(matches[1])
@@ -516,7 +516,11 @@ func IsSvgStringParsable_Parse_Cir(svgStr string) (isValid bool, Op CircleMov) {
 		}
 
 	}
-
-	return true, mov
+	if (mov.Cx>=0) && (mov.Cy>=0) && (mov.R>0){
+		return true, mov
+	}
+	fmt.Println("IsSvgStringParsable_Parse_cir() circle feils are neg")
+	return false, mov
+		
 
 }

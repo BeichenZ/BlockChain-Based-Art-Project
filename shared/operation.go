@@ -4,12 +4,14 @@ import (
 	"crypto/ecdsa"
 	"math/big"
 	"fmt"
+	
 )
+type ShapeType int
 
 type Operation struct {
 	Command        string
 	AmountOfInk    uint32
-	Shapetype      string
+	Shapetype      ShapeType
 	ShapeSvgString string
 	Fill           string
 	Stroke         string

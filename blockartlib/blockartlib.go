@@ -14,18 +14,18 @@ import (
 	"net"
 	"net/rpc"
 	"runtime"
-
 	shared "../shared"
 )
 
 // Represents a type of shape in the BlockArt system.
-type ShapeType int
+
 
 const (
 	// Path shape.
-	PATH ShapeType = iota
+	PATH shared.ShapeType = iota
+	CIRCLE
 	// Circle shape (extra credit).
-	CIRCLE ShapeType
+	
 )
 
 // Settings for a canvas in BlockArt.
@@ -75,7 +75,7 @@ type Canvas interface {
 	// - ShapeSvgStringTooLongError
 	// - ShapeOverlapError
 	// - OutOfBoundsError
-	AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error)
+	AddShape(validateNum uint8, shapeType shared.ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error)
 
 	// Returns the encoding of the shape as an svg string.
 	// Can return the following errors:
@@ -148,7 +148,6 @@ func GetListOfOps() []shared.FullSvgInfo {
 // Can return the following errors:
 // - DisconnectedError
 func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, setting CanvasSettings, err error) {
-	// TODO
 	fmt.Print("OpenCanvas(): Going to connect to miner")
 
 	// Connect to Miner
@@ -215,12 +214,12 @@ type CanvasObject struct {
 	ptr *CanvasObjectReal
 }
 
-func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
+func (t CanvasObject) AddShape(validateNum uint8, shapeType shared.ShapeType, shapeSvgString string, fill string, stroke string) (shapeHash string, blockHash string, inkRemaining uint32, err error) {
 	//Check for ShapeSvgStringTooLongError
 	//var IsTransFill bool
 	var isClosedCurve bool
 	var isSvgValid bool
-	var svgOP shared.SingleOp
+	//var svgOP shared.SingleOp
 	var vtxArr []shared.Point
 	var edgeArr []shared.LineSectVector
 
@@ -243,23 +242,27 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 			return "", "", 0, shared.OutOfBoundsError{}
 		}
 	case CIRCLE:
-		parsable, svgOP := shared.IsSvgStringParsable_Parse_Cir(shapeSvgString)
+		parsable, svgCirOP := shared.IsSvgStringParsable_Parse_Cir(shapeSvgString)
 		if !parsable {
 			return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString)
 		} else {
-			isSvgValid, isClosedCurve, vtxArr, edgeArr = t.IsParsableSvgValid_GetVtxEdge(shapeSvgString, fill, stroke, svgOP)
+			isSvgValid= t.IsParsableSvgValid_Cir(shapeSvgString, fill, stroke, svgCirOP) // TODO
 			if !isSvgValid {
 				return "", "", 0, shared.InvalidShapeSvgStringError(shapeSvgString + fill + stroke)
 			}
 		}
-		if t.IsSvgOutofBounds(svgOP) {
+		if t.IsSvgOutofBounds_Cir(svgCirOP) {
 			return "", "", 0, shared.OutOfBoundsError{}
 		}
 
 	default: return "", "", 0, err
 
 	}
-	
+	// ***** Testing
+	fmt.Println("AddShape() Circle passed all basic tests")
+	return
+	// ***** Testing
+
 	//Create New OPERATION
 	inkCost := uint32(t.CalculateShapeArea(isClosedCurve, vtxArr, edgeArr, fill))
 	inkCost++ //For rounding up the cost
@@ -267,7 +270,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	newOP := shared.Operation{
 		Command:     shapeSvgString,
 		AmountOfInk: inkCost,
-		ShapeType:    shapeType,
+		Shapetype:    shapeType,
 		ShapeSvgString: shapeSvgString,
 		Fill:           fill,
 		Stroke:         stroke,
@@ -338,7 +341,7 @@ func (t CanvasObject) IsParsableSvgValid_GetVtxEdge(svgStr string, fill string, 
 		return false, isthisClosed, vtxArr, edgeArr
 	}
 	//No Fully Transparent Shape
-	if fill == "transparent" && stroke == "transparent" {
+	if (fill == "transparent" && stroke == "transparent") || (fill == "none" && stroke == "none")  {
 		return false, isthisClosed, vtxArr, edgeArr
 	}
 	// For Non-Transparent Fill,Must Not Be Self-Intersecting
@@ -513,9 +516,36 @@ func (t CanvasObject) ReceiveLongestChainFromMiner(chain []shared.FullSvgInfo, a
 	return nil
 }
 
-// Additional Helper Functions
+// Additional Helper 
 func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)
 	}
+}
+
+// **** Circle Functions
+func (t CanvasObject) IsParsableSvgValid_Cir(svgStr string, fill string, stroke string, Op shared.CircleMov) (bool) {
+	//var vtxArr []shared.Point
+	//var edgeArr []shared.LineSectVector
+	//var isthisClosed bool
+	// For Non-Transparent Fill, Must be closed
+	// if isthisClosed, vtxArr, edgeArr := shared.IsClosedShapeAndGetVtx(Op); !isClosed && fill != "transparent" {
+	// 	fmt.Println("Non-closed curve shape", svgStr, "but with fill:", fill)
+	// 	return false, isthisClosed, vtxArr, edgeArr
+	// }
+	//No Fully Transparent Shape
+	if (fill == "transparent" && stroke == "transparent") || (fill == "none" && stroke == "none") {
+		return false//, isthisClosed, vtxArr, edgeArr
+	}
+	// For Non-Transparent Fill,Must Not Be Self-Intersecting
+	// if isSelfInterSected := t.IsSelfIntersect(vtxArr, edgeArr); fill != "transparent" && isSelfInterSected {
+	// 	fmt.Println("Self intersected shape", svgStr, "but with fill:", fill)
+	// 	return false, isthisClosed, vtxArr, edgeArr
+	// }
+	// Pass all tests:
+	return true //, isthisClosed, vtxArr, edgeArr
+}
+func (t CanvasObject) IsSvgOutofBounds_Cir(OpCir shared.CircleMov) (bool) {
+	return (OpCir.Cx + OpCir.R > t.ptr.XYLimit.X) || (OpCir.Cx - OpCir.R > t.ptr.XYLimit.X) || (OpCir.Cy + OpCir.R > t.ptr.XYLimit.Y) || (OpCir.Cy - OpCir.R > t.ptr.XYLimit.Y) 
+	
 }
