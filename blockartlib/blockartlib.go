@@ -10,11 +10,12 @@ package blockartlib
 import (
 	"crypto/ecdsa"
 	"fmt"
-	"net/rpc"
-	"net"
-	shared "../shared"
 	"math"
+	"net"
+	"net/rpc"
 	"runtime"
+
+	shared "../shared"
 )
 
 // Represents a type of shape in the BlockArt system.
@@ -33,6 +34,10 @@ type CanvasSettings struct {
 	// Canvas dimensions
 	CanvasXMax uint32
 	CanvasYMax uint32
+}
+
+type LongestBlockStruct struct {
+	longest []shared.Block
 }
 
 // Settings for an instance of the BlockArt project/network.
@@ -156,16 +161,15 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	artListenConn, err := net.Listen("tcp", "127.0.0.1:")
 	CheckError(err)
 	fmt.Println("Artnode going to be a listener")
-	artNodeIp:=artListenConn.Addr()
+	artNodeIp := artListenConn.Addr()
 	var thisCanvasObj CanvasObject
 	thisCanvasObj.ptr = new(CanvasObjectReal)
-	thisCanvasObj.ptr.ArtNodeipStr=artNodeIp.String()
+	thisCanvasObj.ptr.ArtNodeipStr = artNodeIp.String()
 	fmt.Println("Artnode going to be a listener 2")
 	rpc.Register(&thisCanvasObj)
 	go rpc.Accept(artListenConn)
 	runtime.Gosched()
 	fmt.Println("Artnode going to be a listener 3")
-
 
 	// see if the Miner key matches the one you have
 	var reply bool
@@ -175,8 +179,7 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	CheckError(err)
 	if reply {
 		fmt.Println("ArtNode has same key as miner")
-		
-		
+
 		thisCanvasObj.ptr.ArtNode.AmConn = art2MinerCon
 
 		// Art node gets canvas settings from Miner node
@@ -204,7 +207,7 @@ type CanvasObjectReal struct {
 	ListOfOps_ops   []shared.SingleOp
 	LastPenPosition shared.Point
 	XYLimit         shared.Point
-	ArtNodeipStr	string
+	ArtNodeipStr    string
 
 	// Canvas settings field?
 }
@@ -485,7 +488,8 @@ func Area_SingleClosedPolygon(vtxArr []shared.Point) float64 {
 	return math.Abs(area)
 }
 
-func (t CanvasObject) GetLongestChainFromMiner(chain string, ack *bool) error {
+func (t CanvasObject) ReceiveLongestChainFromMiner(chain []shared.FullSvgInfo, ack *bool) error {
+	fmt.Println("receiving blockchain from miner")
 	fmt.Println(chain)
 	return nil
 }

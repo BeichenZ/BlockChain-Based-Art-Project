@@ -38,6 +38,16 @@ type GlobalBlockCreationCounter struct {
 	counter uint8
 }
 
+type LongestBlockStruct struct {
+	Longest []InfoBlock
+}
+
+// type InfoOperation str
+
+type InfoBlock struct {
+	ListOperations []Operation
+}
+
 var (
 	allNeighbour = AllNeighbour{all: make(map[string]*MinerStruct)}
 	blockCounter = GlobalBlockCreationCounter{counter: 0}
@@ -323,7 +333,35 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 
 			AddNewBlock(m.BlockChain, newBlock)
 
-			printBlock(m.BlockChain)
+			newThing := getLongestPath(m.BlockChain)
+			resultArr := make([]FullSvgInfo, 0)
+			for _, block := range newThing {
+				for _, op := range block.CurrentOPs {
+					resultArr = append(resultArr, FullSvgInfo{
+						Path:   op.ShapeSvgString,
+						Fill:   op.Fill,
+						Stroke: op.Stroke,
+					})
+				}
+			}
+			// newStrings = append(newStrings, Block{CurrentHash: "ha"})
+			// newStrings = append(newStrings, Block{CurrentHash: "wa"})
+			// LongestBlockPayload := LongestBlockStruct{Longest: newThing}
+			// newerBlock := Block{CurrentHash: "haha"}
+			fmt.Println("Logging out my artnode here")
+			go func() {
+				for k, _ := range allArtNodes.all {
+					fmt.Println(k)
+					reply := false
+					client, err := rpc.Dial("tcp", k)
+					if err != nil {
+						fmt.Println("Cannot connect to artnode: ", err)
+					}
+					fmt.Println("calling my art node")
+					client.Call("CanvasObject.ReceiveLongestChainFromMiner", resultArr, &reply)
+				}
+			}()
+			// printBlock(m.BlockChain)
 
 			fmt.Println("===================================LONGESTCHAIN===========================================")
 			printBlockChain(getLongestPath(m.BlockChain))
@@ -643,8 +681,15 @@ func (m *MinerStruct) GetListOfOps(w http.ResponseWriter, r *http.Request) {
 
 func (m *MinerStruct) setUpConnWithArtNode(aip string) error {
 	// add ip to map
+	allArtNodes.Lock()
+	defer allArtNodes.Unlock()
+	if _, exist := allArtNodes.all[aip]; exist {
+		fmt.Println("art node already registered")
+	} else {
+		allArtNodes.all[aip] = 1
+	}
 	fmt.Println("setUpConnWithArtNode() Going to Dial up my art node")
-	_, err := rpc.Dial("tcp", aip)
-	CheckError(err)
-	return err
+	// _, err := rpc.Dial("tcp", aip)
+	// CheckError(err)
+	return nil
 }
