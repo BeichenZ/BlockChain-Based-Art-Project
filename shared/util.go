@@ -191,6 +191,35 @@ func findDeepestBlocks(b *Block, depth int) (*Block, int) {
 	}
 }
 
+// func getLongestPathForArtNode(b *Block) []InfoBlock {
+// 	if b == nil {
+// 		return nil
+// 	}
+//
+// 	if len(b.Children) == 0 {
+// 		tmpInfoBlock := InfoBlock{ListOperations: b.CurrentOPs}
+// 		return []InfoBlock{tmpInfoBlock}
+// 	} else {
+// 		longestBlockChain := make([]InfoBlock, 0)
+// 		b.
+// 		deepestBlock, _ := findDeepestBlocks(b, 0)
+// 		tmpInfoBlock := InfoBlock{ListOperations: deepestBlock.CurrentOPs}
+// 		longestBlockChain = append(longestBlockChain, tmpInfoBlock)
+// 		nthBlock := deepestBlock
+//
+// 		for nthBlock.PreviousHash != "" {
+//
+// 			foundBlock := findBlockUsingHash(nthBlock.PreviousHash, b)
+// 			tmpInfoBlock := InfoBlock{ListOperations: foundBlock.CurrentOPs}
+//
+// 			longestBlockChain = append(longestBlockChain, tmpInfoBlock)
+// 			nthBlock = foundBlock
+// 		}
+//
+// 		return longestBlockChain
+// 	}
+// }
+
 func getLongestPath(b *Block) []Block {
 	if b == nil {
 		return nil
