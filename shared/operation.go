@@ -18,6 +18,7 @@ type Operation struct {
 	IssuerS       *big.Int
 	ValidFBlkNum   uint8
 	Opid		   uint32
+	Draw		   bool
 }
 
 func (o *Operation) CheckInk() bool {

@@ -182,7 +182,7 @@ func IsShapeOverLapWithOthers(op *Operation) bool {
 }
 
 func (l *ArtNodeOpReg) ArtnodeInkRequest(s string, remainInk *uint32) error {
-	*remainInk = l.Miner.MinerInk
+	*remainInk = l.Miner.GetInkBalance()
 	return nil
 }
 
@@ -201,11 +201,8 @@ func (l *ArtNodeOpReg) ArtnodeSvgStringRequest(shapeHash string, svgString *stri
 	*svgString = l.Miner.GetSVGShapeString(l.Miner.BlockChain, shapeHash)
 	return err
 }
-
-func (l *KeyCheck) ArtNodeKeyCheck(privKey *string, reply *bool) error {
-	*reply = true
-	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")
-
+func (l *ArtNodeOpReg) ArtnodeGetOpWithHashRequest(shapeHash string, opToDel *Operation) error {
+	*opToDel = l.Miner.GetOpToDelete(l.Miner.BlockChain,shapeHash)
 	return nil
 }
 
@@ -216,6 +213,7 @@ func (l *CanvasSet) GetCanvasSettingsFromMiner(s string, ics *InitialCanvasSetti
 	fmt.Println("GetCanvasSettingsFromMiner() ", *ics)
 	return nil
 }
+
 func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Error: ", err)

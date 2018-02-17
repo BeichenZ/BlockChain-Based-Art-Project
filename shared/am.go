@@ -62,3 +62,15 @@ func (a *ArtNodeStruct) GetSvgStringUsingOperationSignature(shapeHash string) (s
 	err := a.AmConn.Call("ArtNodeOpReg.ArtnodeSvgStringRequest", shapeHash, &svgstring)
 	return svgstring, err
 }
+func (a *ArtNodeStruct) GetOpWithHash(shapeHash string) (Operation, error){
+
+	var delOp Operation
+	err:=a.AmConn.Call("ArtNodeOpReg.ArtnodeGetOpWithHashRequest", shapeHash, &delOp)
+	if (len(delOp.Command) == 0 ){
+		err=ShapeOwnerError("")
+	}
+	if (err !=nil){
+		err=DisconnectedError("")
+	}
+	return delOp, err
+}

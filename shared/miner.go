@@ -619,3 +619,31 @@ func (m *MinerStruct) GetSVGShapeString(curBlk *Block, shapeHash string)  string
 	}
 	return ""
 }
+
+func (m *MinerStruct) GetOpToDelete(curBlk *Block, shapeHash string) Operation {
+	var opToDelete Operation
+
+		for _, operation := range curBlk.CurrentOPs {
+
+		operationHash := pubKeyToString(operation.Issuer.PublicKey)
+
+		if strings.Compare(operationHash, shapeHash) == 0{
+			opToDelete = operation
+			return opToDelete
+		}
+	}
+
+	for _, block := range curBlk.Children {
+		return m.GetOpToDelete(block, shapeHash)
+
+	}
+
+	return opToDelete
+
+	
+}
+
+func (m *MinerStruct) GetInkBalance() uint32 {
+	return 0
+	
+}

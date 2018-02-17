@@ -83,7 +83,7 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, newOPs []Op
 			fmt.Println("A miner sent me an operation from its art node")
 			fmt.Println("M-UPDATED OPERATION LIST FROM MINERS ")
 			if isDoingWorkForNoOp {
-				nonce = leadingBlock.CurrentHash + opFromMineNode.ShapeSvgString + fmt.Sprint(opFromMineNode.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
+				nonce = leadingBlock.CurrentHash + opFromMineNode.ShapeSvgString +opFromMineNode.Fill + opFromMineNode.Stroke + fmt.Sprint(opFromMineNode.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
 				newOPs = []Operation{opFromMineNode}
 				isDoingWorkForNoOp = false
 				fmt.Println(nonce)
@@ -95,7 +95,7 @@ func doProofOfWork(m *MinerStruct, nonce string, numberOfZeroes int, newOPs []Op
 		case opFromArtnode := <-m.RecievedArtNodeSig:
 			if isDoingWorkForNoOp {
 				isDoingWorkForNoOp = false
-				nonce = leadingBlock.CurrentHash + opFromArtnode.ShapeSvgString + fmt.Sprint(opFromArtnode.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
+				nonce = leadingBlock.CurrentHash + opFromArtnode.ShapeSvgString + opFromArtnode.Fill + opFromArtnode.Stroke + fmt.Sprint(opFromArtnode.AmountOfInk) + pubKeyToString(m.PairKey.PublicKey)
 				newOPs = []Operation{opFromArtnode}
 				fmt.Println(nonce)
 				fmt.Println("A-Was calculating No-op, now calculating Operation ", opFromArtnode.Command)

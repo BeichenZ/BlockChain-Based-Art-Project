@@ -307,7 +307,6 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	if t.IsSvgOutofBounds(svgOP) {
 		return "", "", 0, shared.OutOfBoundsError{}
 	}
-
 	//Create New OPERATION
 	//TODO:Fill up the new struct
 	inkCost := uint32(t.CalculateShapeArea(isClosedCurve, vtxArr, edgeArr, fill))
@@ -321,6 +320,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 		Fill:           fill,
 		Stroke:         stroke,
 		ValidFBlkNum:   validateNum,
+		Draw:			true,
 	}
 	_, err = t.ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
 	if err != nil {
@@ -342,8 +342,17 @@ func (t CanvasObject) GetInk() (inkRemaining uint32, err error) {
 	return ink, err
 }
 func (t CanvasObject) DeleteShape(validateNum uint8, shapeHash string) (inkRemaining uint32, err error) {
-	// TODO
-	return 0, nil
+	delOp, err := t.ptr.ArtNode.GetOpWithHash(shapeHash) // get operation from the shapeHash
+	CheckError(err)
+	delOp.Draw=false
+	delOp.ValidFBlkNum=validateNum
+	// this node has to sign it --- make sure it is done in the miner 
+	_, err = t.ptr.ArtNode.ArtnodeOp(delOp) // fn needs to return boolean
+	if err != nil {
+		return 0, err
+	}
+	inkRemaining, _ = t.GetInk()
+	return inkRemaining, err
 }
 func (t CanvasObject) GetShapes(blockHash string) (shapeHashes []string, err error) {
 	var s []string
