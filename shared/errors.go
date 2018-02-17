@@ -1,7 +1,9 @@
 package shared
+
 import (
-"fmt"
+	"fmt"
 )
+
 // <ERROR DEFINITIONS>
 
 // These type definitions allow the application to explicitly check
@@ -73,6 +75,12 @@ type InvalidBlockHashError string
 
 func (e InvalidBlockHashError) Error() string {
 	return fmt.Sprintf("BlockArt: Invalid block hash [%s]", string(e))
+}
+
+type TimedOutTooLongError string
+
+func (e TimedOutTooLongError) Error() string {
+	return fmt.Sprintf("This Operation Takes too long [%s]", string(e))
 }
 
 // </ERROR DEFINITIONS>

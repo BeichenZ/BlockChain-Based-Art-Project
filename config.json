@@ -10,7 +10,7 @@
     "pow-difficulty-op-block": 3,
     "pow-difficulty-no-op-block": 3,
     "canvas-settings": {
-      "canvas-x-max": 1024,
+      "canvas-x-max": 1036,
       "canvas-y-max": 1024
     }
   }
