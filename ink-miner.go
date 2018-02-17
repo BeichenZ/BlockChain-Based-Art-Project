@@ -71,7 +71,7 @@ func main() {
 	mux.HandleFunc("/getshapes", inkMinerStruct.GetListOfOps)
 	// mux.HandleFunc("/addshape", inkMinerStruct.addshape)
 
-	http.ListenAndServe(":5000", mux)
+	go http.ListenAndServe(":"+*minerPort, mux)
 	OP := shared.Operation{ShapeSvgString: "no-op"}
 	for {
 		inkMinerStruct.CheckForNeighbour()

@@ -615,6 +615,7 @@ func (m *MinerStruct) GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	// 		})
 	// 	}
 	// }
+	fmt.Println("hit endpoint")
 	var resultArr []FullSvgInfo
 	resultArr = append(resultArr, FullSvgInfo{
 		Path:   "M 10 10 h 10 v 10 h -10 v -10",
