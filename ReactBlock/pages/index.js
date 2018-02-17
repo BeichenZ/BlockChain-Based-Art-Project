@@ -14,17 +14,18 @@ class BlockartSVG extends Component {
   }
 
   componentDidMount(){
-    setInterval(this.periodicFetchSVG, 100);
+    setInterval(this.periodicFetchSVG, 1000);
   }
 
   periodicFetchSVG = () => {
-    fetch("http://localhost:8080/getshapes", {
+    fetch("http://23.99.83.85:5000/getshapes", {
       method: 'GET'
     })
     .then(res => res.json())
     .then(response => {
-      // console.log(response)
-      this.setState({paths: response.SVGs})
+      console.log('this is the response')
+      console.log(response)
+      this.setState({paths: response})
     })
     .catch(error => console.error('Error:', error))
   }
