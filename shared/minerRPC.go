@@ -117,12 +117,13 @@ type CanvasSet struct {
 	Miner MinerStruct
 }
 type ArtNodeOpReg struct {
-	Miner MinerStruct
+	Miner *MinerStruct
 }
 
 func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
-  //reply decode: 0->Success,1->insufficientInk, 2->OverlappedShape
+	//reply decode: 0->Success,1->insufficientInk, 2->OverlappedShape
 	// Check InsufficientInkError
+<<<<<<< HEAD
 	fmt.Println("OPeration Receieved FROM Art Node")
 	if (l.Miner.MinerInk < (*op).AmountOfInk) {
 		fmt.Println("Insufficient Ink Detected for shape:",(*op).Command, "With requested ink:",(*op).AmountOfInk)
@@ -132,6 +133,18 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 	 //Check ShapeOverlapError
 	if isOverLap := IsShapeOverLapWithOthers(op) ; isOverLap {
 		fmt.Println("OverLapped Shape for shape string:",(*op).Command)
+=======
+	fmt.Printf("%+v", l.Miner)
+	if l.Miner.MinerInk < (*op).AmountOfInk {
+		fmt.Println("The current ink we have is:", l.Miner.MinerInk)
+		fmt.Println("Insufficient Ink Detected for shape:", (*op).Command, "With requested ink:", (*op).AmountOfInk)
+		*reply = 1
+		return nil
+	}
+	// Check ShapeOverlapError
+	if isOverLap := IsShapeOverLapWithOthers(op); isOverLap {
+		fmt.Println("OverLapped Shape for shape string:", (*op).Command)
+>>>>>>> BlockArtLibDev
 		*reply = 2
 		return nil
 	}
@@ -153,7 +166,7 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 	}()
 
 	blockCounter.Lock()
-	blockCounter.counter = 0
+	origCounter := blockCounter.counter
 	blockCounter.Unlock()
 
 	// TODO  What if multiple art node tries to make operation
@@ -161,11 +174,18 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 	validNum := op.ValidFBlkNum
 	// ** Maybe set timeout if it takes too long
 	// while l.Miner.chain is not validateNum more than before don't return anything, only return when its not
-
+	waitStartTime := time.Now()
+	then := time.Now()
 	for {
 		//fmt.Println("DoArtNodeOp: IN loop")
+		//Set-up overall timeout
+		then = time.Now()
+		if then.Sub(waitStartTime).Seconds() > 10 {
+			*reply = 3
+			return DisconnectedError("Wait For ValidateNum Take Too Long")
+		}
 		blockCounter.Lock()
-		if blockCounter.counter == validNum {
+		if (blockCounter.counter - origCounter) == validNum {
 			*reply = 0
 			blockCounter.Unlock()
 			break
@@ -179,6 +199,11 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 func IsShapeOverLapWithOthers(op *Operation) bool {
 	//For operation from same miner , do not check
 	//For operation from different miner, check for overlapping
+	/*
+		svgString := (*op).Command
+		svgFill := (*op).Fill
+		svgStroke := (*op).Stroke
+	*/
 	return false
 }
 
@@ -194,7 +219,7 @@ func (l *ArtNodeOpReg) ArtnodeGenBlkRequest(s string, genBlkHash *string) error 
 }
 
 func (l *ArtNodeOpReg) ArtnodeBlkChildRequest(bHash string, blkCh *[]string) (err error) {
-	*blkCh, err =l.Miner.GetBlkChildren(l.Miner.BlockChain, bHash)
+	*blkCh, err = l.Miner.GetBlkChildren(l.Miner.BlockChain, bHash)
 	return err
 }
 
