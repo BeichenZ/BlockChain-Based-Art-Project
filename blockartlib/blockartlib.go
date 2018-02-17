@@ -222,6 +222,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType shared.ShapeType, sh
 	//var svgOP shared.SingleOp
 	var vtxArr []shared.Point
 	var edgeArr []shared.LineSectVector
+	var inkCost uint32
 
 		if len(shapeSvgString) > 128 {
 			return "", "", 0, shared.ShapeSvgStringTooLongError(shapeSvgString)
@@ -241,6 +242,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType shared.ShapeType, sh
 		if t.IsSvgOutofBounds(svgOP) {
 			return "", "", 0, shared.OutOfBoundsError{}
 		}
+		inkCost = uint32(t.CalculateShapeArea(isClosedCurve, vtxArr, edgeArr, fill))
 	case CIRCLE:
 		parsable, svgCirOP := shared.IsSvgStringParsable_Parse_Cir(shapeSvgString)
 		if !parsable {
@@ -254,17 +256,12 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType shared.ShapeType, sh
 		if t.IsSvgOutofBounds_Cir(svgCirOP) {
 			return "", "", 0, shared.OutOfBoundsError{}
 		}
+		inkCost = t.CalculateShapeArea_Cir(svgCirOP,fill,stroke)
 
 	default: return "", "", 0, err
-
 	}
-	// ***** Testing
-	fmt.Println("AddShape() Circle passed all basic tests")
-	return
-	// ***** Testing
 
-	//Create New OPERATION
-	inkCost := uint32(t.CalculateShapeArea(isClosedCurve, vtxArr, edgeArr, fill))
+	//Create New OPERATION	
 	inkCost++ //For rounding up the cost
 	fmt.Println("AddShape(),The command is ", shapeSvgString)
 	newOP := shared.Operation{
@@ -547,5 +544,13 @@ func (t CanvasObject) IsParsableSvgValid_Cir(svgStr string, fill string, stroke 
 }
 func (t CanvasObject) IsSvgOutofBounds_Cir(OpCir shared.CircleMov) (bool) {
 	return (OpCir.Cx + OpCir.R > t.ptr.XYLimit.X) || (OpCir.Cx - OpCir.R > t.ptr.XYLimit.X) || (OpCir.Cy + OpCir.R > t.ptr.XYLimit.Y) || (OpCir.Cy - OpCir.R > t.ptr.XYLimit.Y) 
+	
+}
+func (t CanvasObject) CalculateShapeArea_Cir(svgCirOp shared.CircleMov,fill string,stroke string) uint32 {
+	if (fill == "none") || (fill=="transparent") {
+		return uint32(2*svgCirOp.R*math.Pi)
+	} else {
+		return uint32(math.Pi*math.Pow(svgCirOp.R, 2))
+	}
 	
 }
