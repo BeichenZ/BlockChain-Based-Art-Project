@@ -46,10 +46,15 @@ type InfoBlock struct {
 	ListOperations []Operation
 }
 
+type SyncAddBlock struct {
+	sync.RWMutex
+}
+
 var (
-	allNeighbour = AllNeighbour{all: make(map[string]*MinerStruct)}
-	blockCounter = GlobalBlockCreationCounter{counter: 0}
-	allArtNodes  = AllArtNodes{all: make(map[string]int)}
+	allNeighbour       = AllNeighbour{all: make(map[string]*MinerStruct)}
+	blockCounter       = GlobalBlockCreationCounter{counter: 0}
+	allArtNodes        = AllArtNodes{all: make(map[string]int)}
+	syncingAddingBlock = SyncAddBlock{}
 )
 
 type Miner interface {
@@ -329,8 +334,9 @@ func (m *MinerStruct) StartMining(initialOP Operation) (string, error) {
 			blockCounter.counter++
 			blockCounter.Unlock()
 
+			syncingAddingBlock.Lock()
 			AddNewBlock(m.BlockChain, newBlock)
-
+			syncingAddingBlock.Unlock()
 			// newThing := getLongestPath(m.BlockChain)
 			// resultArr := make([]FullSvgInfo, 0)
 			// for _, block := range newThing {

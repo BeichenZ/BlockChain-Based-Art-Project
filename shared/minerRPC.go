@@ -44,7 +44,9 @@ func (m *MinerRPCServer) StopMining(block *Block, alive *bool) error {
 	} else {
 		log.Print("I have found the hash, but so did at least one other miner")
 		log.Print("The hash is ", block.CurrentHash)
+		syncingAddingBlock.Lock()
 		AddNewBlock(m.Miner.BlockChain, block)
+		syncingAddingBlock.Unlock()
 	}
 	log.Println("Sent channel info")
 	return nil
