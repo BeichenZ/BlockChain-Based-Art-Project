@@ -191,45 +191,44 @@ func findDeepestBlocks(b *Block, depth int) (*Block, int) {
 	}
 }
 
- func GetLongestPathForArtNode(b *Block) []InfoBlock {
- 	if b == nil {
- 		return nil
- 	}
+func GetLongestPathForArtNode(b *Block) []InfoBlock {
+	if b == nil {
+		return nil
+	}
 
- 	if len(b.Children) == 0 {
- 		tmpInfoBlock := InfoBlock{ListOperations: b.CurrentOPs}
- 		return []InfoBlock{tmpInfoBlock}
- 	} else {
- 		longestBlockChain := make([]InfoBlock, 0)
+	if len(b.Children) == 0 {
+		tmpInfoBlock := InfoBlock{ListOperations: b.CurrentOPs}
+		return []InfoBlock{tmpInfoBlock}
+	} else {
+		longestBlockChain := make([]InfoBlock, 0)
 
- 		deepestBlock, _ := findDeepestBlocks(b, 0)
- 		tmpInfoBlock := InfoBlock{ListOperations: deepestBlock.CurrentOPs, CurrentHash: deepestBlock.CurrentHash, PreviousHash: deepestBlock.PreviousHash}
- 		longestBlockChain = append(longestBlockChain, tmpInfoBlock)
- 		nthBlock := deepestBlock
+		deepestBlock, _ := findDeepestBlocks(b, 0)
+		tmpInfoBlock := InfoBlock{ListOperations: deepestBlock.CurrentOPs, CurrentHash: deepestBlock.CurrentHash, PreviousHash: deepestBlock.PreviousHash}
+		longestBlockChain = append(longestBlockChain, tmpInfoBlock)
+		nthBlock := deepestBlock
 
- 		for nthBlock.PreviousHash != "" {
+		for nthBlock.PreviousHash != "" {
 
- 			foundBlock := findBlockUsingHash(nthBlock.PreviousHash, b)
- 			tmpInfoBlock := InfoBlock{ListOperations: foundBlock.CurrentOPs, PreviousHash: foundBlock.PreviousHash, CurrentHash: foundBlock.CurrentHash}
+			foundBlock := findBlockUsingHash(nthBlock.PreviousHash, b)
+			tmpInfoBlock := InfoBlock{ListOperations: foundBlock.CurrentOPs, PreviousHash: foundBlock.PreviousHash, CurrentHash: foundBlock.CurrentHash}
 
- 			longestBlockChain = append(longestBlockChain, tmpInfoBlock)
- 			nthBlock = foundBlock
- 		}
+			longestBlockChain = append(longestBlockChain, tmpInfoBlock)
+			nthBlock = foundBlock
+		}
 
- 		return longestBlockChain
- 	}
- }
+		return longestBlockChain
+	}
+}
 
- func FilterBlockChain(prevChain  []InfoBlock) []FullSvgInfo{
+func FilterBlockChain(prevChain []InfoBlock) []FullSvgInfo {
 
- 	filteredChain := make([]FullSvgInfo, 0)
+	filteredChain := make([]FullSvgInfo, 0)
 
+	for _, b := range prevChain {
 
- 	for _, b := range prevChain {
-
- 		for _ , operation := range b.ListOperations {
- 			if operation.ShapeSvgString == "no-op" {
- 				continue
+		for _, operation := range b.ListOperations {
+			if operation.ShapeSvgString == "no-op" {
+				continue
 			}
 			tmpInfoBlock := FullSvgInfo{}
 
@@ -242,7 +241,7 @@ func findDeepestBlocks(b *Block, depth int) (*Block, int) {
 
 	return filteredChain
 
- }
+}
 
 func getLongestPath(b *Block) []Block {
 	if b == nil {
@@ -283,7 +282,6 @@ func PrintBlock(m *Block) {
 		PrintBlock(c)
 	}
 }
-
 
 func PrintBlockChainForArtNode(chain []InfoBlock) {
 
@@ -552,11 +550,10 @@ func IsSvgStringParsable_Parse_Cir(svgStr string) (isValid bool, Op CircleMov) {
 		}
 
 	}
-	if (mov.Cx>=0) && (mov.Cy>=0) && (mov.R>0){
+	if (mov.Cx >= 0) && (mov.Cy >= 0) && (mov.R > 0) {
 		return true, mov
 	}
 	fmt.Println("IsSvgStringParsable_Parse_cir() circle feils are neg")
 	return false, mov
-		
 
 }

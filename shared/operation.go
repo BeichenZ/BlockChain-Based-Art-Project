@@ -2,17 +2,18 @@ package shared
 
 import (
 	"crypto/ecdsa"
-	"math/big"
 	"fmt"
-	
+	"math/big"
 )
+
 type ShapeType int
+
 const (
 	// Path shape.
 	PATH ShapeType = iota
 	CIRCLE
 	// Circle shape (extra credit).
-	
+
 )
 
 type Operation struct {
@@ -22,12 +23,12 @@ type Operation struct {
 	ShapeSvgString string
 	Fill           string
 	Stroke         string
-	Issuer        *ecdsa.PrivateKey
-	IssuerR       *big.Int
-	IssuerS       *big.Int
+	Issuer         *ecdsa.PrivateKey
+	IssuerR        *big.Int
+	IssuerS        *big.Int
 	ValidFBlkNum   uint8
-	Opid		   uint32
-	Draw		   bool
+	Opid           uint32
+	Draw           bool
 }
 
 func (o *Operation) CheckInk() bool {
@@ -55,7 +56,7 @@ func (o *Operation) Validate() bool {
 }
 
 func (o *Operation) CheckIssuerSig() bool {
-	if (o.Issuer == nil) || ((o.IssuerR == nil) || (o.IssuerS == nil)){
+	if (o.Issuer == nil) || ((o.IssuerR == nil) || (o.IssuerS == nil)) {
 		fmt.Println("------------------------------------------------They are all empty")
 		return false
 	}

@@ -92,7 +92,7 @@ func ArtNodeAddshape(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, "Error reading request body", http.StatusInternalServerError)
 		}
-		globalCanvas.AddShape(2, blockartlib.PATH, "M 0 0 l 10 10", "transparent", "red")
+		globalCanvas.AddShape(2, shared.CIRCLE, "cx 10 cy 10 r 8", "transparent", "red")
 		fmt.Println(string(body))
 	} else {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -153,6 +153,7 @@ func main() {
 		var svgString string
 		var fill string
 		var color string
+		var path shared.ShapeType
 		fmt.Println("> Press A : Add Shape")
 		sentence, err := buf.ReadByte()
 		if err != nil {
@@ -190,8 +191,24 @@ func main() {
 						} else {
 
 							color = string(sentence)
+							buf := bufio.NewReader(os.Stdin)
+							fmt.Println("      > Enter P for Path or C for Circle")
+							sentence, _ := buf.ReadByte()
+
+							if err != nil {
+								fmt.Println(err)
+							} else {
+								if string(sentence) == "P" {
+									path = shared.PATH
+								} else if string(sentence) == "C" {
+									path = shared.CIRCLE
+								} else {
+									fmt.Println("Incorrect options")
+								}
+							}
+
 							fmt.Println("DRAWING ======================")
-							_, _, _, err = canvas.AddShape(2, blockartlib.PATH, svgString, fill, color)
+							_, _, _, err = canvas.AddShape(2, path, svgString, fill, color)
 							if err != nil {
 								fmt.Println(err)
 							}

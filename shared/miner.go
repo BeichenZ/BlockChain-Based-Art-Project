@@ -21,6 +21,7 @@ type FullSvgInfo struct {
 	Fill   string
 	Stroke string
 }
+
 type AllNeighbour struct {
 	sync.RWMutex
 	all map[string]*MinerStruct
@@ -45,7 +46,7 @@ type LongestBlockStruct struct {
 type InfoBlock struct {
 	ListOperations []Operation
 	PreviousHash   string
-	CurrentHash   string
+	CurrentHash    string
 }
 
 type SyncAddBlock struct {
@@ -96,9 +97,9 @@ type SingleMov struct {
 	ValCnt int
 }
 type CircleMov struct {
-	Cx 		float64
-	Cy 		float64
-	R  		float64
+	Cx float64
+	Cy float64
+	R  float64
 }
 
 // One operation contains multiple movs
