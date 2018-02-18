@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -30,27 +31,6 @@ import (
 
 func GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("hit the end point")
-	//longestChain := getLongestPath(m.BlockChain)
-	//resultArr := make([]FullSvgInfo, 0)
-	//for _, block := range longestChain {
-	//	for _, op := range block.CurrentOPs {
-	//		resultArr = append(resultArr, FullSvgInfo{
-	//			Path:   op.ShapeSvgString,
-	//			Fill:   op.Fill,
-	//			Stroke: op.Stroke,
-	//		})
-	//	}
-	//}
-	fmt.Println("hit endpoint")
-	//var resultArr []shared.FullSvgInfo
-	//resultArr = append(resultArr, shared.FullSvgInfo{
-	//	Path:   "M 10 10 h 10 v 10 h -10 v -10",
-	//	Fill:   "red",
-	//	Stroke: "black"}) //square
-	//resultArr = append(resultArr, shared.FullSvgInfo{
-	//	Path:   "M 100 100 l 400 400",
-	//	Fill:   "transparent",
-	//	Stroke: "red"}) //Kinked line,
 	s, err := json.Marshal(blockartlib.BlockChain)
 	if err != nil {
 		panic(err)
@@ -68,6 +48,29 @@ func GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	//Write json response back to response
 	w.Write(s)
 }
+
+func ArtNodeAddshape(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set(
+		"Access-Control-Allow-Headers",
+		"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
+	)
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.WriteHeader(http.StatusOK)
+	if r.Method == "POST" {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Error reading request body", http.StatusInternalServerError)
+		}
+		// TODO RPC call here
+		fmt.Println(string(body))
+	} else {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+	}
+}
+
 func main() {
 	gob.Register(&elliptic.CurveParams{})
 	minerAddr := "127.0.0.1:39865" // hardcoded for now
