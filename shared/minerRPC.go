@@ -280,21 +280,39 @@ func IsShapeOverLapWithOthers_Cir(cop *Operation, l *ArtNodeOpReg) bool {
 						if ((ob.Fill == "transparent") || (ob.Fill == "none")) && ((cop.Fill == "transparent") || (cop.Fill == "none"))  { // Circle and Path are transparent ----> Compare only edges intersections
 							// check the intersections of edges
 							isOverLapped=IsPerimeterOverlapPoints_Cir(curCircleParsed, tarvtxArr) // overlap with points
-							if !isOverLapped{return isOverLapped}
+							if isOverLapped{return isOverLapped}
 							// overlap check with edges
 							isOverLapped=IsPerimeterOverlapEdges_Cir(curCircleParsed, taredgeArr)
-							if !isOverLapped{return isOverLapped}
+							if isOverLapped{return isOverLapped}
 						}
 
 					case CIRCLE:
+						_, tarCir := IsSvgStringParsable_Parse_Cir(ob.ShapeSvgString) 
+						dc:= relCentreDist_Cir(curCircleParsed, tarCir)
+						if dc==0{return true} // circles are coincident 
+						if dc>0 { // circles don't intersect fantastico
+							return false}
+						if dc<0 { // circles do intersect
+							if ((ob.Fill == "transparent") || (ob.Fill == "none")) && ((cop.Fill == "transparent") || (cop.Fill == "none")){return false}
+							// both filled
+							if ((ob.Fill !="transparent") || (ob.Fill != "none") && (cop.Fill !="transparent") || (cop.Fill != "none")){return true}
+							// find the smaller circle
+							if (curCircleParsed.R < tarCir.R) {
+								return (((cop.Fill == "transparent") || (cop.Fill == "none")) && ((ob.Fill !="transparent") || (ob.Fill != "none")))
+								 
+							}else {return (((ob.Fill == "transparent") || (ob.Fill == "none")) && ((cop.Fill !="transparent") || (cop.Fill != "none")))}
+						}
+							
+						return false}	
 				}
 
 
 			}
 									}
+									return isOverLapped
 		}
-		return isOverLapped
-}
+		
+
 
 func IsPerimeterOverlapPoints_Cir(c CircleMov, tarvtxArr []Point) bool {
 	for _,p :=range tarvtxArr{
@@ -314,6 +332,17 @@ func IsPerimeterOverlapEdges_Cir(c CircleMov, taredgeArr []LineSectVector) bool 
 		if d<c.R {return true}
 	}
 	return false
+	
+}
+func IsPerimeterOverlap_Cir(c CircleMov , ct CircleMov) bool {
+	d:= math.Abs(math.Pow(c.Cx - ct.Cx,2) + math.Pow(c.Cy - ct.Cy,2))
+	if d==0 {return true}
+	return false
+	
+}
+func relCentreDist_Cir(c CircleMov , ct CircleMov) float64 {
+	d:= math.Abs(math.Pow(c.Cx - ct.Cx,2) + math.Pow(c.Cy - ct.Cy,2))
+	return d
 	
 }
 func (l *ArtNodeOpReg) ArtnodeInkRequest(s string, remainInk *uint32) error {
