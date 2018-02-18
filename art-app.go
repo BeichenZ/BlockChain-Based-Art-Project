@@ -14,7 +14,6 @@ package main
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"crypto/rand"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -22,13 +21,15 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
 	"./blockartlib"
 	shared "./shared"
 	// shared "./shared"
 	//"encoding/gob"
 	"bufio"
 	"encoding/gob"
+	"crypto/x509"
+	"encoding/hex"
+
 )
 
 var globalCanvas blockartlib.Canvas
@@ -100,21 +101,30 @@ func ArtNodeAddshape(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	//minerAddrP := flag.String("ma", "MinerAddr Missing", "a string")
+	minerAddrP := os.Args[1]
+	minerPrivateKey := os.Args[2]
+	//minerPrivateKey := flag.String("mp", "minerPrivateKey missing", "a string")
+	//fmt.Println(*minerPrivateKey[0:1] == " ")
 	gob.Register(&elliptic.CurveParams{})
-	minerAddr := "127.0.0.1:39865" // hardcoded for now
-	privKey := getKeyPair()        // TODO: use crypto/ecdsa to read pub/priv keys from a file argument.
-	// Remove later
-	minerAddrP := flag.String("ma", "MinerAddr Missing", "a string")
-	minerPublicKey := flag.String("mp", "minerPublicKey missing", "a string")
-	flag.Parse()
-	fmt.Println("command line arguments ", *minerAddrP, " ", *minerPublicKey, minerAddr)
 
+	//theShit := "3081a4020101043065cb964b29bee4f4e35bceb26d6e1c48903470706d52c3b79ce9c20da9aa9a60cff4f0302f7acc9177636962b5b9f89ea00706052b81040022a164036200045acf02cb504f75dd04275d04c17033f3eb9f4af1c33b07adcf904bc80e3665a9258579f079ac432a75afce690c52a07b50cd35b1c4a882d0e2b683f97e6d50bb58b6d5c8a4b02d7e05905f4398c28675a6974664e7e84adc217249821419019a"
+
+	//fmt.Println(strings.TrimSpace(*minerPrivateKey))
+	//fmt.Println(theShit)
+
+	privKey := convertKeyPair(minerPrivateKey) // TODO: use crypto/ecdsa to read pub/priv keys from a file argument.
+
+	//minerAddr := "127.0.0.1:39865" // hardcoded for now
+	// Remove later
+	flag.Parse()
+	fmt.Println("command line arguments ", minerAddrP, minerPrivateKey, minerAddrP)
+	fmt.Println(privKey)
 	// 	// Open a canvas.
-	canvas, settings, err := blockartlib.OpenCanvas(*minerAddrP, privKey)
+	canvas, settings, err := blockartlib.OpenCanvas(minerAddrP, *privKey)
 	globalCanvas = canvas
 	pieceOfShit := canvas.(blockartlib.CanvasObject)
 	fmt.Printf("%+v", pieceOfShit.Ptr)
-	fmt.Println("fuck this shit")
 
 	artAddres := pieceOfShit.Ptr.ArtNodeipStr
 	// port := artNodeIp.String()[strings.Index(artNodeIp.String(), ":"):len(artNodeIp.String())]
@@ -267,7 +277,8 @@ func checkError(err error) error {
 // Helper functions
 
 // gets the key pair given the public key of the miner --- change***
-func getKeyPair() ecdsa.PrivateKey {
-	artMinerKeyPair, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
-	return *artMinerKeyPair
+func convertKeyPair(key string) *ecdsa.PrivateKey {
+	privateKeyBytesRestored, _ := hex.DecodeString(key)
+	AmPrivateKeyPair, _ := x509.ParseECPrivateKey(privateKeyBytesRestored)
+	return AmPrivateKeyPair
 }

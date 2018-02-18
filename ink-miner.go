@@ -3,7 +3,6 @@ package main
 import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
-	"crypto/rand"
 	"encoding/gob"
 	"flag"
 	"fmt"
@@ -14,6 +13,9 @@ import (
 	"os"
 
 	shared "./shared"
+	"encoding/hex"
+	"crypto/x509"
+	"reflect"
 )
 
 //var globalInkMinerPairKey ecdsa.PrivateKey
@@ -27,11 +29,15 @@ func main() {
 	// Construct minerAddr from flag provided in the terminal
 	minerPort := flag.String("p", "", "RPC server ip:port")
 	servAddr := flag.String("sa", "", "Server ip address")
+	pubKeyStr := flag.String("pubk", "", "a string")
+	privKeyStr := flag.String("privk", "", "a string")
+
+
 	flag.Parse()
 	minerAddr := "127.0.0.1:" + *minerPort
 
 	// initialize miner given the server address and its own miner address
-	inkMinerStruct := initializeMiner(*servAddr, minerAddr)
+	inkMinerStruct := initializeMiner(*servAddr, minerAddr, *pubKeyStr,*privKeyStr )
 	//globalInkMinerPairKey = inkMinerStruct.PairKey
 	fmt.Println("Miner Key: ", inkMinerStruct.PairKey.X)
 	thisInkMiner = &inkMinerStruct
@@ -57,7 +63,9 @@ func main() {
 	fmt.Println("Port Miner is lisening on ", listenArtConn.Addr())
 
 	// check that the art node has the correct public/private key pair
-	initArt := new(shared.KeyCheck)
+	//initArt := new(shared.KeyCheck)
+	initArt := &shared.KeyCheck{inkMinerStruct}
+
 	rpc.Register(initArt)
 	cs := &shared.CanvasSet{inkMinerStruct}
 	rpc.Register(cs)
@@ -77,8 +85,8 @@ func main() {
 	return
 }
 
-func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
-	minerKey, _ := ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+func initializeMiner(servAddr string, minerAddr string, puks string, prks string) shared.MinerStruct {
+	minerKey, _ := parseKeyPair(puks,prks)
 	killSig := make(chan *shared.Block)
 	NotEnoughNeighbourSig := make(chan bool)
 	RecievedArtNodeSig := make(chan shared.Operation)
@@ -92,5 +100,19 @@ func initializeMiner(servAddr string, minerAddr string) shared.MinerStruct {
 		FoundHash:             false,
 		RecievedArtNodeSig:    RecievedArtNodeSig,
 		RecievedOpSig:         RecievedOpSig,
+	}
+}
+
+func parseKeyPair(pubKeyStr string, privKeyStr string) (*ecdsa.PrivateKey, error) {
+	privKeyRestByte, _ := hex.DecodeString(privKeyStr)
+	priv2, _ := x509.ParseECPrivateKey(privKeyRestByte)
+	pubKeyRestByte, _ := hex.DecodeString(pubKeyStr)
+	pub2, _ := x509.ParsePKIXPublicKey(pubKeyRestByte)
+	if reflect.DeepEqual(priv2.Public(), pub2) {
+		fmt.Println("parseKeyPair() keys are all good")
+		return priv2, nil
+	} else {
+		fmt.Println("parseKeyPair() keys are not good")
+		return nil, shared.InvalidKeyError(pubKeyStr)
 	}
 }
