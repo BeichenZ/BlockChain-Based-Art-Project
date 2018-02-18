@@ -26,6 +26,7 @@ import (
 	// shared "./shared"
 	//"encoding/gob"
 	"encoding/gob"
+	"bufio"
 )
 
 func GetListOfOps(w http.ResponseWriter, r *http.Request) {
@@ -117,6 +118,63 @@ func main() {
 
 	// Add a line.
 
+	for {
+		buf := bufio.NewReader(os.Stdin)
+		var svgString string
+		var fill string
+		var color string
+		fmt.Println("> Press A : Add Shape")
+		sentence, err := buf.ReadBytes('\n')
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			command := string(sentence)
+			if command == "A" {
+				buf := bufio.NewReader(os.Stdin)
+				fmt.Println("       > Enter the SVG string")
+
+				sentence, err := buf.ReadBytes('\n')
+
+				if err != nil {
+					fmt.Println(err)
+				} else {
+
+					svgString = string(sentence)
+					buf := bufio.NewReader(os.Stdin)
+					fmt.Println("       > Enter fill")
+
+					sentence, err := buf.ReadBytes('\n')
+
+					if err != nil {
+						fmt.Println(err)
+					} else {
+						fill = string(sentence)
+						buf := bufio.NewReader(os.Stdin)
+						fmt.Println("       > Enter Color")
+
+						sentence, err := buf.ReadBytes('\n')
+
+						if err != nil {
+							fmt.Println(err)
+						} else {
+
+							color = string(sentence)
+							fmt.Println("DRAWING ======================")
+							_, _, _, err = canvas.AddShape(2, blockartlib.PATH, svgString, fill, color)
+							if err != nil {
+								fmt.Println(err)
+							}
+
+						}
+					}
+
+				}
+
+			}
+		}
+
+	}
+
 	fmt.Println("ADDING SHAPES+++++")
 
 	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 0 0 l 10 10", "transparent", "red")
@@ -128,11 +186,6 @@ func main() {
 		return
 	}
 
-	for {
-
-	}
-
-	return
 
 	// Add another line.
 	//	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 5 0", "transparent", "blue")
