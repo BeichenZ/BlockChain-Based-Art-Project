@@ -29,6 +29,8 @@ import (
 	"encoding/gob"
 )
 
+var globalCanvas blockartlib.Canvas
+
 func GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("hit the end point")
 	s, err := json.Marshal(blockartlib.BlockChain)
@@ -65,6 +67,7 @@ func ArtNodeAddshape(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Error reading request body", http.StatusInternalServerError)
 		}
 		// TODO RPC call here
+		globalCanvas.AddShape(2, blockartlib.PATH, "M 0 0 l 10 10", "transparent", "red")
 		fmt.Println(string(body))
 	} else {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
@@ -83,7 +86,7 @@ func main() {
 
 	// 	// Open a canvas.
 	canvas, settings, err := blockartlib.OpenCanvas(*minerAddrP, privKey)
-
+	globalCanvas = canvas
 	pieceOfShit := canvas.(blockartlib.CanvasObject)
 	fmt.Printf("%+v", pieceOfShit.Ptr)
 	fmt.Println("fuck this shit")
@@ -94,7 +97,7 @@ func main() {
 	fmt.Println(port)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/getshapes", GetListOfOps)
-	// mux.HandleFunc("/addshape", inkMinerStruct.addshape)
+	mux.HandleFunc("/addshape", ArtNodeAddshape)
 
 	go http.ListenAndServe(":5000", mux)
 
@@ -122,10 +125,10 @@ func main() {
 
 	fmt.Println("ADDING SHAPES+++++")
 
-	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 0 0 l 10 10", "transparent", "red")
-	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 2 9 l 10 10", "transparent", "blue")
-	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 20 90 l 10 10", "transparent", "green")
-	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 21 98 l 10 10", "transparent", "black")
+	// _, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 0 0 l 10 10", "transparent", "red")
+	// _, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 2 9 l 10 10", "transparent", "blue")
+	// _, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 20 90 l 10 10", "transparent", "green")
+	// _, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 21 98 l 10 10", "transparent", "black")
 
 	if checkError(err) != nil {
 		return
