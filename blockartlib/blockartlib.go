@@ -351,7 +351,6 @@ func (t CanvasObject) IsParsableSvgValid_GetVtxEdge(svgStr string, fill string, 
 	var edgeArr []shared.LineSectVector
 	var isthisClosed bool
 	// For Non-Transparent Fill, Must be closed
-	if isthisClosed, vtxArr, edgeArr := shared.IsClosedShapeAndGetVtx(Op); !isClosed && fill != "transparent" {
 	if isthisClosed, vtxArr, edgeArr := shared.IsClosedShapeAndGetVtx(Op); !isthisClosed && fill != "transparent" {
 		fmt.Println("Non-closed curve shape", svgStr, "but with fill:", fill)
 		return false, isthisClosed, vtxArr, edgeArr
