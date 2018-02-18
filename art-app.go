@@ -119,19 +119,19 @@ func main() {
 	// Add a line.
 
 	for {
-		buf := bufio.NewReader(os.Stdin)
 		var svgString string
 		var fill string
 		var color string
 		fmt.Println("> Press A : Add Shape")
+		buf := bufio.NewReader(os.Stdin)
 		sentence, err := buf.ReadBytes('\n')
 		if err != nil {
 			fmt.Println(err)
 		} else {
 			command := string(sentence)
 			if command == "A" {
-				buf := bufio.NewReader(os.Stdin)
 				fmt.Println("       > Enter the SVG string")
+				buf := bufio.NewReader(os.Stdin)
 
 				sentence, err := buf.ReadBytes('\n')
 
@@ -140,8 +140,8 @@ func main() {
 				} else {
 
 					svgString = string(sentence)
-					buf := bufio.NewReader(os.Stdin)
 					fmt.Println("       > Enter fill")
+					buf := bufio.NewReader(os.Stdin)
 
 					sentence, err := buf.ReadBytes('\n')
 
@@ -149,9 +149,8 @@ func main() {
 						fmt.Println(err)
 					} else {
 						fill = string(sentence)
-						buf := bufio.NewReader(os.Stdin)
 						fmt.Println("       > Enter Color")
-
+						buf := bufio.NewReader(os.Stdin)
 						sentence, err := buf.ReadBytes('\n')
 
 						if err != nil {
