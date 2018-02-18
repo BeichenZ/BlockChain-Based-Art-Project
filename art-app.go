@@ -23,14 +23,14 @@ import (
 	"strings"
 
 	"./blockartlib"
+	shared "./shared"
 	// shared "./shared"
 	//"encoding/gob"
-	"encoding/gob"
 	"bufio"
+	"encoding/gob"
 )
 
 func GetListOfOps(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("hit the end point")
 	//longestChain := getLongestPath(m.BlockChain)
 	//resultArr := make([]FullSvgInfo, 0)
 	//for _, block := range longestChain {
@@ -42,7 +42,6 @@ func GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	//		})
 	//	}
 	//}
-	fmt.Println("hit endpoint")
 	//var resultArr []shared.FullSvgInfo
 	//resultArr = append(resultArr, shared.FullSvgInfo{
 	//	Path:   "M 10 10 h 10 v 10 h -10 v -10",
@@ -52,11 +51,16 @@ func GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	//	Path:   "M 100 100 l 400 400",
 	//	Fill:   "transparent",
 	//	Stroke: "red"}) //Kinked line,
-	s, err := json.Marshal(blockartlib.BlockChain)
+	var response []shared.FullSvgInfo
+	if len(blockartlib.BlockChain) == 0 {
+		response = make([]shared.FullSvgInfo, 0)
+	} else {
+		response = blockartlib.BlockChain
+	}
+	s, err := json.Marshal(response)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(s)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
@@ -119,39 +123,41 @@ func main() {
 	// Add a line.
 
 	for {
+		buf := bufio.NewReader(os.Stdin)
 		var svgString string
 		var fill string
 		var color string
 		fmt.Println("> Press A : Add Shape")
-		buf := bufio.NewReader(os.Stdin)
-		sentence, err := buf.ReadBytes('\n')
+		sentence, err := buf.ReadByte()
 		if err != nil {
 			fmt.Println(err)
 		} else {
 			command := string(sentence)
+			fmt.Println(command == "A")
 			if command == "A" {
-				fmt.Println("       > Enter the SVG string")
 				buf := bufio.NewReader(os.Stdin)
+				fmt.Println("       > Enter the SVG string")
 
-				sentence, err := buf.ReadBytes('\n')
+				sentence, _, _ := buf.ReadLine()
 
 				if err != nil {
 					fmt.Println(err)
 				} else {
 
 					svgString = string(sentence)
-					fmt.Println("       > Enter fill")
 					buf := bufio.NewReader(os.Stdin)
+					fmt.Println("       > Enter fill")
 
-					sentence, err := buf.ReadBytes('\n')
+					sentence, _, _ := buf.ReadLine()
 
 					if err != nil {
 						fmt.Println(err)
 					} else {
 						fill = string(sentence)
-						fmt.Println("       > Enter Color")
 						buf := bufio.NewReader(os.Stdin)
-						sentence, err := buf.ReadBytes('\n')
+						fmt.Println("       > Enter Color")
+
+						sentence, _, _ := buf.ReadLine()
 
 						if err != nil {
 							fmt.Println(err)
@@ -184,7 +190,6 @@ func main() {
 	if checkError(err) != nil {
 		return
 	}
-
 
 	// Add another line.
 	//	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 5 0", "transparent", "blue")
