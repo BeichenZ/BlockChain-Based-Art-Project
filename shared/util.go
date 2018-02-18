@@ -490,3 +490,73 @@ func IsClosedShapeAndGetVtx(op SingleOp) (IsClosed bool, vtxArray []Point, edgeA
 		return true, vtxArr[:uniqueVtxCount], edgeArr // the last "nextVtx" will be an overlapping of the staring point
 	}
 }
+
+func IsSvgStringParsable_Parse_Cir(svgStr string) (isValid bool, Op CircleMov) {
+	// Valid svgString for circle: "cx 100 cy r 6"
+	regex_1 := regexp.MustCompile("cx[\\s]([-]*[0-9]+)")
+	regex_2 := regexp.MustCompile("cy[\\s]([-]*[0-9]+)")
+	regex_3 := regexp.MustCompile("r[\\s]([-]*[0-9]+)")
+
+	var mov CircleMov
+	var matches []string
+	var thisRune rune
+	strCnt := len(svgStr)
+
+	if strCnt < 3 {
+		return false, mov
+	}
+
+	for i := 0; i < strCnt; i = i {
+		thisRune = rune(svgStr[i])
+		fmt.Println(thisRune)
+		switch thisRune {
+		case 'r':
+			//fmt.Println("r expression ", regex_3)
+			arr := regex_3.FindStringIndex(svgStr[i:])
+			if arr == nil {
+				return false, mov
+			} else {
+				matches = regex_3.FindStringSubmatch(svgStr[i:])
+				rVal, _ := strconv.Atoi(matches[1])
+				mov.R = float64(rVal)
+				fmt.Println(mov)
+			}
+			i = strCnt
+		case 'c':
+			if rune(svgStr[i+1]) == 'x' {
+				//fmt.Println("cx expression ", regex_1)
+				arr := regex_1.FindStringIndex(svgStr[i:])
+				if arr == nil {
+					return
+				} else {
+					matches = regex_1.FindStringSubmatch(svgStr[i:])
+					xVal, _ := strconv.Atoi(matches[1])
+					mov.Cx = float64(xVal)
+					i = i + arr[1] + 1
+				}
+			} else {
+				//fmt.Println("cy expression ", regex_2)
+				arr := regex_2.FindStringIndex(svgStr[i:])
+				if arr == nil {
+					return
+				} else {
+					matches = regex_2.FindStringSubmatch(svgStr[i:])
+					yVal, _ := strconv.Atoi(matches[1])
+					mov.Cy = float64(yVal)
+					i = i + arr[1] + 1
+				}
+			}
+		default:
+			return false, mov
+			fmt.Println("IsSvgStringParsable_Parse_Cir() Invalid parse")
+		}
+
+	}
+	if (mov.Cx>=0) && (mov.Cy>=0) && (mov.R>0){
+		return true, mov
+	}
+	fmt.Println("IsSvgStringParsable_Parse_cir() circle feils are neg")
+	return false, mov
+		
+
+}

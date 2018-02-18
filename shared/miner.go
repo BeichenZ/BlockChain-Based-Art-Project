@@ -95,6 +95,11 @@ type SingleMov struct {
 	Y      float64
 	ValCnt int
 }
+type CircleMov struct {
+	Cx 		float64
+	Cy 		float64
+	R  		float64
+}
 
 // One operation contains multiple movs
 type SingleOp struct {

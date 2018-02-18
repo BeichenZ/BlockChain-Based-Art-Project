@@ -4,12 +4,21 @@ import (
 	"crypto/ecdsa"
 	"math/big"
 	"fmt"
+	
+)
+type ShapeType int
+const (
+	// Path shape.
+	PATH ShapeType = iota
+	CIRCLE
+	// Circle shape (extra credit).
+	
 )
 
 type Operation struct {
 	Command        string
 	AmountOfInk    uint32
-	Shapetype      string
+	Shapetype      ShapeType
 	ShapeSvgString string
 	Fill           string
 	Stroke         string
