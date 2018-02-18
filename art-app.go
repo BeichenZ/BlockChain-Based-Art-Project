@@ -18,18 +18,22 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
 
 	"./blockartlib"
+	shared "./shared"
 	// shared "./shared"
 	//"encoding/gob"
+	"bufio"
 	"encoding/gob"
 )
 
+var globalCanvas blockartlib.Canvas
+
 func GetListOfOps(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("hit the end point")
 	//longestChain := getLongestPath(m.BlockChain)
 	//resultArr := make([]FullSvgInfo, 0)
 	//for _, block := range longestChain {
@@ -41,7 +45,6 @@ func GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	//		})
 	//	}
 	//}
-	fmt.Println("hit endpoint")
 	//var resultArr []shared.FullSvgInfo
 	//resultArr = append(resultArr, shared.FullSvgInfo{
 	//	Path:   "M 10 10 h 10 v 10 h -10 v -10",
@@ -51,11 +54,16 @@ func GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	//	Path:   "M 100 100 l 400 400",
 	//	Fill:   "transparent",
 	//	Stroke: "red"}) //Kinked line,
-	s, err := json.Marshal(blockartlib.BlockChain)
+	var response []shared.FullSvgInfo
+	if len(blockartlib.BlockChain) == 0 {
+		response = make([]shared.FullSvgInfo, 0)
+	} else {
+		response = blockartlib.BlockChain
+	}
+	s, err := json.Marshal(response)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(s)
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
@@ -68,6 +76,29 @@ func GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	//Write json response back to response
 	w.Write(s)
 }
+
+func ArtNodeAddshape(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
+	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	w.Header().Set(
+		"Access-Control-Allow-Headers",
+		"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization",
+	)
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.WriteHeader(http.StatusOK)
+	if r.Method == "POST" {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "Error reading request body", http.StatusInternalServerError)
+		}
+		globalCanvas.AddShape(2, shared.CIRCLE, "cx 10 cy 10 r 8", "transparent", "red")
+		fmt.Println(string(body))
+	} else {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+	}
+}
+
 func main() {
 	gob.Register(&elliptic.CurveParams{})
 	minerAddr := "127.0.0.1:39865" // hardcoded for now
@@ -80,7 +111,7 @@ func main() {
 
 	// 	// Open a canvas.
 	canvas, settings, err := blockartlib.OpenCanvas(*minerAddrP, privKey)
-
+	globalCanvas = canvas
 	pieceOfShit := canvas.(blockartlib.CanvasObject)
 	fmt.Printf("%+v", pieceOfShit.Ptr)
 	fmt.Println("fuck this shit")
@@ -91,7 +122,7 @@ func main() {
 	fmt.Println(port)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/getshapes", GetListOfOps)
-	// mux.HandleFunc("/addshape", inkMinerStruct.addshape)
+	mux.HandleFunc("/addshape", ArtNodeAddshape)
 
 	go http.ListenAndServe(":5000", mux)
 
@@ -117,22 +148,91 @@ func main() {
 
 	// Add a line.
 
+	for {
+		buf := bufio.NewReader(os.Stdin)
+		var svgString string
+		var fill string
+		var color string
+		var path shared.ShapeType
+		fmt.Println("> Press A : Add Shape")
+		sentence, err := buf.ReadByte()
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			command := string(sentence)
+			fmt.Println(command == "A")
+			if command == "A" {
+				buf := bufio.NewReader(os.Stdin)
+				fmt.Println("       > Enter the SVG string")
+
+				sentence, _, _ := buf.ReadLine()
+
+				if err != nil {
+					fmt.Println(err)
+				} else {
+
+					svgString = string(sentence)
+					buf := bufio.NewReader(os.Stdin)
+					fmt.Println("       > Enter fill")
+
+					sentence, _, _ := buf.ReadLine()
+
+					if err != nil {
+						fmt.Println(err)
+					} else {
+						fill = string(sentence)
+						buf := bufio.NewReader(os.Stdin)
+						fmt.Println("       > Enter Color")
+
+						sentence, _, _ := buf.ReadLine()
+
+						if err != nil {
+							fmt.Println(err)
+						} else {
+
+							color = string(sentence)
+							buf := bufio.NewReader(os.Stdin)
+							fmt.Println("      > Enter P for Path or C for Circle")
+							sentence, _ := buf.ReadByte()
+
+							if err != nil {
+								fmt.Println(err)
+							} else {
+								if string(sentence) == "P" {
+									path = shared.PATH
+								} else if string(sentence) == "C" {
+									path = shared.CIRCLE
+								} else {
+									fmt.Println("Incorrect options")
+								}
+							}
+
+							fmt.Println("DRAWING ======================")
+							_, _, _, err = canvas.AddShape(2, path, svgString, fill, color)
+							if err != nil {
+								fmt.Println(err)
+							}
+
+						}
+					}
+
+				}
+
+			}
+		}
+
+	}
+
 	fmt.Println("ADDING SHAPES+++++")
 
-	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 0 0 l 10 10", "transparent", "red")
-	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 2 9 l 10 10", "transparent", "blue")
-	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 20 90 l 10 10", "transparent", "green")
-	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 21 98 l 10 10", "transparent", "black")
+	// _, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 0 0 l 10 10", "transparent", "red")
+	// _, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 2 9 l 10 10", "transparent", "blue")
+	// _, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 20 90 l 10 10", "transparent", "green")
+	// _, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 21 98 l 10 10", "transparent", "black")
 
 	if checkError(err) != nil {
 		return
 	}
-
-	for {
-
-	}
-
-	return
 
 	// Add another line.
 	//	shapeHash2, blockHash2, ink2, err := canvas.AddShape(validateNum, blockartlib.PATH, "M 0 0 L 5 0", "transparent", "blue")

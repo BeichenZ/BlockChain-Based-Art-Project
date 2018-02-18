@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import SVG from './components/SVG'
+import Circle from './components/Circle'
 import Head from 'next/head';
 
 
@@ -45,11 +46,20 @@ class BlockartSVG extends Component {
 
   renderSVG = () => {
     const svgs = this.state.paths.map((svg, index) => {
-      return (
-        <span>
-          <SVG id={index} d={svg.Path} fill={svg.Fill} stroke={svg.Stroke}/>
-        </span>
-      )
+      if (svg.Path[0] == "c") {
+        const circleArr = svg.Path.split(" ")
+        return (
+          <span>
+            <Circle id={index} cx={circleArr[1]} cy={circleArr[3]} r={circleArr[5]} fill={svg.Fill} stroke={svg.Stroke}/>
+          </span>
+        )
+      } else {
+        return (
+          <span>
+            <SVG id={index} d={svg.Path} fill={svg.Fill} stroke={svg.Stroke}/>
+          </span>
+        )
+      }
     });
     return svgs
   }
