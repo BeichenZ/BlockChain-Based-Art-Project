@@ -245,7 +245,9 @@ func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 	//For operation from different miner, check for overlapping
 
 	svgString := (*op).ShapeSvgString
+	fmt.Println("svgString:", svgString)
 	newsvgFill := (*op).Fill
+	fmt.Println("newSvgFill:", newsvgFill)
 	//svgStroke := (*op).Stroke
 	newsvgArea := (*op).AmountOfInk
 	svgPrivateKey_ptr := (*op).Issuer
@@ -271,8 +273,10 @@ func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 BlockLoop:
 	for indexB, tarBlock := range longestChainArr_Invt {
 		if len(tarBlock.CurrentOPs) == 0 { //Check Genesis Block
+			fmt.Println("Meet Genesis Block")
 			continue BlockLoop
 		} else if tarBlock.CurrentOPs[0].ShapeSvgString == "no-op" {
+			fmt.Println("Meet Noop Block")
 			continue BlockLoop
 		}
 	OperationLoop:
@@ -297,6 +301,7 @@ BlockLoop:
 			//Handle Two ops are from same public key.Dont check if it's same
 			if tarOp.Issuer != nil && svgPrivateKey_ptr != nil {
 				if reflect.DeepEqual(*(tarOp.Issuer), *svgPrivateKey_ptr) {
+					fmt.Println("TwoOperationFromSame Miner, Dont check")
 					continue OperationLoop
 				}
 			}
