@@ -23,25 +23,25 @@ import (
 	"strings"
 
 	"./blockartlib"
-	shared "./shared"
+	// shared "./shared"
 	//"encoding/gob"
 	"encoding/gob"
 )
 
 func GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("hit the end point")
-	 //longestChain := getLongestPath(m.BlockChain)
-	 //resultArr := make([]FullSvgInfo, 0)
-	 //for _, block := range longestChain {
-	 //	for _, op := range block.CurrentOPs {
-	 //		resultArr = append(resultArr, FullSvgInfo{
-	 //			Path:   op.ShapeSvgString,
-	 //			Fill:   op.Fill,
-	 //			Stroke: op.Stroke,
-	 //		})
-	 //	}
-	 //}
-	 fmt.Println("hit endpoint")
+	//longestChain := getLongestPath(m.BlockChain)
+	//resultArr := make([]FullSvgInfo, 0)
+	//for _, block := range longestChain {
+	//	for _, op := range block.CurrentOPs {
+	//		resultArr = append(resultArr, FullSvgInfo{
+	//			Path:   op.ShapeSvgString,
+	//			Fill:   op.Fill,
+	//			Stroke: op.Stroke,
+	//		})
+	//	}
+	//}
+	fmt.Println("hit endpoint")
 	//var resultArr []shared.FullSvgInfo
 	//resultArr = append(resultArr, shared.FullSvgInfo{
 	//	Path:   "M 10 10 h 10 v 10 h -10 v -10",
@@ -120,6 +120,10 @@ func main() {
 	fmt.Println("ADDING SHAPES+++++")
 
 	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 0 0 l 10 10", "transparent", "red")
+	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 2 9 l 10 10", "transparent", "blue")
+	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 20 90 l 10 10", "transparent", "green")
+	_, _, _, err = canvas.AddShape(2, blockartlib.PATH, "M 21 98 l 10 10", "transparent", "black")
+
 	if checkError(err) != nil {
 		return
 	}

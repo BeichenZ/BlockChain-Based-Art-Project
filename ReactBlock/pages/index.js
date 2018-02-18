@@ -18,7 +18,7 @@ class BlockartSVG extends Component {
   }
 
   periodicFetchSVG = () => {
-    fetch("http://104.42.142.9:5000/getshapes", {
+    fetch("http://localhost:5000/getshapes", {
       method: 'GET'
     })
     .then(res => res.json())
