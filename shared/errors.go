@@ -83,5 +83,11 @@ func (e TimedOutTooLongError) Error() string {
 	return fmt.Sprintf("This Operation Takes too long [%s]", string(e))
 }
 
+type InvalidKeyError string
+func (e InvalidKeyError) Error() string {
+	return fmt.Sprintf("Invalid Private or Public key [%s]", string(e))
+}
+
+
 // </ERROR DEFINITIONS>
 ////////////////////////////////////////////////////////////////////////////////////////////

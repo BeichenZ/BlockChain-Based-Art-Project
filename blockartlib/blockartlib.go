@@ -16,6 +16,8 @@ import (
 	"runtime"
 
 	shared "../shared"
+	cr "crypto/rand"
+
 )
 
 // Represents a type of shape in the BlockArt system.
@@ -158,6 +160,18 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 	CheckError(err)
 	fmt.Println("Connected  to Miner")
 
+
+	// Check if given key matches Miner key pair
+	artNodeMsg := []byte("Art node wants to connect")
+	r, s, err := ecdsa.Sign(cr.Reader, &privKey, artNodeMsg)
+	CheckError(err)
+	var ank = shared.ArtnodeVer{
+		Msg: artNodeMsg,
+		Ra:  r,
+		Sa:  s,
+	}
+
+
 	// Art Node Sets up Listening Port for Miner
 	artListenConn, err := net.Listen("tcp", "127.0.0.1:")
 	CheckError(err)
@@ -181,9 +195,9 @@ func OpenCanvas(minerAddr string, privKey ecdsa.PrivateKey) (canvas Canvas, sett
 
 	// see if the Miner key matches the one you have
 	var reply bool
-	Key := "test"
+	//Key := "test"
 	fmt.Println("GOING TO CALL ARTNODEKEYCHECK")
-	err = art2MinerCon.Call("KeyCheck.ArtNodeKeyCheck", Key, &reply)
+	err = art2MinerCon.Call("KeyCheck.ArtNodeKeyCheck", ank, &reply)
 	CheckError(err)
 	if reply {
 		fmt.Println("ArtNode has same key as miner")

@@ -138,12 +138,20 @@ func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, thisMinerC
 	}
 	return nil
 }
+type KeyCheck struct {
+	Miner MinerStruct
+}
 
-type KeyCheck int
 
-func (l *KeyCheck) ArtNodeKeyCheck(privKey *string, reply *bool) error {
-	*reply = true
-	fmt.Println("ArtNodeKeyCheck(): Art node connecting with me")
+func (l *KeyCheck) ArtNodeKeyCheck(anm ArtnodeVer, validKey *bool) error {
+	fmt.Println("ArtNodeKeyCheck() Going to check key")
+	if !ecdsa.Verify(&l.Miner.PairKey.PublicKey, anm.Msg, anm.Ra, anm.Sa) {
+		fmt.Printf("Error key aint same")
+		*validKey = false
+		return nil
+	}
+	fmt.Printf("key is same message is ",anm.Msg )
+	*validKey = true
 
 	return nil
 }

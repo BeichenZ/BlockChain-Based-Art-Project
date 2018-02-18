@@ -8,6 +8,8 @@ import (
 	"net/rpc"
 	//"time"
 	"log"
+	"math/big"
+
 )
 
 type ArtNodeStruct struct {
@@ -15,6 +17,13 @@ type ArtNodeStruct struct {
 	PairKey   ecdsa.PrivateKey
 	AmConn    *rpc.Client
 }
+
+type ArtnodeVer struct {
+	Msg []byte
+	Ra *big.Int
+	Sa *big.Int
+}
+
 
 type InitialCanvasSetting struct {
 	Cs            CanvasSettings
