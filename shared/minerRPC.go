@@ -156,6 +156,17 @@ type ArtNodeOpReg struct {
 }
 
 func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
+	//Sign the operation
+	r, s, err := ecdsa.Sign(rand.Reader, &l.Miner.PairKey, []byte((*op).ShapeSvgString))
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	op.Issuer = &l.Miner.PairKey
+	op.IssuerR = r
+	op.IssuerS = s
+	fmt.Println(pubKeyToString(op.Issuer.PublicKey))
 	//reply decode: 0->Success,1->insufficientInk, 2->OverlappedShape
 	// Check InsufficientInkError
 	fmt.Println("STARTING MINING+++++++++++++++++")
@@ -194,17 +205,6 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 
 	fmt.Println(op.Command)
 
-	// Sign the Operation
-	r, s, err := ecdsa.Sign(rand.Reader, &l.Miner.PairKey, []byte((*op).ShapeSvgString))
-
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	op.Issuer = &l.Miner.PairKey
-	op.IssuerR = r
-	op.IssuerS = s
-	fmt.Println(pubKeyToString(op.Issuer.PublicKey))
 	go func() {
 		l.Miner.RecievedArtNodeSig <- *op
 	}()
@@ -243,6 +243,7 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 	//For operation from same miner , do not check
 	//For operation from different miner, check for overlapping
+
 	svgString := (*op).ShapeSvgString
 	newsvgFill := (*op).Fill
 	//svgStroke := (*op).Stroke
@@ -255,7 +256,6 @@ func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 	var tarvtxArr []Point
 	var taredgeArr []LineSectVector
 	isTwoOverLap := false
-	isAtLeastOneOpBlock := false
 	//Below Two varialbe is to prevent the siutation of add->delete->false conflict situation
 	var Block_OP_IndexArr []Block_OP_Index //Record all the conflicting shape and check if they have been deleted
 	//Store number of such pair happens, No one should appear even numbers
@@ -277,7 +277,6 @@ BlockLoop:
 		}
 	OperationLoop:
 		for indexO, tarOp := range tarBlock.CurrentOPs {
-			isAtLeastOneOpBlock = true
 			//HandleDelete Operation.Not counted
 			if tarOp.Draw == false {
 				deletedIndex := Block_OP_Index{indexB, indexO}
@@ -327,12 +326,12 @@ BlockLoop:
 	}
 
 	//Check if the any of the conflicting shape has actually be deleted
-	if len(Block_OP_IndexArr) == 0 && isAtLeastOneOpBlock {
+	if len(Block_OP_IndexArr) == 0 {
 		//fmt.Println("One of OverLapped String Pair is", svgString, "and", longestChainArr_Invt[Block_OP_IndexArr[0].IndexB].CurrentOPs[Block_OP_IndexArr[0].IndexO].ShapeSvgString)
-		return true
+		return false
 	} else {
 		//Only preint out the very first conflicted array
-		return false
+		return true
 	}
 }
 func IsShapeOverLapWithOthers_Cir(cop *Operation, l *ArtNodeOpReg) bool {

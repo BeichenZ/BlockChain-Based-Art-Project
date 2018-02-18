@@ -121,9 +121,9 @@ func ParseBlockChain(thisBlock BlockPayloadStruct) *Block {
 		x = &big.Int{}
 		y = &big.Int{}
 	}
-	fmt.Println(thisBlock.SolverPublicKey)
-	fmt.Println(x)
-	fmt.Println(y)
+	// fmt.Println(thisBlock.SolverPublicKey)
+	// fmt.Println(x)
+	// fmt.Println(y)
 	producedBlock := &Block{
 		CurrentHash:       thisBlock.CurrentHash,
 		PreviousHash:      thisBlock.PreviousHash,
@@ -475,8 +475,8 @@ func IsClosedShapeAndGetVtx(op SingleOp) (IsClosed bool, vtxArray []Point, edgeA
 		if curVtx != preVtx {
 			return false, vtxArr, edgeArr
 		} else {
-			vtxArr = append(vtxArr, curVtx)
-			vtxArr = append(vtxArr, nextVtx)
+			//vtxArr = append(vtxArr, curVtx)
+			//vtxArr = append(vtxArr, nextVtx)
 			preVtx = nextVtx
 		}
 	}
