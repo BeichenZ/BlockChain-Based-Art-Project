@@ -397,7 +397,7 @@ func IsSvgStringParsable_Parse(svgStr string) (isValid bool, Op SingleOp) {
 				fmt.Println("ML update next index is", arr[0], arr[1])
 				i = i + arr[1] + 1
 			}
-		case 'v', 'V', 'H', 'h':
+		case 'H', 'h':
 			arr := regex_1.FindStringIndex(svgStr[i:])
 			fmt.Println("VH update next index is", arr[0], arr[1])
 			if arr == nil {
@@ -409,6 +409,19 @@ func IsSvgStringParsable_Parse(svgStr string) (isValid bool, Op SingleOp) {
 				parsedOp.MovList = append(parsedOp.MovList, oneMov)
 				i = i + arr[1] + 1
 			}
+		case 'v', 'V':
+			arr := regex_1.FindStringIndex(svgStr[i:])
+			fmt.Println("VH update next index is", arr[0], arr[1])
+			if arr == nil {
+				return false, parsedOp
+			} else {
+				matches = regex_1.FindStringSubmatch(svgStr[i:])
+				intVal1, _ := strconv.Atoi(matches[2])
+				oneMov = SingleMov{Cmd: rune(thisRune), X: 0, Y: float64(intVal1), ValCnt: 1}
+				parsedOp.MovList = append(parsedOp.MovList, oneMov)
+				i = i + arr[1] + 1
+			}
+
 		case 'Z', 'z':
 			oneMov := SingleMov{Cmd: rune(thisRune), ValCnt: 0}
 			parsedOp.MovList = append(parsedOp.MovList, oneMov)
@@ -438,10 +451,28 @@ func IsClosedShapeAndGetVtx(op SingleOp) (IsClosed bool, vtxArray []Point, edgeA
 	originalStart.Y = op.MovList[0].Y
 	for _, element := range op.MovList {
 		switch element.Cmd {
-		case 'M', 'V', 'H', 'L':
+		case 'M', 'L':
 			preVtx = curVtx
 			curVtx.X = element.X
 			curVtx.Y = element.Y
+			if element.Cmd != 'M' {
+				edgeArr = append(edgeArr, LineSectVector{preVtx, curVtx}) //add new line segment
+			} else {
+				lastSubPathStart = curVtx // prepare for potential Z/z command
+			}
+			vtxArr = append(vtxArr, curVtx) // add new vertex
+		case 'V':
+			preVtx = curVtx
+			curVtx.Y = element.Y
+			if element.Cmd != 'M' {
+				edgeArr = append(edgeArr, LineSectVector{preVtx, curVtx}) //add new line segment
+			} else {
+				lastSubPathStart = curVtx // prepare for potential Z/z command
+			}
+			vtxArr = append(vtxArr, curVtx) // add new vertex
+		case 'H':
+			preVtx = curVtx
+			curVtx.X = element.X
 			if element.Cmd != 'M' {
 				edgeArr = append(edgeArr, LineSectVector{preVtx, curVtx}) //add new line segment
 			} else {

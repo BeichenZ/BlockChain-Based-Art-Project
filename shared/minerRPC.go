@@ -138,10 +138,10 @@ func (m *MinerRPCServer) MinerRegister(MinerNeighbourPayload *string, thisMinerC
 	}
 	return nil
 }
+
 type KeyCheck struct {
 	Miner MinerStruct
 }
-
 
 func (l *KeyCheck) ArtNodeKeyCheck(anm ArtnodeVer, validKey *bool) error {
 	fmt.Println("ArtNodeKeyCheck() Going to check key")
@@ -150,7 +150,7 @@ func (l *KeyCheck) ArtNodeKeyCheck(anm ArtnodeVer, validKey *bool) error {
 		*validKey = false
 		return nil
 	}
-	fmt.Printf("key is same message is ",anm.Msg )
+	fmt.Printf("key is same message is ", anm.Msg)
 	*validKey = true
 
 	return nil
