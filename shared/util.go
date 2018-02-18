@@ -220,6 +220,30 @@ func findDeepestBlocks(b *Block, depth int) (*Block, int) {
  	}
  }
 
+ func FilterBlockChain(prevChain  []InfoBlock) []FullSvgInfo{
+
+ 	filteredChain := make([]FullSvgInfo, 0)
+
+
+ 	for _, b := range prevChain {
+
+ 		for _ , operation := range b.ListOperations {
+ 			if operation.ShapeSvgString == "no-op" {
+ 				continue
+			}
+			tmpInfoBlock := FullSvgInfo{}
+
+			tmpInfoBlock.Fill = operation.Fill
+			tmpInfoBlock.Path = operation.ShapeSvgString
+			tmpInfoBlock.Stroke = operation.Stroke
+			filteredChain = append(filteredChain, tmpInfoBlock)
+		}
+	}
+
+	return filteredChain
+
+ }
+
 func getLongestPath(b *Block) []Block {
 	if b == nil {
 		return nil

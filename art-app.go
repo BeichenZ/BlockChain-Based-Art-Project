@@ -30,28 +30,28 @@ import (
 
 func GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("hit the end point")
-	// longestChain := getLongestPath(m.BlockChain)
-	// resultArr := make([]FullSvgInfo, 0)
-	// for _, block := range longestChain {
-	// 	for _, op := range block.CurrentOPs {
-	// 		resultArr = append(resultArr, FullSvgInfo{
-	// 			Path:   op.ShapeSvgString,
-	// 			Fill:   op.Fill,
-	// 			Stroke: op.Stroke,
-	// 		})
-	// 	}
-	// }
-	// fmt.Println("hit endpoint")
-	var resultArr []shared.FullSvgInfo
-	resultArr = append(resultArr, shared.FullSvgInfo{
-		Path:   "M 10 10 h 10 v 10 h -10 v -10",
-		Fill:   "red",
-		Stroke: "black"}) //square
-	resultArr = append(resultArr, shared.FullSvgInfo{
-		Path:   "M 100 100 l 400 400",
-		Fill:   "transparent",
-		Stroke: "red"}) //Kinked line,
-	s, err := json.Marshal(resultArr)
+	 //longestChain := getLongestPath(m.BlockChain)
+	 //resultArr := make([]FullSvgInfo, 0)
+	 //for _, block := range longestChain {
+	 //	for _, op := range block.CurrentOPs {
+	 //		resultArr = append(resultArr, FullSvgInfo{
+	 //			Path:   op.ShapeSvgString,
+	 //			Fill:   op.Fill,
+	 //			Stroke: op.Stroke,
+	 //		})
+	 //	}
+	 //}
+	 fmt.Println("hit endpoint")
+	//var resultArr []shared.FullSvgInfo
+	//resultArr = append(resultArr, shared.FullSvgInfo{
+	//	Path:   "M 10 10 h 10 v 10 h -10 v -10",
+	//	Fill:   "red",
+	//	Stroke: "black"}) //square
+	//resultArr = append(resultArr, shared.FullSvgInfo{
+	//	Path:   "M 100 100 l 400 400",
+	//	Fill:   "transparent",
+	//	Stroke: "red"}) //Kinked line,
+	s, err := json.Marshal(blockartlib.BlockChain)
 	if err != nil {
 		panic(err)
 	}
