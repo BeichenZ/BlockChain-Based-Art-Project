@@ -44,6 +44,8 @@ type LongestBlockStruct struct {
 
 type InfoBlock struct {
 	ListOperations []Operation
+	PreviousHash   string
+	CurrentHash   string
 }
 
 type SyncAddBlock struct {

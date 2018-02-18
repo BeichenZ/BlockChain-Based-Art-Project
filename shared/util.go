@@ -191,34 +191,34 @@ func findDeepestBlocks(b *Block, depth int) (*Block, int) {
 	}
 }
 
-// func getLongestPathForArtNode(b *Block) []InfoBlock {
-// 	if b == nil {
-// 		return nil
-// 	}
-//
-// 	if len(b.Children) == 0 {
-// 		tmpInfoBlock := InfoBlock{ListOperations: b.CurrentOPs}
-// 		return []InfoBlock{tmpInfoBlock}
-// 	} else {
-// 		longestBlockChain := make([]InfoBlock, 0)
-// 		b.
-// 		deepestBlock, _ := findDeepestBlocks(b, 0)
-// 		tmpInfoBlock := InfoBlock{ListOperations: deepestBlock.CurrentOPs}
-// 		longestBlockChain = append(longestBlockChain, tmpInfoBlock)
-// 		nthBlock := deepestBlock
-//
-// 		for nthBlock.PreviousHash != "" {
-//
-// 			foundBlock := findBlockUsingHash(nthBlock.PreviousHash, b)
-// 			tmpInfoBlock := InfoBlock{ListOperations: foundBlock.CurrentOPs}
-//
-// 			longestBlockChain = append(longestBlockChain, tmpInfoBlock)
-// 			nthBlock = foundBlock
-// 		}
-//
-// 		return longestBlockChain
-// 	}
-// }
+ func GetLongestPathForArtNode(b *Block) []InfoBlock {
+ 	if b == nil {
+ 		return nil
+ 	}
+
+ 	if len(b.Children) == 0 {
+ 		tmpInfoBlock := InfoBlock{ListOperations: b.CurrentOPs}
+ 		return []InfoBlock{tmpInfoBlock}
+ 	} else {
+ 		longestBlockChain := make([]InfoBlock, 0)
+
+ 		deepestBlock, _ := findDeepestBlocks(b, 0)
+ 		tmpInfoBlock := InfoBlock{ListOperations: deepestBlock.CurrentOPs, CurrentHash: deepestBlock.CurrentHash, PreviousHash: deepestBlock.PreviousHash}
+ 		longestBlockChain = append(longestBlockChain, tmpInfoBlock)
+ 		nthBlock := deepestBlock
+
+ 		for nthBlock.PreviousHash != "" {
+
+ 			foundBlock := findBlockUsingHash(nthBlock.PreviousHash, b)
+ 			tmpInfoBlock := InfoBlock{ListOperations: foundBlock.CurrentOPs, PreviousHash: foundBlock.PreviousHash, CurrentHash: foundBlock.CurrentHash}
+
+ 			longestBlockChain = append(longestBlockChain, tmpInfoBlock)
+ 			nthBlock = foundBlock
+ 		}
+
+ 		return longestBlockChain
+ 	}
+ }
 
 func getLongestPath(b *Block) []Block {
 	if b == nil {
@@ -258,6 +258,18 @@ func PrintBlock(m *Block) {
 	for _, c := range m.Children {
 		PrintBlock(c)
 	}
+}
+
+
+func PrintBlockChainForArtNode(chain []InfoBlock) {
+
+	fmt.Printf("DEEPEST NODE ")
+	for _, b := range chain {
+		fmt.Printf(b.CurrentHash[0:5] + " -> ")
+	}
+	fmt.Printf(" GENESIS")
+
+	fmt.Println()
 }
 
 func printBlockChain(chain []Block) {

@@ -23,6 +23,7 @@ type ShapeType int
 
 
 var BlockTree *shared.Block
+var BlockChain []shared.InfoBlock
 
 const (
 	// Path shape.
@@ -271,6 +272,10 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 		// ASK for the tree from Miner node
 		blk, err := t.Ptr.ArtNode.GetBlockTreeFromMiner()
 		BlockTree = blk
+		infoBlocks := shared.GetLongestPathForArtNode(blk)
+		BlockChain = infoBlocks
+		shared.PrintBlockChainForArtNode(BlockChain)
+
 		//TODO: Shape,Block,InkRemaining
 		return "", "", 0, err
 	} else {
