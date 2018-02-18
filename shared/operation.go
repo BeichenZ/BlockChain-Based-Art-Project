@@ -7,6 +7,13 @@ import (
 	
 )
 type ShapeType int
+const (
+	// Path shape.
+	PATH ShapeType = iota
+	CIRCLE
+	// Circle shape (extra credit).
+	
+)
 
 type Operation struct {
 	Command        string

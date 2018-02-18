@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/rpc"
 	"time"
+	"math"
 )
 
 type Block_OP_Index struct {
@@ -154,13 +155,26 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 		return nil
 	}
 	// Check ShapeOverlapError
-	/*
+	switch op.Shapetype{
+		case PATH:
+			/*
 		if isOverLap := IsShapeOverLapWithOthers(op,l); isOverLap {
 			fmt.Println("OverLapped Shape for shape string:", (*op).Command)
 			*reply = 2
 			return nil
 		}
 	*/
+		case CIRCLE:
+			if IsShapeOverLapWithOthers_Cir(op , l){
+			*reply=2
+			return nil}
+		default: 
+				*reply = 4
+				return nil
+
+	}
+	
+
 	fmt.Println(op.Command)
 
 	// Sign the Operation
@@ -251,7 +265,57 @@ func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 	*/
 	return true
 }
+func IsShapeOverLapWithOthers_Cir(cop *Operation, l *ArtNodeOpReg) bool {
+		minerCopy := *(l.Miner)
+		longestChainArr := getLongestPath(minerCopy.BlockChain)
+		var isOverLapped bool
+		_, curCircleParsed := IsSvgStringParsable_Parse_Cir(cop.ShapeSvgString)
+		for _, b := range longestChainArr {
+			for _, ob := range b.CurrentOPs{
+				if ob.ShapeSvgString != "no-op"{
+				switch ob.Shapetype{
+					case PATH:
+						_, tarSvgOp := IsSvgStringParsable_Parse(ob.ShapeSvgString)
+						tartSvgOp_IsClosed, tarvtxArr, taredgeArr := IsClosedShapeAndGetVtx(tarSvgOp)
+						if ((ob.Fill == "transparent") || (ob.Fill == "none")) && ((cop.Fill == "transparent") || (cop.Fill == "none"))  { // Circle and Path are transparent ----> Compare only edges intersections
+							// check the intersections of edges
+							isOverLapped=IsPerimeterOverlapPoints_Cir(curCircleParsed, tarvtxArr) // overlap with points
+							if !isOverLapped{return isOverLapped}
+							// overlap check with edges
+							isOverLapped=IsPerimeterOverlapEdges_Cir(curCircleParsed, taredgeArr)
+							if !isOverLapped{return isOverLapped}
+						}
 
+					case CIRCLE:
+				}
+
+
+			}
+									}
+		}
+		return isOverLapped
+}
+
+func IsPerimeterOverlapPoints_Cir(c CircleMov, tarvtxArr []Point) bool {
+	for _,p :=range tarvtxArr{
+		if math.Pow((p.X - c.Cx),2) - math.Pow((p.X - c.Cx),2) == math.Pow(c.R,2){
+			return true
+		}
+
+	}
+	return false
+	
+}
+func IsPerimeterOverlapEdges_Cir(c CircleMov, taredgeArr []LineSectVector) bool {
+	for _,l :=range taredgeArr{
+		x1:=l.Start.X; y1:=l.Start.Y;
+		x2:=l.End.X;   y2:=l.End.Y;
+		d:= (math.Abs((x2-x1)*c.Cx + (y1-y2)*c.Cy + (x1-x2)*c.Cy + (y2-y1)*c.Cx))/ math.Sqrt(math.Pow(x2-x1,2) + math.Pow(y1-y2,2))
+		if d<c.R {return true}
+	}
+	return false
+	
+}
 func (l *ArtNodeOpReg) ArtnodeInkRequest(s string, remainInk *uint32) error {
 	*remainInk = l.Miner.GetInkBalance()
 	return nil
