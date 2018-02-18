@@ -23,6 +23,17 @@ func (e BadBlockError) Error() string {
 	return fmt.Sprintf("BAD BLOCK")
 }
 
+
+func (l *ArtNodeOpReg) GiveMeBlockTree(reply *bool, recievedBlock *BlockPayloadStruct) error {
+
+	thisMinerBlockChain := CopyBlockChainPayload(l.Miner.BlockChain)
+	*recievedBlock = thisMinerBlockChain
+
+
+	return nil
+}
+
+
 func (m *MinerRPCServer) SendChain(s string, blockChain *BlockPayloadStruct) error {
 	log.Println(s + "============================================================")
 	thisMinerBlockChain := CopyBlockChainPayload(m.Miner.BlockChain)

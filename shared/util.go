@@ -246,7 +246,7 @@ func getLongestPath(b *Block) []Block {
 	}
 }
 
-func printBlock(m *Block) {
+func PrintBlock(m *Block) {
 
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	if m.PreviousHash == "" {
@@ -256,7 +256,7 @@ func printBlock(m *Block) {
 		fmt.Println(m.CurrentHash[0:5] + " has this " + strconv.Itoa(len(m.Children)) + " children and its parent is " + m.PreviousHash[0:5])
 	}
 	for _, c := range m.Children {
-		printBlock(c)
+		PrintBlock(c)
 	}
 }
 

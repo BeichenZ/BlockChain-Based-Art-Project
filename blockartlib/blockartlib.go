@@ -264,8 +264,13 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 	}
 	addSuccess, err := t.Ptr.ArtNode.ArtnodeOp(newOP) // fn needs to return boolean
 	if addSuccess {
+
+		// ASK for the tree from Miner node
+		blk, err := t.Ptr.ArtNode.GetBlockTreeFromMiner()
+
+		shared.PrintBlock(blk)
 		//TODO: Shape,Block,InkRemaining
-		return "", "", 0, nil
+		return "", "", 0, err
 	} else {
 		return "", "", 0, err
 	}

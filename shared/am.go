@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/rpc"
 	//"time"
+	"log"
 )
 
 type ArtNodeStruct struct {
@@ -55,6 +56,24 @@ func (a *ArtNodeStruct) ArtnodeOp(op Operation) (validOp bool, err error) {
 	default:
 		return false, nil
 	}
+}
+
+func (a *ArtNodeStruct) GetBlockTreeFromMiner() (*Block, error) {
+
+	receivedBlockChain := BlockPayloadStruct{}
+
+	reply := false
+	err := a.AmConn.Call("ArtNodeOpReg.GiveMeBlockTree", reply, &receivedBlockChain)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+
+
+	thisNewBlock := ParseBlockChain(receivedBlockChain)
+
+	return thisNewBlock, err
 }
 
 func (a *ArtNodeStruct) GetInkBalFromMiner() (uint32, error) {

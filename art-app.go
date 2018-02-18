@@ -25,6 +25,7 @@ import (
 	"./blockartlib"
 	shared "./shared"
 	//"encoding/gob"
+	"encoding/gob"
 )
 
 func GetListOfOps(w http.ResponseWriter, r *http.Request) {
@@ -68,6 +69,7 @@ func GetListOfOps(w http.ResponseWriter, r *http.Request) {
 	w.Write(s)
 }
 func main() {
+	gob.Register(&elliptic.CurveParams{})
 	minerAddr := "127.0.0.1:39865" // hardcoded for now
 	privKey := getKeyPair()        // TODO: use crypto/ecdsa to read pub/priv keys from a file argument.
 	// Remove later
@@ -92,9 +94,7 @@ func main() {
 	// mux.HandleFunc("/addshape", inkMinerStruct.addshape)
 
 	go http.ListenAndServe(":5000", mux)
-	for {
 
-	}
 	if checkError(err) != nil {
 		fmt.Println(err.Error())
 		return
