@@ -168,13 +168,13 @@ func (l *ArtNodeOpReg) DoArtNodeOp(op *Operation, reply *int) error {
 		return nil
 	}
 	// Check ShapeOverlapError
-	/*
-		if isOverLap := IsShapeOverLapWithOthers(op,l); isOverLap {
-			fmt.Println("OverLapped Shape for shape string:", (*op).Command)
-			*reply = 2
-			return nil
-		}
-	*/
+
+	if isOverLap := IsShapeOverLapWithOthers(op, l); isOverLap {
+		fmt.Println("OverLapped Shape for shape string:", (*op).Command)
+		*reply = 2
+		return nil
+	}
+
 	fmt.Println(op.Command)
 
 	// Sign the Operation
@@ -238,6 +238,7 @@ func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 	var tarvtxArr []Point
 	var taredgeArr []LineSectVector
 	isTwoOverLap := false
+	isAtLeastOneOpBlock := false
 	//Below Two varialbe is to prevent the siutation of add->delete->false conflict situation
 	var Block_OP_IndexArr []Block_OP_Index //Record all the conflicting shape and check if they have been deleted
 	//Store number of such pair happens, No one should appear even numbers
@@ -245,13 +246,21 @@ func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 	minerCopy := *(l.Miner)
 	canvasMaxX := minerCopy.Settings.CanvasSettings.CanvasXMax
 	longestChainArr_Invt := getLongestPath(minerCopy.BlockChain)
+	if len(longestChainArr_Invt) < 2 {
+		return false
+	}
 
 	//Loop through Each Block.
+BlockLoop:
 	for indexB, tarBlock := range longestChainArr_Invt {
-		//Loop through Block.Operation
+		if len(tarBlock.CurrentOPs) == 0 { //Check Genesis Block
+			continue BlockLoop
+		} else if tarBlock.CurrentOPs[0].ShapeSvgString == "no-op" {
+			continue BlockLoop
+		}
 	OperationLoop:
 		for indexO, tarOp := range tarBlock.CurrentOPs {
-
+			isAtLeastOneOpBlock = true
 			//HandleDelete Operation.Not counted
 			if tarOp.Draw == false {
 				deletedIndex := Block_OP_Index{indexB, indexO}
@@ -270,8 +279,10 @@ func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 			}
 
 			//Handle Two ops are from same public key.Dont check if it's same
-			if reflect.DeepEqual(*(tarOp.Issuer), *svgPrivateKey_ptr) {
-				continue OperationLoop
+			if tarOp.Issuer != nil && svgPrivateKey_ptr != nil {
+				if reflect.DeepEqual(*(tarOp.Issuer), *svgPrivateKey_ptr) {
+					continue OperationLoop
+				}
 			}
 			//TODO:Handle differently for Circle and Straignt-Line Shape
 			//Initialize Data of Target Shape
@@ -299,11 +310,11 @@ func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 	}
 
 	//Check if the any of the conflicting shape has actually be deleted
-	if len(Block_OP_IndexArr) == 0 {
+	if len(Block_OP_IndexArr) == 0 && isAtLeastOneOpBlock {
+		//fmt.Println("One of OverLapped String Pair is", svgString, "and", longestChainArr_Invt[Block_OP_IndexArr[0].IndexB].CurrentOPs[Block_OP_IndexArr[0].IndexO].ShapeSvgString)
 		return true
 	} else {
 		//Only preint out the very first conflicted array
-		fmt.Println("One of OverLapped String Pair is", svgString, "and", longestChainArr_Invt[Block_OP_IndexArr[0].IndexB].CurrentOPs[Block_OP_IndexArr[0].IndexO].ShapeSvgString)
 		return false
 	}
 }
