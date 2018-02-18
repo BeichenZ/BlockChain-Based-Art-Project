@@ -277,14 +277,17 @@ func IsShapeOverLapWithOthers_Cir(cop *Operation, l *ArtNodeOpReg) bool {
 					case PATH:
 						_, tarSvgOp := IsSvgStringParsable_Parse(ob.ShapeSvgString)
 						tartSvgOp_IsClosed, tarvtxArr, taredgeArr := IsClosedShapeAndGetVtx(tarSvgOp)
-						if ((ob.Fill == "transparent") || (ob.Fill == "none")) && ((cop.Fill == "transparent") || (cop.Fill == "none"))  { // Circle and Path are transparent ----> Compare only edges intersections
-							// check the intersections of edges
+						// basic intersection test
+						// check the intersections of edges
 							isOverLapped=IsPerimeterOverlapPoints_Cir(curCircleParsed, tarvtxArr) // overlap with points
 							if isOverLapped{return isOverLapped}
 							// overlap check with edges
 							isOverLapped=IsPerimeterOverlapEdges_Cir(curCircleParsed, taredgeArr)
 							if isOverLapped{return isOverLapped}
-						}
+							// Circle and Path are transparent -- no intersection
+						if ((ob.Fill == "transparent") || (ob.Fill == "none")) && ((cop.Fill == "transparent") || (cop.Fill == "none")) {return false} 
+						
+
 
 					case CIRCLE:
 						_, tarCir := IsSvgStringParsable_Parse_Cir(ob.ShapeSvgString) 
