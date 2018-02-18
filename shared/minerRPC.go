@@ -232,7 +232,7 @@ func IsShapeOverLapWithOthers(op *Operation, l *ArtNodeOpReg) bool {
 	//Store number of such pair happens, No one should appear even numbers
 
 	minerCopy := *(l.Miner)
-	canvasMaxX := minerCopy.Settings.canvasSettings.CanvasXMax
+	canvasMaxX := minerCopy.Settings.CanvasSettings.CanvasXMax
 	longestChainArr_Invt := getLongestPath(minerCopy.BlockChain)
 
 	//Loop through Each Block.
