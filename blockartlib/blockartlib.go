@@ -21,6 +21,9 @@ import (
 // Represents a type of shape in the BlockArt system.
 type ShapeType int
 
+
+var BlockTree *shared.Block
+
 const (
 	// Path shape.
 	PATH ShapeType = iota
@@ -267,8 +270,7 @@ func (t CanvasObject) AddShape(validateNum uint8, shapeType ShapeType, shapeSvgS
 
 		// ASK for the tree from Miner node
 		blk, err := t.Ptr.ArtNode.GetBlockTreeFromMiner()
-
-		shared.PrintBlock(blk)
+		BlockTree = blk
 		//TODO: Shape,Block,InkRemaining
 		return "", "", 0, err
 	} else {
