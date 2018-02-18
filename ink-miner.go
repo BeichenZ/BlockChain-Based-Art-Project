@@ -27,22 +27,26 @@ func main() {
 	gob.Register(&net.TCPAddr{})
 
 	// Construct minerAddr from flag provided in the terminal
-	minerPort := flag.String("p", "", "RPC server ip:port")
-	servAddr := flag.String("sa", "", "Server ip address")
-	pubKeyStr := flag.String("pubk", "", "a string")
-	privKeyStr := flag.String("privk", "", "a string")
+	//minerPort := flag.String("p", "", "RPC server ip:port")
+	//servAddr := flag.String("sa", "", "Server ip address")
+	//pubKeyStr := flag.String("pubk", "", "a string")
+	//privKeyStr := flag.String("privk", "", "a string")
 
+	minerPort := os.Args[1]
+	servAddr := os.Args[2]
+	pubKeyStr := os.Args[3]
+	privKeyStr := os.Args[4]
 
 	flag.Parse()
-	minerAddr := "127.0.0.1:" + *minerPort
+	minerAddr := "127.0.0.1:" + minerPort
 
 	// initialize miner given the server address and its own miner address
-	inkMinerStruct := initializeMiner(*servAddr, minerAddr, *pubKeyStr,*privKeyStr )
+	inkMinerStruct := initializeMiner(servAddr, minerAddr, pubKeyStr,privKeyStr )
 	//globalInkMinerPairKey = inkMinerStruct.PairKey
 	fmt.Println("Miner Key: ", inkMinerStruct.PairKey.X)
 	thisInkMiner = &inkMinerStruct
 	// RPC - Register this miner to the server
-	minerSettings, error := inkMinerStruct.Register(*servAddr, inkMinerStruct.PairKey.PublicKey)
+	minerSettings, error := inkMinerStruct.Register(servAddr, inkMinerStruct.PairKey.PublicKey)
 	if error != nil {
 		fmt.Println(error.Error())
 		os.Exit(0)
